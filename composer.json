@@ -46,5 +46,14 @@
         "hyperf": {
             "config": "Hyperf\\XxlJob\\ConfigProvider"
         }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml --colors=always",
+        "analyse": "phpstan analyse --memory-limit 1024M -l 0 ./src",
+        "cs-fix": "php-cs-fixer fix $1"
     }
 }

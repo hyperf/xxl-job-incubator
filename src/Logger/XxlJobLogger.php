@@ -1,7 +1,14 @@
 <?php
 
 declare(strict_types=1);
-
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 namespace Hyperf\XxlJob\Logger;
 
 use Hyperf\Contract\ConfigInterface;
@@ -80,7 +87,7 @@ class XxlJobLogger
     protected function make($logId): Logger
     {
         $log = new Logger('xxl-job-log');
-        $this->stream = new JobFileHandler($logId, $this->filename,Logger::DEBUG);
+        $this->stream = new JobFileHandler($logId, $this->filename, Logger::DEBUG);
         $fire = new FirePHPHandler();
         $dateFormat = 'Y-m-d H:i:s';
         $output = "%datetime% [%level_name%]: %message%\n";
@@ -89,7 +96,7 @@ class XxlJobLogger
         $log->pushHandler($this->stream);
         $log->pushHandler($fire);
         $maxDayTime = $this->getMaxDayTime();
-        if($this->maxDay > 0 && $this->nextMaxDayTime != $maxDayTime){
+        if ($this->maxDay > 0 && $this->nextMaxDayTime != $maxDayTime) {
             $this->stream->rotate($maxDayTime);
             $this->nextMaxDayTime = $maxDayTime;
         }
@@ -102,5 +109,4 @@ class XxlJobLogger
         $date = date('Y-m-d 00:00:00', strtotime($time));
         return strtotime($date);
     }
-
 }
