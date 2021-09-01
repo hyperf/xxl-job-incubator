@@ -9,7 +9,10 @@ use Psr\Log\LoggerInterface;
 
 class XxlJobHelper
 {
-    private XxlJobLogger $xxlJobLogger;
+    /**
+     * @var XxlJobLogger
+     */
+    private $xxlJobLogger;
 
     public function __construct(XxlJobLogger $xxlJobLogger)
     {

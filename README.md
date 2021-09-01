@@ -12,9 +12,6 @@
 
 - 不能取消正在执行的任务
 
-## 注意
-
-> php >= 8.0
 
 ## 安装
 
@@ -24,14 +21,13 @@ composer require hyperf/xxljob
 
 ## 使用
 
-### 1. 使用
-#### 1. 发布配置文件
+#### 发布配置文件
 
 ```bash
 php bin/hyperf.php vendor:publish hyperf/xxljob
 ```
-##### 1.1 配置信息
-> config/autoload/apidocs.php
+##### 配置信息
+> config/autoload/xxl_job.php
 ```php
 return [
     // enable false 将不会启动服务
@@ -46,7 +42,7 @@ return [
     'access_token' => null,
     'log' => [
         'filename' => BASE_PATH . '/runtime/logs/xxl-job/job.log',
-        //日志最大留存天数 0:不删词
+        //日志最大留存天数 0:不删除
         'maxDay' => 30,
     ],
 ];

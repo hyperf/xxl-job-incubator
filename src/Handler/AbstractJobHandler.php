@@ -9,9 +9,9 @@ use Hyperf\XxlJob\Requests\RunRequest;
 
 abstract class AbstractJobHandler implements JobHandlerInterface
 {
-    private RunRequest $runRequest;
+    private $runRequest;
 
-    private XxlJobHelper $xxlJobHelper;
+    private $xxlJobHelper;
 
     public function __construct(XxlJobHelper $xxlJobHelper)
     {

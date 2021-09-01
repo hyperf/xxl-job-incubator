@@ -16,9 +16,15 @@ use Throwable;
 
 class MainWorkerStartListener implements ListenerInterface
 {
-    private Application $app;
+    /**
+     * @var Application
+     */
+    private $app;
 
-    private StdoutLoggerInterface $logger;
+    /**
+     * @var StdoutLoggerInterface
+     */
+    private $logger;
 
     public function __construct(Application $app, StdoutLoggerInterface $logger)
     {

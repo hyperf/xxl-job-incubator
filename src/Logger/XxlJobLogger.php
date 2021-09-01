@@ -17,13 +17,25 @@ class XxlJobLogger
 {
     public const MARK_JOB_LOG_ID = 'XXL-JOB-CONTEXT-LOG-ID';
 
-    private string $filename;
+    /**
+     * @var string
+     */
+    private $filename;
 
-    private int $maxDay;
+    /**
+     * @var int
+     */
+    private $maxDay;
 
-    private JobFileHandler $stream;
+    /**
+     * @var JobFileHandler
+     */
+    private $stream;
 
-    private int $nextMaxDayTime = 0;
+    /**
+     * @var int
+     */
+    private $nextMaxDayTime = 0;
 
     public function __construct(ContainerInterface $container)
     {

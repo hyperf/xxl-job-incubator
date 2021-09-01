@@ -42,9 +42,9 @@ class BaseJobController
         'msg' => null,
     ];
 
-    private XxlJobLogger $xxlJobLogger;
+    private $xxlJobLogger;
 
-    private XxlJobHelper $xxlJobHelper;
+    private $xxlJobHelper;
     /**
      * @var ServerFactory
      */

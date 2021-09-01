@@ -11,11 +11,14 @@ use Monolog\Utils;
 class JobFileHandler extends StreamHandler
 {
     /**
-     * @var mixed
+     * @var int
      */
-    private int $logId;
+    private $logId;
 
-    private string $filename;
+    /**
+     * @var string
+     */
+    private $filename;
 
     public function __construct(int $logId, string $filename,$level = Logger::DEBUG, bool $bubble = true, ?int $filePermission = null, bool $useLocking = false)
     {

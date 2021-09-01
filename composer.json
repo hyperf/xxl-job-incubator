@@ -1,5 +1,5 @@
 {
-    "name": "tangwei/xxljob",
+    "name": "hyperf/xxljob",
     "description": "php hyperf xxljob",
     "license": "MIT",
     "keywords": [
@@ -9,14 +9,14 @@
     ],
     "authors": [
         {
-            "name": "TangWei",
+            "name": "tw2066",
             "email": "tw2066@163.com",
             "homepage": "https://github.com/tw2066",
             "role": "Developer"
         }
     ],
     "require": {
-        "php": ">=8.0",
+        "php": ">=7.3",
         "hyperf/http-server": "^2.2.0"
     },
     "autoload": {
