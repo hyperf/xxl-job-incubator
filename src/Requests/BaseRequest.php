@@ -13,7 +13,10 @@ namespace Hyperf\XxlJob\Requests;
 
 class BaseRequest
 {
-    public static function create(array $data = []): static
+    /**
+     * @return static
+     */
+    public static function create(array $data = [])
     {
         $obj = new static();
         foreach ($data as $k => $v) {
