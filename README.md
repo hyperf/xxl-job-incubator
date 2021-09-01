@@ -1,17 +1,16 @@
-## PHP Swagger Api Docs
+## PHP XxlJob Client
 
-基于 [Hyperf](https://github.com/hyperf/hyperf) 框架的 DTO 类映射
+基于 [Hyperf](https://github.com/hyperf/hyperf) 框架的 xxlJob PHP 客户端
 
 ##### 优点
 
-- 请求参数映射到PHP类
-- 代码可维护性好，扩展性好
-- 支持数组，递归，嵌套
-- 支持框架数据验证器
+- 分布式任务调度平台
+- 任务可以随时关闭与开启
+- 日志可通过服务端查看
 
 ##### 缺点
 
-- 模型类需要手工编写
+- 不能取消正在执行的任务
 
 ## 注意
 
@@ -20,152 +19,76 @@
 ## 安装
 
 ```
-composer require tangwei/dto
+composer require hyperf/xxljob
 ```
 
 ## 使用
 
 ### 1. 使用
+#### 1. 发布配置文件
 
-## 注解
-
-> 命名空间:`Hyperf\DTO\Annotation\Contracts`
-
-#### RequestBody
-
-- 获取Body参数
-
+```bash
+php bin/hyperf.php vendor:publish hyperf/xxljob
+```
+##### 1.1 配置信息
+> config/autoload/apidocs.php
 ```php
-public function add(#[RequestBody] DemoBodyRequest $request){}
+return [
+    // enable false 将不会启动服务
+    'enable' => true,
+    //服务端地址
+    'admin_address' => 'http://127.0.0.1:8769/xxl-job-admin',
+    //执行器名称
+    'app_name' => 'xxl-job-demo',
+    //客户端请求前缀
+    'prefix_url' => 'php-xxl-job',
+    //access_token
+    'access_token' => null,
+    'log' => [
+        'filename' => BASE_PATH . '/runtime/logs/xxl-job/job.log',
+        //日志最大留存天数 0:不删词
+        'maxDay' => 30,
+    ],
+];
 ```
 
-### RequestQuery
-
-- 获取GET参数
-
+#### BEAN模式(类形式)
+Bean模式任务，支持基于类的开发方式，每个任务对应一个PHP类。
+##### 步骤一：新建目录，开发Job类：
 ```php
-public function add(#[RequestQuery] DemoQuery $request){}
+class DemoJob extends AbstractJobHandler{}
 ```
-
-### RequestFormData
-
-- 获取表单请求
-
-```php
-public function fromData(#[RequestFormData] DemoFormData $formData){}
+##### 步骤二：调度中心，新建调度任务
 ```
-
-- 获取文件(和表单一起使用)
-
-```php
-#[ApiFormData(name: 'photo', type: 'file')]
+1. 编写job类继承AbstractJobHandler
+2. 注解配置：为Job类添加注解 "#[JobHandler('自定义jobhandler名称')]"，注解value值对应的是调度中心新建任务的JobHandler属性的值。
+3. 执行日志：需要通过 "$this->getXxlJobHelper()->log('...')" 打印执行日志;
 ```
+对新建的任务进行参数配置，运行模式选中 “BEAN模式”，JobHandler属性填写任务注解“#[JobHandler]”中定义的值
+![hMvJnQ](https://www.xuxueli.com/doc/static/xxl-job/images/img_ZAsz.png)
 
-- 获取Body参数和GET参数
-
+#### 完整示例
 ```php
-public function add(#[RequestBody] DemoBodyRequest $request, #[RequestQuery] DemoQuery $query){}
-```
+namespace App\Job;
 
-> 注意: 一个方法，不能同时注入RequestBody和RequestFormData
+use Hyperf\XxlJob\Annotation\JobHandler;
+use Hyperf\XxlJob\Handler\AbstractJobHandler;
 
-## 示例
-
-### 控制器
-
-```php
-#[Controller(prefix: '/demo')]
-#[Api(tags: 'demo管理', position: 1)]
-class DemoController extends AbstractController
+#[JobHandler('demoJob')]
+class DemoJob extends AbstractJobHandler
 {
-    #[ApiOperation(summary: '查询')]
-    #[PostMapping(path: 'index')]
-    public function index(#[RequestQuery] #[Valid] DemoQuery $request): Contact
+    
+    public function handle(): void
     {
-        $contact = new Contact();
-        $contact->name = $request->name;
-        var_dump($request);
-        return $contact;
+        //获取参数
+        $params = $this->getParams();
+        //处理...
+        for ($i=1;$i<5;$i++) {
+            $this->getXxlJobHelper()->log($i);
+            $this->getXxlJobHelper()->log("demoJob");
+        }
+
     }
-
-    #[PutMapping(path: 'add')]
-    public function add(#[RequestBody] DemoBodyRequest $request, #[RequestQuery] DemoQuery $query)
-    {
-        var_dump($query);
-        return json_encode($request, JSON_UNESCAPED_UNICODE);
-    }
-
-    #[PostMapping(path: 'fromData')]
-    public function fromData(#[RequestFormData] DemoFormData $formData): bool
-    {
-        $file = $this->request->file('photo');
-        var_dump($file);
-        var_dump($formData);
-        return true;
-    }
-
-    #[GetMapping(path: 'find/{id}/and/{in}')]
-    public function find(int $id, float $in): array
-    {
-        return ['$id' => $id, '$in' => $in];
-    }
-
-}
-
-```
-
-## 验证器
-
-### 基于框架的验证
-
-> 安装hyperf框架验证器[hyperf/validation](https://github.com/hyperf/validation), 并配置(已安装忽略)
-
-- 注解
-  `Required` `Between` `Date` `Email` `Image` `Integer` `Nullable` `Numeric`  `Url` `Validation`
-- 校验生效
-
-> 只需在控制器方法中加上 #[Valid] 注解
-
-```php
-public function index(#[RequestQuery] #[Valid] DemoQuery $request){}
-```
-
-```php
-class DemoQuery
-{
-    public string $name;
-
-    #[Required]
-    #[Integer]
-    #[Between(1,5)]
-    public int $num;
 }
 ```
-
-- Validation
-
-> rule 支持框架所有验证
-- 自定义验证注解
-> 只需继承`Hyperf\DTO\Annotation\Validation\BaseValidation`即可
-```php
-#[Attribute(Attribute::TARGET_PROPERTY)]
-class Image extends BaseValidation
-{
-    protected $rule = 'image';
-}
-```
-
-## 注意
-
-```php
-    /**
-     * 需要绝对路径.
-     * @var \App\DTO\Address[]
-     */
-    #[ApiModelProperty('地址')]
-    public array $addressArr;
-```
-
-- 映射数组类时,`@var`需要写绝对路径
-- 控制器中使用了框架`AutoController`注解,只收集了`POST`方法
-
+详细文档 [xxl-job](https://www.xuxueli.com/xxl-job) 

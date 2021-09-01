@@ -41,7 +41,6 @@ class BootAppRouteListener implements ListenerInterface
 
     public function process(object $event)
     {
-
         $container = ApplicationContext::getContainer();
         $logger = $container->get(StdoutLoggerInterface::class);
         $config = $container->get(ConfigInterface::class);
@@ -62,6 +61,7 @@ class BootAppRouteListener implements ListenerInterface
         }
         if (empty($httpServerRouter)) {
             $logger->warning('XxlJob: http Service not started');
+            $this->app->getConfig()->setEnable(false);
             return;
         }
 

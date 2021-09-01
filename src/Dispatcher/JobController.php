@@ -32,7 +32,7 @@ class JobController extends BaseJobController
         }
 
         $stdoutLogger = $this->container->get(StdoutLoggerInterface::class);
-        $jobHandlerObj = make($className);
+        $jobHandlerObj = $this->container->get($className);
         if (! $jobHandlerObj instanceof AbstractJobHandler) {
             $message = 'XxlJob:' . $className . ' not instanceof AbstractJobHandler';
             $stdoutLogger->error($message);

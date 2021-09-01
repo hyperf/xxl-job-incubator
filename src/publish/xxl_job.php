@@ -12,6 +12,6 @@ return [
     'access_token' => null,
     'log' => [
         'filename' => BASE_PATH . '/runtime/logs/xxl-job/job.log',
-        'maxDay' => 1,
+        'maxDay' => 30,
     ],
 ];
