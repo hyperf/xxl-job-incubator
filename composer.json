@@ -24,7 +24,11 @@
     ],
     "require": {
         "php": ">=7.3",
-        "hyperf/http-server": "^2.2.0"
+        "guzzlehttp/guzzle": "^6.3|^7.0",
+        "hyperf/di": "^2.2",
+        "hyperf/framework": "^2.2",
+        "hyperf/http-server": "^2.2",
+        "hyperf/logger": "^2.2"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",
