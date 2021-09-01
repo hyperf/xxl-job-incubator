@@ -40,6 +40,10 @@ class ServiceProvider extends AbstractProvider
             'logDateTim' => $logDateTim,
             'handleCode' => $handleCode,
             'handleMsg' => $handleMsg,
+            'executeResult' => [
+                'code' => $handleCode,
+                'msg' => $handleMsg,
+            ],
         ]];
         return $this->request('POST', '/api/callback', [
             RequestOptions::JSON => $body,

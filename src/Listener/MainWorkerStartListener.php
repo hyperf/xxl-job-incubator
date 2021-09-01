@@ -8,6 +8,7 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\MainWorkerStart;
 use Hyperf\Server\Event\MainCoroutineServerStart;
+use Hyperf\Utils\Codec\Json;
 use Hyperf\Utils\Coordinator\Constants;
 use Hyperf\Utils\Coordinator\CoordinatorManager;
 use Hyperf\Utils\Coroutine;
@@ -58,8 +59,13 @@ class MainWorkerStartListener implements ListenerInterface
                         break;
                     }
                     try {
-                        $this->app->service->registry($appName, $url);
-                        $this->logger->debug(sprintf('xxlJob registry app name:%s heartbeat successfully', $appName));
+                        $response = $this->app->service->registry($appName, $url);
+                        $result = Json::decode((string) $response->getBody());
+                        if($result['code'] == 200){
+                            $this->logger->debug(sprintf('xxlJob registry app name:%s heartbeat successfully', $appName));
+                        }else{
+                            $this->logger->error(sprintf('xxlJob registry app name:%s fail, %s', $appName,$result['msg']));
+                        }
                     } catch (Throwable $throwable) {
                         $this->logger->error($throwable);
                         throw $throwable;
