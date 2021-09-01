@@ -1,5 +1,5 @@
 {
-    "name": "hyperf/xxljob",
+    "name": "hyperf/xxl-job-incubator",
     "description": "php hyperf xxljob",
     "license": "MIT",
     "keywords": [
@@ -7,6 +7,13 @@
         "hyperf xxljob",
         "php xxljob"
     ],
+    "homepage": "https://hyperf.io",
+    "support": {
+        "docs": "https://hyperf.wiki",
+        "issues": "https://github.com/hyperf/hyperf/issues",
+        "pull-request": "https://github.com/hyperf/hyperf/pulls",
+        "source": "https://github.com/hyperf/hyperf"
+    },
     "authors": [
         {
             "name": "tw2066",
@@ -24,13 +31,12 @@
             "Hyperf\\XxlJob\\": "src/"
         }
     },
-    "minimum-stability": "dev",
     "extra": {
+        "branch-alias":{
+            "dev-master": "0.1.x-dev"
+        },
         "hyperf": {
             "config": "Hyperf\\XxlJob\\ConfigProvider"
-        },
-        "branch-alias":{
-            "dev-master": "1.0.x-dev"
         }
     }
 }
