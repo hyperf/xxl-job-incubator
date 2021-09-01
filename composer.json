@@ -1,0 +1,36 @@
+{
+    "name": "tangwei/xxljob",
+    "description": "php hyperf xxljob",
+    "license": "MIT",
+    "keywords": [
+        "xxljob",
+        "hyperf xxljob",
+        "php xxljob"
+    ],
+    "authors": [
+        {
+            "name": "TangWei",
+            "email": "tw2066@163.com",
+            "homepage": "https://github.com/tw2066",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "hyperf/http-server": "^2.2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Hyperf\\XxlJob\\": "src/"
+        }
+    },
+    "minimum-stability": "dev",
+    "extra": {
+        "hyperf": {
+            "config": "Hyperf\\XxlJob\\ConfigProvider"
+        },
+        "branch-alias":{
+            "dev-master": "1.0.x-dev"
+        }
+    }
+}
