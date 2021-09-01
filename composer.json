@@ -43,6 +43,11 @@
             "Hyperf\\XxlJob\\": "src/"
         }
     },
+    "autoload": {
+        "psr-4": {
+            "HyperfTest\\XxlJob\\": "tests/"
+        }
+    },
     "extra": {
         "branch-alias":{
             "dev-master": "0.1.x-dev"
