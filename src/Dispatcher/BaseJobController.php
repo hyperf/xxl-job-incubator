@@ -1,7 +1,14 @@
 <?php
 
 declare(strict_types=1);
-
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 namespace Hyperf\XxlJob\Dispatcher;
 
 use Hyperf\HttpMessage\Stream\SwooleStream;
@@ -42,13 +49,14 @@ class BaseJobController
         'msg' => null,
     ];
 
-    private $xxlJobLogger;
-
-    private $xxlJobHelper;
     /**
      * @var ServerFactory
      */
     protected $serverFactory;
+
+    private $xxlJobLogger;
+
+    private $xxlJobHelper;
 
     public function __construct(ContainerInterface $container, XxlJobLogger $xxlJobLogger, XxlJobHelper $xxlJobHelper)
     {
@@ -57,7 +65,6 @@ class BaseJobController
         $this->xxlJobHelper = $xxlJobHelper;
         $this->app = $this->container->get(Application::class);
         $this->serverFactory = $container->get(ServerFactory::class);
-
     }
 
     public function getXxlJobHelper(): XxlJobHelper

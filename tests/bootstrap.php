@@ -9,12 +9,4 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-namespace Hyperf\XxlJob\Handler;
-
-interface JobHandlerInterface
-{
-    /**
-     * The logical of process will place in here.
-     */
-    public function handle(): void;
-}
+require_once dirname(dirname(__FILE__)) . '/vendor/autoload.php';

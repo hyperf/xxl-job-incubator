@@ -1,7 +1,14 @@
 <?php
 
 declare(strict_types=1);
-
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 namespace Hyperf\XxlJob\Logger;
 
 use Monolog\Handler\StreamHandler;
@@ -20,7 +27,7 @@ class JobFileHandler extends StreamHandler
      */
     private $filename;
 
-    public function __construct(int $logId, string $filename,$level = Logger::DEBUG, bool $bubble = true, ?int $filePermission = null, bool $useLocking = false)
+    public function __construct(int $logId, string $filename, $level = Logger::DEBUG, bool $bubble = true, ?int $filePermission = null, bool $useLocking = false)
     {
         $this->filename = Utils::canonicalizePath($filename);
         $this->logId = $logId;
@@ -63,7 +70,6 @@ class JobFileHandler extends StreamHandler
         $jogId = $this->getLogId() ?: 'job';
         return $fileInfo['dirname'] . '/' . $jogId . '.log';
     }
-
 
     protected function getGlobPattern(): string
     {

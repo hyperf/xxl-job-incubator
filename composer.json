@@ -1,5 +1,5 @@
 {
-    "name": "hyperf/xxljob",
+    "name": "hyperf/xxl-job-incubator",
     "description": "php hyperf xxljob",
     "license": "MIT",
     "keywords": [
@@ -7,6 +7,13 @@
         "hyperf xxljob",
         "php xxljob"
     ],
+    "homepage": "https://hyperf.io",
+    "support": {
+        "docs": "https://hyperf.wiki",
+        "issues": "https://github.com/hyperf/hyperf/issues",
+        "pull-request": "https://github.com/hyperf/hyperf/pulls",
+        "source": "https://github.com/hyperf/hyperf"
+    },
     "authors": [
         {
             "name": "tw2066",
@@ -17,20 +24,45 @@
     ],
     "require": {
         "php": ">=7.3",
-        "hyperf/http-server": "^2.2.0"
+        "guzzlehttp/guzzle": "^6.3|^7.0",
+        "hyperf/di": "^2.2",
+        "hyperf/framework": "^2.2",
+        "hyperf/http-server": "^2.2",
+        "hyperf/logger": "^2.2"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "mockery/mockery": "^1.0",
+        "phpstan/phpstan": "^0.12",
+        "phpunit/phpunit": ">=7.0",
+        "swoole/ide-helper": "^4.5",
+        "symfony/var-dumper": "^5.1"
     },
     "autoload": {
         "psr-4": {
             "Hyperf\\XxlJob\\": "src/"
         }
     },
-    "minimum-stability": "dev",
+    "autoload": {
+        "psr-4": {
+            "HyperfTest\\XxlJob\\": "tests/"
+        }
+    },
     "extra": {
+        "branch-alias":{
+            "dev-master": "0.1.x-dev"
+        },
         "hyperf": {
             "config": "Hyperf\\XxlJob\\ConfigProvider"
-        },
-        "branch-alias":{
-            "dev-master": "1.0.x-dev"
         }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml --colors=always",
+        "analyse": "phpstan analyse --memory-limit 1024M -l 0 ./src",
+        "cs-fix": "php-cs-fixer fix $1"
     }
 }

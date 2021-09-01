@@ -9,12 +9,18 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-namespace Hyperf\XxlJob\Handler;
+namespace HyperfTest\XxlJob;
 
-interface JobHandlerInterface
+use PHPUnit\Framework\TestCase;
+
+/**
+ * @internal
+ * @coversNothing
+ */
+class ExampleTest extends TestCase
 {
-    /**
-     * The logical of process will place in here.
-     */
-    public function handle(): void;
+    public function testExample()
+    {
+        $this->assertTrue(true);
+    }
 }
