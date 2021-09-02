@@ -68,10 +68,10 @@ class MainWorkerStartListener implements ListenerInterface
                     try {
                         $response = $this->app->service->registry($appName, $url);
                         $result = Json::decode((string) $response->getBody());
-                        if($result['code'] == 200){
+                        if ($result['code'] == 200) {
                             $this->logger->debug(sprintf('xxlJob registry app name:%s heartbeat successfully', $appName));
-                        }else{
-                            $this->logger->error(sprintf('xxlJob registry app name:%s fail, %s', $appName,$result['msg']));
+                        } else {
+                            $this->logger->error(sprintf('xxlJob registry app name:%s fail, %s', $appName, $result['msg']));
                         }
                     } catch (Throwable $throwable) {
                         $this->logger->error($throwable);

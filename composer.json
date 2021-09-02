@@ -43,7 +43,7 @@
             "Hyperf\\XxlJob\\": "src/"
         }
     },
-    "autoload": {
+    "autoload-dev": {
         "psr-4": {
             "HyperfTest\\XxlJob\\": "tests/"
         }
