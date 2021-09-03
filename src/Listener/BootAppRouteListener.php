@@ -18,8 +18,7 @@ use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
-use Hyperf\Server\Server;
-use Hyperf\Utils\ApplicationContext;
+use Hyperf\Server\ServerInterface;
 use Hyperf\XxlJob\Annotation\JobHandler;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
@@ -32,8 +31,14 @@ class BootAppRouteListener implements ListenerInterface
      */
     private $app;
 
+    /**
+     * @var ContainerInterface
+     */
+    private $container;
+
     public function __construct(ContainerInterface $container, Application $app)
     {
+        $this->container = $container;
         $this->app = $app;
     }
 
@@ -46,9 +51,8 @@ class BootAppRouteListener implements ListenerInterface
 
     public function process(object $event)
     {
-        $container = ApplicationContext::getContainer();
-        $logger = $container->get(StdoutLoggerInterface::class);
-        $config = $container->get(ConfigInterface::class);
+        $logger = $this->container->get(StdoutLoggerInterface::class);
+        $config = $this->container->get(ConfigInterface::class);
         if (! $config->get('xxl_job.enable', false)) {
             $logger->debug('xxl_job not enable');
             return;
@@ -58,8 +62,8 @@ class BootAppRouteListener implements ListenerInterface
         $httpServerRouter = null;
         $serverConfig = null;
         foreach ($servers as $server) {
-            $router = $container->get(DispatcherFactory::class)->getRouter($server['name']);
-            if (empty($httpServerRouter) && $server['type'] == Server::SERVER_HTTP) {
+            $router = $this->container->get(DispatcherFactory::class)->getRouter($server['name']);
+            if (empty($httpServerRouter) && $server['type'] == ServerInterface::SERVER_HTTP) {
                 $httpServerRouter = $router;
                 $serverConfig = $server;
             }
@@ -70,8 +74,7 @@ class BootAppRouteListener implements ListenerInterface
             return;
         }
 
-        $list = AnnotationCollector::list();
-        $this->initAnnotationRoute($list);
+        $this->initAnnotationRoute();
         $route = new XxlJobRoute();
         $route->add($httpServerRouter, $prefixUrl);
 
@@ -80,19 +83,20 @@ class BootAppRouteListener implements ListenerInterface
             $host = $this->getIp();
         }
 
-        $xxlJobConfig = $container->get(ConfigInterface::class)->get('xxl_job', []);
+        $xxlJobConfig = $config->get('xxl_job', []);
         $url = sprintf('http://%s:%s/%s/', $host, $serverConfig['port'], $xxlJobConfig['prefix_url']);
         $this->app->getConfig()->setClientUrl($url);
     }
 
-    private function initAnnotationRoute(array $collector): void
+    private function initAnnotationRoute(): void
     {
-        foreach ($collector as $className => $metadata) {
-            if (isset($metadata['_c'][JobHandler::class])) {
-                /** @var JobHandler $jobHandler */
-                $jobHandler = $metadata['_c'][JobHandler::class];
-                Application::setJobHandlers($jobHandler->value, $className);
-            }
+        $classes = AnnotationCollector::getClassesByAnnotation(JobHandler::class);
+        /**
+         * @var string $className
+         * @var JobHandler $annotation
+         */
+        foreach ($classes as $className => $annotation) {
+            Application::setJobHandlers($annotation->value, $className);
         }
     }
 
