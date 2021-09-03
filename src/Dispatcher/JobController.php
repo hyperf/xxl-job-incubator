@@ -110,6 +110,7 @@ class JobController extends BaseJobController
     {
         //set
         Context::set(XxlJobLogger::MARK_JOB_LOG_ID, $runRequest->getLogId());
+        Context::set(RunRequest::class, $runRequest);
         /*$server = $this->serverFactory->getServer()->getServer();
         $workerId = $server->getWorkerId();
         $cid = Coroutine::id();
