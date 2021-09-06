@@ -76,7 +76,7 @@ class MainWorkerStartListener implements ListenerInterface
                             $this->logger->error(sprintf('xxlJob registry app name:%s fail, %s', $appName, $result['msg']));
                         }
                     } catch (Throwable $throwable) {
-                        $this->logger->error($throwable);
+                        $this->logger->error(sprintf('xxlJob registry failed. %s',$throwable->getMessage()));
                     }
                 }
             });
