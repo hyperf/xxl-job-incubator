@@ -77,7 +77,6 @@ class MainWorkerStartListener implements ListenerInterface
                         }
                     } catch (Throwable $throwable) {
                         $this->logger->error($throwable);
-                        throw $throwable;
                     }
                 }
             });
