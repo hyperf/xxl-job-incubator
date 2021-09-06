@@ -51,7 +51,7 @@ class MainWorkerStartListener implements ListenerInterface
     public function process(object $event)
     {
         $config = $this->app->getConfig();
-        if (! $config->isEnable()) {
+        if (!$config->isEnable()) {
             return;
         }
         $this->registerHeartbeat($config->getAppName(), $config->getClientUrl(), $config->getHeartbeat());
@@ -59,12 +59,14 @@ class MainWorkerStartListener implements ListenerInterface
 
     protected function registerHeartbeat(string $appName, string $url, $heartbeat = 30): void
     {
-        Coroutine::create(function () use ($appName, $url, $heartbeat) {
-            retry(INF, function () use ($appName, $url, $heartbeat) {
+        $isFirstRegister = true;
+        Coroutine::create(function () use ($appName, $url, $heartbeat, $isFirstRegister) {
+            retry(INF, function () use ($appName, $url, $heartbeat, $isFirstRegister) {
                 while (true) {
-                    if (CoordinatorManager::until(Constants::WORKER_EXIT)->yield($heartbeat)) {
+                    if (!$isFirstRegister && CoordinatorManager::until(Constants::WORKER_EXIT)->yield($heartbeat)) {
                         break;
                     }
+                    $isFirstRegister = false;
                     try {
                         $response = $this->app->service->registry($appName, $url);
                         $result = Json::decode((string) $response->getBody());
@@ -81,4 +83,5 @@ class MainWorkerStartListener implements ListenerInterface
             });
         });
     }
+
 }
