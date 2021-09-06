@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Handler;
 
+use Hyperf\Utils\ApplicationContext;
 use Hyperf\Utils\Context;
 use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -18,26 +19,19 @@ use Hyperf\XxlJob\Requests\RunRequest;
 abstract class AbstractJobHandler implements JobHandlerInterface
 {
 
-    private $xxlJobHelper;
-
-    public function __construct(XxlJobHelper $xxlJobHelper)
-    {
-        $this->xxlJobHelper = $xxlJobHelper;
-    }
-
     public function getXxlJobHelper(): XxlJobHelper
     {
-        return $this->xxlJobHelper;
+        return ApplicationContext::getContainer()->get(XxlJobHelper::class);
     }
 
     public function getRunRequest(): RunRequest
     {
-        return  Context::get(RunRequest::class);
+        return Context::get(RunRequest::class);
     }
 
     public function getParams(): string
     {
-        return $this->getParams()->getExecutorParams();
+        return $this->getRunRequest()->getExecutorParams();
     }
 
 }

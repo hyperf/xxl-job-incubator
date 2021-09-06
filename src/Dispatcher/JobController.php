@@ -45,7 +45,6 @@ class JobController extends BaseJobController
             $stdoutLogger->error($message);
             return $this->resultJson($this->fail['msg'] = $message);
         }
-        $jobHandlerObj->setRunRequest($runRequest);
 
         Coroutine::create(function () use ($jobHandlerObj, $runRequest) {
             $this->handle($jobHandlerObj, $runRequest);

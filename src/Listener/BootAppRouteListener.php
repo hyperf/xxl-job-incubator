@@ -73,9 +73,14 @@ class BootAppRouteListener implements ListenerInterface
             $this->app->getConfig()->setEnable(false);
             return;
         }
-
         $this->initAnnotationRoute();
+
         $route = new XxlJobRoute();
+        if(!empty($prefixUrl)){
+            $prefixUrl = trim($prefixUrl,'/').'/';
+        }else{
+            $prefixUrl = '';
+        }
         $route->add($httpServerRouter, $prefixUrl);
 
         $host = $serverConfig['host'];
@@ -83,8 +88,7 @@ class BootAppRouteListener implements ListenerInterface
             $host = $this->getIp();
         }
 
-        $xxlJobConfig = $config->get('xxl_job', []);
-        $url = sprintf('http://%s:%s/%s/', $host, $serverConfig['port'], $xxlJobConfig['prefix_url']);
+        $url = sprintf('http://%s:%s/%s', $host, $serverConfig['port'], $prefixUrl);
         $this->app->getConfig()->setClientUrl($url);
     }
 
