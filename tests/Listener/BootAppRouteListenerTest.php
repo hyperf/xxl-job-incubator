@@ -45,9 +45,9 @@ class BootAppRouteListenerTest extends TestCase
         $this->assertSame('init', Application::getJobHandlers('foo')['init']);
         $this->assertSame('destroy', Application::getJobHandlers('foo')['destroy']);
 
-        $this->assertSame('Bar', Application::getJobHandlers('foo')['class']);
-        $this->assertSame('barDemo', Application::getJobHandlers('foo')['method']);
-        $this->assertSame('', Application::getJobHandlers('foo')['init']);
-        $this->assertSame('', Application::getJobHandlers('foo')['destroy']);
+        $this->assertSame('Bar', Application::getJobHandlers('bar')['class']);
+        $this->assertSame('barDemo', Application::getJobHandlers('bar')['method']);
+        $this->assertSame('', Application::getJobHandlers('bar')['init']);
+        $this->assertSame('', Application::getJobHandlers('bar')['destroy']);
     }
 }
