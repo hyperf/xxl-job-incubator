@@ -70,17 +70,15 @@ namespace App\Job;
 
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Logger\XxlJobHelper;
+use Swoole\Coroutine\System;
 
 class DemoJob
 {
-    #[XxlJob('demoJob')]
-    public function demoJob()
-    {
-        XxlJobHelper::log('demoJob');
-    }
-
-    #[XxlJob(value: 'demoJob2', init: 'initMethod', destroy: 'destroyMethod')]
-    public function demoJob2()
+    /**
+     * 1.任务示例
+     */
+    #[XxlJob('demoJobHandler')]
+    public function demoJobHandler()
     {
         //获取参数
         $params = XxlJobHelper::getJobParam();
@@ -93,6 +91,73 @@ class DemoJob
             XxlJobHelper::log('logId:' . $logId);
             XxlJobHelper::log('params:' . $params);
         }
+    }
+
+    /**
+     * 2、分片广播任务
+     */
+    #[XxlJob('shardingJobHandler')]
+    public function shardingJobHandler()
+    {
+        // 分片参数
+        $shardIndex = XxlJobHelper::getRunRequest()->getBroadcastIndex();
+        $shardTotal = XxlJobHelper::getRunRequest()->getBroadcastTotal();
+        XxlJobHelper::log(sprintf("分片参数：当前分片序号 = %d, 总分片数 = %d",$shardIndex, $shardTotal));
+                // 业务逻辑
+        for ($i = 0; $i < $shardTotal; $i++) {
+            if ($i == $shardIndex) {
+                XxlJobHelper::log("第 %d 片, 命中分片开始处理", $i);
+            } else {
+                XxlJobHelper::log("第 %d 片, 忽略", $i);
+            }
+        }
+    }
+
+    /**
+     * 3、执行命令
+     */
+    #[XxlJob('commandJobHandler')]
+    public function commandJobHandler()
+    {
+        //获取参数
+        //例子:php -v
+        $command = XxlJobHelper::getJobParam();
+        var_dump($command);
+        $result = System::exec($command);
+        XxlJobHelper::log($result['output']);
+    }
+
+
+    /**
+     * 4、param任务
+     *  参数示例：
+     *      "url: http://www.baidu.com\n" +
+     *      "method: get"
+     */
+
+    #[XxlJob('paramJobHandler')]
+    public function paramJobHandler()
+    {
+        $param = XxlJobHelper::getJobParam();
+        $array = explode(PHP_EOL,$param);
+        /*
+         * array(2) {
+              [0]=>
+              string(25) "url: http://www.baidu.com"
+              [1]=>
+              string(11) "method: get"
+            }
+         */
+        var_dump($param,$array);
+    }
+
+    /**
+     * 5、任务示例：任务初始化与销毁时，支持自定义相关逻辑
+     */
+    #[XxlJob(value: 'demoJob', init: 'initMethod', destroy: 'destroyMethod')]
+    public function demoJob()
+    {
+        XxlJobHelper::log('demoJob run...');
     }
 
     public function initMethod()
