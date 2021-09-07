@@ -27,10 +27,13 @@ class XxlJobHelper
         self::$xxlJobLogger = $xxlJobLogger;
     }
 
-    public static function log($message)
+    public static function log($message, ...$param)
     {
         if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
             return;
+        }
+        if (! empty($param)) {
+            $message = sprintf($message, ...$param);
         }
         self::$xxlJobLogger->get()->info($message);
     }
