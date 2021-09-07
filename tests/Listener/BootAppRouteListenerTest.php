@@ -13,7 +13,7 @@ namespace HyperfTest\XxlJob\Listener;
 
 use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\Utils\Reflection\ClassInvoker;
-use Hyperf\XxlJob\Annotation\JobHandler;
+use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use Mockery as m;
@@ -34,13 +34,20 @@ class BootAppRouteListenerTest extends TestCase
 
     public function testInitAnnotationRoute()
     {
-        AnnotationCollector::collectClass('Foo', JobHandler::class, new JobHandler('foo'));
-        AnnotationCollector::collectClass('Bar', JobHandler::class, new JobHandler('bar'));
+        AnnotationCollector::collectMethod('Foo', 'fooDemo', XxlJob::class, new XxlJob('foo', 'init', 'destroy'));
+        AnnotationCollector::collectMethod('Bar', 'barDemo', XxlJob::class, new XxlJob('bar'));
         $listener = new BootAppRouteListener(m::mock(ContainerInterface::class), m::mock(Application::class));
         $listener = new ClassInvoker($listener);
         $listener->initAnnotationRoute();
 
-        $this->assertSame('Foo', Application::getJobHandlers('foo'));
-        $this->assertSame('Bar', Application::getJobHandlers('bar'));
+        $this->assertSame('Foo', Application::getJobHandlers('foo')['class']);
+        $this->assertSame('fooDemo', Application::getJobHandlers('foo')['method']);
+        $this->assertSame('init', Application::getJobHandlers('foo')['init']);
+        $this->assertSame('destroy', Application::getJobHandlers('foo')['destroy']);
+
+        $this->assertSame('Bar', Application::getJobHandlers('foo')['class']);
+        $this->assertSame('barDemo', Application::getJobHandlers('foo')['method']);
+        $this->assertSame('', Application::getJobHandlers('foo')['init']);
+        $this->assertSame('', Application::getJobHandlers('foo')['destroy']);
     }
 }
