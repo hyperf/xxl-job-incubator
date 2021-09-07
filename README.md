@@ -50,15 +50,16 @@ return [
 ```
 
 #### BEAN模式
-Bean模式任务，支持基于类的开发方式，每个任务对应PHP类中的一个方法。
-##### 步骤一：新建目录，开发Job类：
+基于方法的开发方式，每个任务对应一个方法。
+##### 步骤一：开发Job方法
 ```php
-class DemoJob {}
+#[XxlJob('demoJobHandler')]
+public function demoJobHandler(){}
 ```
 ##### 步骤二：调度中心，新建调度任务
 ```
-1. 编写job类
-2. 注解配置：为Job类中方法添加注解 "#[XxlJob('自定义jobhandler名称')]"，注解value值对应的是调度中心新建任务的JobHandler属性的值。
+1. 编写job方法
+2. 注解配置：在job方法添加注解 "#[XxlJob('自定义jobhandler名称')]"，注解value值对应的是调度中心新建任务的JobHandler属性的值。
 3. 执行日志：通过 XxlJobHelper()::log('...') 打印执行日志;
 ```
 对新建的任务进行参数配置，运行模式选中 “BEAN模式”，JobHandler属性填写任务注解“#[XxlJob]”中定义的值
@@ -120,11 +121,12 @@ class DemoJob
     public function commandJobHandler()
     {
         //获取参数
-        //例子:php -v
+        //例:php -v
         $command = XxlJobHelper::getJobParam();
         var_dump($command);
         $result = System::exec($command);
-        XxlJobHelper::log($result['output']);
+        $message = str_replace("\n", '<br>', $result['output']);
+        XxlJobHelper::log($message);
     }
 
 
