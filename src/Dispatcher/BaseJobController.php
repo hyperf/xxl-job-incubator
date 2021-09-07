@@ -16,7 +16,6 @@ use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\Server\ServerFactory;
 use Hyperf\Utils\Codec\Json;
 use Hyperf\XxlJob\Application;
-use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Hyperf\XxlJob\Logger\XxlJobLogger;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -56,20 +55,12 @@ class BaseJobController
 
     private $xxlJobLogger;
 
-    private $xxlJobHelper;
-
-    public function __construct(ContainerInterface $container, XxlJobLogger $xxlJobLogger, XxlJobHelper $xxlJobHelper)
+    public function __construct(ContainerInterface $container, XxlJobLogger $xxlJobLogger)
     {
         $this->container = $container;
         $this->xxlJobLogger = $xxlJobLogger;
-        $this->xxlJobHelper = $xxlJobHelper;
         $this->app = $this->container->get(Application::class);
         $this->serverFactory = $container->get(ServerFactory::class);
-    }
-
-    public function getXxlJobHelper(): XxlJobHelper
-    {
-        return $this->xxlJobHelper;
     }
 
     public function getXxlJobLogger(): XxlJobLogger

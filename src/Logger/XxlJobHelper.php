@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Logger;
 
 use Hyperf\Utils\Context;
+use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Log\LoggerInterface;
 
 class XxlJobHelper
@@ -19,31 +20,41 @@ class XxlJobHelper
     /**
      * @var XxlJobLogger
      */
-    private $xxlJobLogger;
+    private static $xxlJobLogger;
 
     public function __construct(XxlJobLogger $xxlJobLogger)
     {
-        $this->xxlJobLogger = $xxlJobLogger;
+        self::$xxlJobLogger = $xxlJobLogger;
     }
 
-    public function log($message)
+    public static function log($message)
     {
         if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
             return;
         }
-        $this->xxlJobLogger->get()->info($message);
+        self::$xxlJobLogger->get()->info($message);
     }
 
-    public function get(): ?LoggerInterface
+    public static function get(): ?LoggerInterface
     {
         if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
             return null;
         }
-        return $this->xxlJobLogger->get();
+        return self::$xxlJobLogger->get();
     }
 
-    public function logFile(): string
+    public static function logFile(): string
     {
-        return $this->xxlJobLogger->getStream()->getTimedFilename();
+        return self::$xxlJobLogger->getStream()->getTimedFilename();
+    }
+
+    public static function getRunRequest(): RunRequest
+    {
+        return Context::get(RunRequest::class);
+    }
+
+    public static function getJobParam(): string
+    {
+        return self::getRunRequest()->getExecutorParams();
     }
 }

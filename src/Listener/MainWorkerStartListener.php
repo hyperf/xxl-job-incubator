@@ -51,7 +51,7 @@ class MainWorkerStartListener implements ListenerInterface
     public function process(object $event)
     {
         $config = $this->app->getConfig();
-        if (!$config->isEnable()) {
+        if (! $config->isEnable()) {
             return;
         }
         $this->registerHeartbeat($config->getAppName(), $config->getClientUrl(), $config->getHeartbeat());
@@ -63,7 +63,7 @@ class MainWorkerStartListener implements ListenerInterface
         Coroutine::create(function () use ($appName, $url, $heartbeat, $isFirstRegister) {
             retry(INF, function () use ($appName, $url, $heartbeat, $isFirstRegister) {
                 while (true) {
-                    if (!$isFirstRegister && CoordinatorManager::until(Constants::WORKER_EXIT)->yield($heartbeat)) {
+                    if (! $isFirstRegister && CoordinatorManager::until(Constants::WORKER_EXIT)->yield($heartbeat)) {
                         break;
                     }
                     $isFirstRegister = false;
@@ -71,16 +71,15 @@ class MainWorkerStartListener implements ListenerInterface
                         $response = $this->app->service->registry($appName, $url);
                         $result = Json::decode((string) $response->getBody());
                         if ($result['code'] == 200) {
-                            $this->logger->debug(sprintf('xxlJob registry app name:%s heartbeat successfully', $appName));
+                            $this->logger->debug(sprintf('xxl-job registry app name:%s heartbeat successfully', $appName));
                         } else {
-                            $this->logger->error(sprintf('xxlJob registry app name:%s fail, %s', $appName, $result['msg']));
+                            $this->logger->error(sprintf('xxl-job registry app name:%s fail, %s', $appName, $result['msg']));
                         }
                     } catch (Throwable $throwable) {
-                        $this->logger->error(sprintf('xxlJob registry failed. %s',$throwable->getMessage()));
+                        $this->logger->error(sprintf('xxl-job registry failed. %s', $throwable->getMessage()));
                     }
                 }
             });
         });
     }
-
 }

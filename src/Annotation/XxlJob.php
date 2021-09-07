@@ -16,18 +16,30 @@ use Hyperf\Di\Annotation\AbstractAnnotation;
 
 /**
  * @Annotation
- * @Target({"CLASS"})
+ * @Target({"METHOD"})
  */
-#[Attribute(Attribute::TARGET_CLASS)]
-class JobHandler extends AbstractAnnotation
+#[Attribute(Attribute::TARGET_METHOD)]
+class XxlJob extends AbstractAnnotation
 {
     /**
      * @var string
      */
     public $value = '';
 
-    public function __construct(string $value = '')
+    /**
+     * @var string
+     */
+    public $init = '';
+
+    /**
+     * @var string
+     */
+    public $destroy = '';
+
+    public function __construct(string $value = '', string $init = '', string $destroy = '')
     {
         $this->value = $value;
+        $this->init = $init;
+        $this->destroy = $destroy;
     }
 }

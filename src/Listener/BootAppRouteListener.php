@@ -20,8 +20,10 @@ use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
 use Hyperf\XxlJob\Annotation\JobHandler;
+use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
+use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Psr\Container\ContainerInterface;
 
 class BootAppRouteListener implements ListenerInterface
@@ -51,6 +53,7 @@ class BootAppRouteListener implements ListenerInterface
 
     public function process(object $event)
     {
+        $this->container->get(XxlJobHelper::class);
         $logger = $this->container->get(StdoutLoggerInterface::class);
         $config = $this->container->get(ConfigInterface::class);
         if (! $config->get('xxl_job.enable', false)) {
@@ -76,9 +79,9 @@ class BootAppRouteListener implements ListenerInterface
         $this->initAnnotationRoute();
 
         $route = new XxlJobRoute();
-        if(!empty($prefixUrl)){
-            $prefixUrl = trim($prefixUrl,'/').'/';
-        }else{
+        if (! empty($prefixUrl)) {
+            $prefixUrl = trim($prefixUrl, '/') . '/';
+        } else {
             $prefixUrl = '';
         }
         $route->add($httpServerRouter, $prefixUrl);
@@ -94,13 +97,20 @@ class BootAppRouteListener implements ListenerInterface
 
     private function initAnnotationRoute(): void
     {
-        $classes = AnnotationCollector::getClassesByAnnotation(JobHandler::class);
-        /**
-         * @var string $className
+        $methodArray = AnnotationCollector::getMethodsByAnnotation(XxlJob::class);
+        /*
          * @var JobHandler $annotation
          */
-        foreach ($classes as $className => $annotation) {
-            Application::setJobHandlers($annotation->value, $className);
+        foreach ($methodArray as $method) {
+            /** @var XxlJob $annotation */
+            $annotation = $method['annotation'];
+            $xxlJobArray = [
+                'class' => $method['class'],
+                'method' => $method['method'],
+                'init' => $annotation->init,
+                'destroy' => $annotation->destroy,
+            ];
+            Application::setJobHandlers($annotation->value, $xxlJobArray);
         }
     }
 

@@ -68,9 +68,9 @@ class OnShutdownListener implements ListenerInterface
         }
         $response = $this->app->service->registryRemove($config->getAppName(), $config->getClientUrl());
         if ($response->getStatusCode() === 200) {
-            $this->logger->debug(sprintf('xxlJob app name:%s url:%s remove successfully!', $config->getAppName(), $config->getClientUrl()));
+            $this->logger->debug(sprintf('xxl-job app name:%s url:%s remove successfully!', $config->getAppName(), $config->getClientUrl()));
         } else {
-            $this->logger->error(sprintf('xxlJob app name:%s url:%s remove failed!', $config->getAppName(), $config->getClientUrl()));
+            $this->logger->error(sprintf('xxl-job app name:%s url:%s remove failed!', $config->getAppName(), $config->getClientUrl()));
         }
     }
 }

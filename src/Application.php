@@ -66,12 +66,21 @@ class Application
         return $this->config;
     }
 
-    public static function getJobHandlers(string $key): string
+    /**
+     * Author: Tw.
+     * @return array [
+     *               'class'=>'',
+     *               'method'=>'',
+     *               'init'=>'',
+     *               'destroy'=>'',
+     *               ]
+     */
+    public static function getJobHandlers(string $key): array
     {
-        return self::$jobHandlers[$key] ?? '';
+        return self::$jobHandlers[$key] ?? [];
     }
 
-    public static function setJobHandlers(string $key, string $value): void
+    public static function setJobHandlers(string $key, array $value): void
     {
         self::$jobHandlers[$key] = $value;
     }
