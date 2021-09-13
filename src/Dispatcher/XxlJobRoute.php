@@ -18,29 +18,17 @@ class XxlJobRoute
 {
     public function add(RouteCollector $route, $prefixUrl)
     {
-        /*
-         * 心跳
-         */
-        $route->addRoute(['POST'], '/' . $prefixUrl . 'beat', [JobController::class, 'beat'], ['middleware' => [JobMiddleware::class]]);
-
-        /*
-         * 触发任务执行
-         */
-        $route->addRoute(['POST'], '/' . $prefixUrl . 'run', [JobController::class, 'run'], ['middleware' => [JobMiddleware::class]]);
-
-        /*
-         * 忙碌检测
-         */
-        $route->addRoute(['POST'], '/' . $prefixUrl . 'idleBeat', [JobController::class, 'idleBeat'], ['middleware' => [JobMiddleware::class]]);
-
-        /*
-         * 终止任务
-         */
-        $route->addRoute(['POST'], '/' . $prefixUrl . 'kill', [JobController::class, 'kill'], ['middleware' => [JobMiddleware::class]]);
-
-        /*
-         * 日志
-         */
-        $route->addRoute(['POST'], '/' . $prefixUrl . 'log', [JobController::class, 'log'], ['middleware' => [JobMiddleware::class]]);
+        $route->addGroup('/' . $prefixUrl, function ($route) {
+            //心跳
+            $route->post('beat', [JobController::class, 'beat']);
+            //触发任务执行
+            $route->post('run', [JobController::class, 'run']);
+            //忙碌检测
+            $route->post('idleBeat', [JobController::class, 'idleBeat']);
+            //终止任务
+            $route->post('kill', [JobController::class, 'kill']);
+            //日志
+            $route->post('log', [JobController::class, 'log']);
+        }, ['middleware' => [JobMiddleware::class]]);
     }
 }
