@@ -13,6 +13,7 @@ namespace Hyperf\XxlJob;
 
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use Hyperf\XxlJob\Listener\MainWorkerStartListener;
+use Hyperf\XxlJob\Listener\OnShutdownListener;
 
 class ConfigProvider
 {
@@ -25,6 +26,7 @@ class ConfigProvider
             'listeners' => [
                 BootAppRouteListener::class,
                 MainWorkerStartListener::class,
+                OnShutdownListener::class,
             ],
             'annotations' => [
                 'scan' => [
