@@ -67,7 +67,6 @@ class Application
     }
 
     /**
-     * Author: Tw.
      * @return array [
      *               'class'=>'',
      *               'method'=>'',

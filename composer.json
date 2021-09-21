@@ -14,14 +14,6 @@
         "pull-request": "https://github.com/hyperf/hyperf/pulls",
         "source": "https://github.com/hyperf/hyperf"
     },
-    "authors": [
-        {
-            "name": "tw2066",
-            "email": "tw2066@163.com",
-            "homepage": "https://github.com/tw2066",
-            "role": "Developer"
-        }
-    ],
     "require": {
         "php": ">=7.3",
         "guzzlehttp/guzzle": "^6.3|^7.0",
