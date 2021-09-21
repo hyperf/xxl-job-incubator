@@ -22,45 +22,20 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class BaseJobController
 {
-    /**
-     * @var ContainerInterface
-     */
-    protected $container;
+    protected ContainerInterface $container;
 
-    /**
-     * @var Application
-     */
-    protected $app;
+    protected Application $application;
 
-    /**
-     * @var array
-     */
-    protected $success = [
-        'code' => 200,
-        'msg' => null,
-    ];
+    protected ServerFactory $serverFactory;
 
-    /**
-     * @var array
-     */
-    protected $fail = [
-        'code' => 500,
-        'msg' => null,
-    ];
+    private XxlJobLogger $xxlJobLogger;
 
-    /**
-     * @var ServerFactory
-     */
-    protected $serverFactory;
-
-    private $xxlJobLogger;
-
-    public function __construct(ContainerInterface $container, XxlJobLogger $xxlJobLogger)
+    public function __construct(ContainerInterface $container, Application $application, ServerFactory $serverFactory, XxlJobLogger $xxlJobLogger)
     {
         $this->container = $container;
         $this->xxlJobLogger = $xxlJobLogger;
-        $this->app = $this->container->get(Application::class);
-        $this->serverFactory = $container->get(ServerFactory::class);
+        $this->application = $application;
+        $this->serverFactory = $serverFactory;
     }
 
     public function getXxlJobLogger(): XxlJobLogger
@@ -68,17 +43,31 @@ class BaseJobController
         return $this->xxlJobLogger;
     }
 
-    /**
-     * @return array
-     */
-    public function input()
+    protected function input(): array
     {
-        return $this->container->get(ServerRequestInterface::class)->getParsedBody();
+        return (array) $this->container->get(ServerRequestInterface::class)->getParsedBody();
     }
 
-    public function resultJson($data): ResponseInterface
+    protected function response($data): ResponseInterface
     {
         $response = $this->container->get(ResponseInterface::class);
         return $response->withAddedHeader('content-type', 'application/json')->withBody(new SwooleStream(Json::encode($data)));
     }
+
+    protected function responseSuccess(?string $message = null): ResponseInterface
+    {
+        return $this->response([
+            'code' => 200,
+            'msg' => $message,
+        ]);
+    }
+
+    protected function responseFail(?string $message = null): ResponseInterface
+    {
+        return $this->response([
+            'code' => 500,
+            'msg' => $message,
+        ]);
+    }
+
 }

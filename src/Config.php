@@ -13,122 +13,36 @@ namespace Hyperf\XxlJob;
 
 class Config
 {
-    /**
-     * @var bool
-     */
-    private $enable = false;
+    private bool $enable = false;
 
-    /**
-     * @var string
-     */
-    private $baseUri = 'http://127.0.0.1:8080';
+    private string $baseUri = 'http://127.0.0.1:8080';
 
-    /**
-     * @var string
-     */
-    private $accessToken = '';
+    private string $accessToken = '';
 
-    /**
-     * @var string
-     */
-    private $serverUrlPrefix = '';
+    private string $serverUrlPrefix = '';
 
-    /**
-     * @var array
-     */
-    private $guzzleConfig = [
+    private array $guzzleConfig = [
         'headers' => [
             'charset' => 'UTF-8',
         ],
         'timeout' => 10,
     ];
 
-    /**
-     * @var string
-     */
-    private $appName = '';
+    private string $appName = '';
 
-    /**
-     * @var string
-     */
-    private $clientUrl = '';
+    private string $clientUrl = '';
 
-    /**
-     * @var int
-     */
-    private $heartbeat = 30;
+    private int $heartbeat = 30;
 
     public function isEnable(): bool
     {
         return $this->enable;
     }
 
-    public function setEnable(bool $enable): void
+    public function setEnable(bool $enable): Config
     {
         $this->enable = $enable;
-    }
-
-    public function setBaseUri(string $baseUri): void
-    {
-        $this->baseUri = $baseUri;
-    }
-
-    public function setAccessToken(string $accessToken): void
-    {
-        $this->accessToken = $accessToken;
-    }
-
-    public function setServerUrlPrefix(string $serverUrlPrefix): void
-    {
-        $this->serverUrlPrefix = $serverUrlPrefix;
-    }
-
-    public function setGuzzleConfig(array $guzzleConfig): void
-    {
-        $this->guzzleConfig = $guzzleConfig;
-    }
-
-    public function getAppName(): string
-    {
-        return $this->appName;
-    }
-
-    public function setAppName(string $appName): void
-    {
-        $this->appName = $appName;
-    }
-
-    public function getClientUrl(): string
-    {
-        return $this->clientUrl;
-    }
-
-    public function setClientUrl(string $clientUrl): void
-    {
-        $this->clientUrl = $clientUrl;
-    }
-
-    /**
-     * @return string
-     */
-    public function getHeartbeat(): int
-    {
-        return $this->heartbeat;
-    }
-
-    public function setHeartbeat(int $heartbeat): void
-    {
-        $this->heartbeat = $heartbeat;
-    }
-
-    public function getAccessToken(): string
-    {
-        return $this->accessToken;
-    }
-
-    public function getServerUrlPrefix(): string
-    {
-        return $this->serverUrlPrefix;
+        return $this;
     }
 
     public function getBaseUri(): string
@@ -136,8 +50,77 @@ class Config
         return $this->baseUri;
     }
 
+    public function setBaseUri(string $baseUri): Config
+    {
+        $this->baseUri = $baseUri;
+        return $this;
+    }
+
+    public function getAccessToken(): string
+    {
+        return $this->accessToken;
+    }
+
+    public function setAccessToken(string $accessToken): Config
+    {
+        $this->accessToken = $accessToken;
+        return $this;
+    }
+
+    public function getServerUrlPrefix(): string
+    {
+        return $this->serverUrlPrefix;
+    }
+
+    public function setServerUrlPrefix(string $serverUrlPrefix): Config
+    {
+        $this->serverUrlPrefix = $serverUrlPrefix;
+        return $this;
+    }
+
     public function getGuzzleConfig(): array
     {
         return $this->guzzleConfig;
     }
+
+    public function setGuzzleConfig(array $guzzleConfig): Config
+    {
+        $this->guzzleConfig = $guzzleConfig;
+        return $this;
+    }
+
+    public function getAppName(): string
+    {
+        return $this->appName;
+    }
+
+    public function setAppName(string $appName): Config
+    {
+        $this->appName = $appName;
+        return $this;
+    }
+
+    public function getClientUrl(): string
+    {
+        return $this->clientUrl;
+    }
+
+    public function setClientUrl(string $clientUrl): Config
+    {
+        $this->clientUrl = $clientUrl;
+        return $this;
+    }
+
+    public function getHeartbeat(): int
+    {
+        return $this->heartbeat;
+    }
+
+    public function setHeartbeat(int $heartbeat): Config
+    {
+        $this->heartbeat = $heartbeat;
+        return $this;
+    }
+
+
 }

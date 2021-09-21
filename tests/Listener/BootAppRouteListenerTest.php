@@ -40,14 +40,14 @@ class BootAppRouteListenerTest extends TestCase
         $listener = new ClassInvoker($listener);
         $listener->initAnnotationRoute();
 
-        $this->assertSame('Foo', Application::getJobHandlers('foo')['class']);
-        $this->assertSame('fooDemo', Application::getJobHandlers('foo')['method']);
-        $this->assertSame('init', Application::getJobHandlers('foo')['init']);
-        $this->assertSame('destroy', Application::getJobHandlers('foo')['destroy']);
+        $this->assertSame('Foo', Application::getJobHandlerDefinitions('foo')['class']);
+        $this->assertSame('fooDemo', Application::getJobHandlerDefinitions('foo')['method']);
+        $this->assertSame('init', Application::getJobHandlerDefinitions('foo')['init']);
+        $this->assertSame('destroy', Application::getJobHandlerDefinitions('foo')['destroy']);
 
-        $this->assertSame('Bar', Application::getJobHandlers('bar')['class']);
-        $this->assertSame('barDemo', Application::getJobHandlers('bar')['method']);
-        $this->assertSame('', Application::getJobHandlers('bar')['init']);
-        $this->assertSame('', Application::getJobHandlers('bar')['destroy']);
+        $this->assertSame('Bar', Application::getJobHandlerDefinitions('bar')['class']);
+        $this->assertSame('barDemo', Application::getJobHandlerDefinitions('bar')['method']);
+        $this->assertSame('', Application::getJobHandlerDefinitions('bar')['init']);
+        $this->assertSame('', Application::getJobHandlerDefinitions('bar')['destroy']);
     }
 }

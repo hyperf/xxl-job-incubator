@@ -53,7 +53,7 @@ class JobMiddleware implements MiddlewareInterface
             $response = $this->container->get(HttpResponse::class);
             $json = json_encode([
                 'code' => 401,
-                'msg' => 'token fail',
+                'msg' => 'Invalid Token',
             ], JSON_UNESCAPED_UNICODE);
             return $response->withStatus(401)
                 ->withAddedHeader('content-type', 'application/json; charset=utf-8')

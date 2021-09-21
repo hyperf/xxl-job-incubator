@@ -11,12 +11,12 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Requests;
 
+use JetBrains\PhpStorm\Pure;
+
 class BaseRequest
 {
-    /**
-     * @return static
-     */
-    public static function create(array $data = [])
+    #[Pure]
+    public static function create(array $data = []): static
     {
         $obj = new static();
         foreach ($data as $k => $v) {

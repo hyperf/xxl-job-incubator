@@ -13,29 +13,29 @@ namespace Hyperf\XxlJob\Requests;
 
 class RunRequest extends BaseRequest
 {
-    protected $jobId;  // 任务ID
+    protected int $jobId;  // 任务ID
 
-    protected $executorHandler; // 任务标识
+    protected string $executorHandler; // 任务标识
 
-    protected $executorParams; // 任务参数
+    protected string $executorParams; // 任务参数
 
-    protected $executorBlockStrategy; // 任务阻塞策略，可选值参考 com.xxl.job.core.enums.ExecutorBlockStrategyEnum
+    protected string $executorBlockStrategy; // 任务阻塞策略，可选值参考 com.xxl.job.core.enums.ExecutorBlockStrategyEnum
 
-    protected $executorTimeout; // 任务超时时间，单位秒，大于零时生效
+    protected int $executorTimeout; // 任务超时时间，单位秒，大于零时生效
 
-    protected $logId; // 本次调度日志ID
+    protected int $logId; // 本次调度日志ID
 
-    protected $logDateTime; // 本次调度日志时间
+    protected int $logDateTime; // 本次调度日志时间
 
-    protected $glueType; // 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum
+    protected string $glueType; // 任务模式，可选值参考 com.xxl.job.core.glue.GlueTypeEnum
 
-    protected $glueSource;  // GLUE脚本代码
+    protected string $glueSource;  // GLUE脚本代码
 
-    protected $glueUpdatetime; // GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新
+    protected string $glueUpdatetime; // GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新
 
-    protected $broadcastIndex; // 分片参数：当前分片
+    protected int $broadcastIndex; // 分片参数：当前分片
 
-    protected $broadcastTotal; // 分片参数：总分片
+    protected int $broadcastTotal; // 分片参数：总分片
 
     public function getJobId(): int
     {

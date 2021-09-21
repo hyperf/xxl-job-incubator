@@ -33,15 +33,15 @@ class JobController extends BaseJobController
         if ($runRequest->getGlueType() != 'BEAN') {
             $message = 'xxl-job the client only supports BEAN';
             $stdoutLogger->warning($message);
-            return $this->resultJson($this->fail['msg'] = $message);
+            return $this->responseFail($message);
         }
         $executorHandler = $runRequest->getExecutorHandler();
-        $classMethod = Application::getJobHandlers($executorHandler);
+        $classMethod = Application::getJobHandlerDefinitions($executorHandler);
 
         if (empty($classMethod)) {
             $message = 'xxl-job executorHandler:' . $executorHandler . ' class not found!';
             $stdoutLogger->warning($message);
-            return $this->resultJson($this->fail['msg'] = $message);
+            return $this->responseFail($message);
         }
 
         $class = $classMethod['class'];
@@ -52,12 +52,12 @@ class JobController extends BaseJobController
         if (! method_exists($classObj, $method)) {
             $message = sprintf('xxl-job %s::%s method not exist', $class, $method);
             $stdoutLogger->error($message);
-            return $this->resultJson($this->fail['msg'] = $message);
+            return $this->responseFail($message);
         }
         Coroutine::create(function () use ($classObj, $method, $init, $destroy, $runRequest) {
             $this->handle($classObj, $method, $init, $destroy, $runRequest);
         });
-        return $this->resultJson($this->success);
+        return $this->responseSuccess();
     }
 
     public function log(): ResponseInterface
@@ -77,7 +77,7 @@ class JobController extends BaseJobController
                     'isEnd' => true,
                 ],
             ];
-            return $this->resultJson($data);
+            return $this->response($data);
         }
 
         [$content,$row] = $this->getXxlJobLogger()->getLine($logFile, $logRequest->getFromLineNum());
@@ -92,22 +92,22 @@ class JobController extends BaseJobController
             ],
         ];
 
-        return $this->resultJson($data);
+        return $this->response($data);
     }
 
     public function beat(): ResponseInterface
     {
-        return $this->resultJson($this->success);
+        return $this->responseSuccess();
     }
 
     public function idleBeat(): ResponseInterface
     {
-        return $this->resultJson($this->success);
+        return $this->responseSuccess();
     }
 
     public function kill(): ResponseInterface
     {
-        return $this->resultJson($this->fail['msg'] = 'not supported !');
+        return $this->responseFail('Not supported');
     }
 
     /**
@@ -151,9 +151,9 @@ class JobController extends BaseJobController
                 $message = str_replace("\n", '<br>', $message);
             }
             XxlJobHelper::get()->error($message);
-            $this->app->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $message);
+            $this->application->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $message);
             throw $throwable;
         }
-        $this->app->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime());
+        $this->application->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime());
     }
 }

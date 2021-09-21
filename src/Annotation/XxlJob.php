@@ -21,20 +21,11 @@ use Hyperf\Di\Annotation\AbstractAnnotation;
 #[Attribute(Attribute::TARGET_METHOD)]
 class XxlJob extends AbstractAnnotation
 {
-    /**
-     * @var string
-     */
-    public $value = '';
+    public string $value = '';
 
-    /**
-     * @var string
-     */
-    public $init = '';
+    public string $init = '';
 
-    /**
-     * @var string
-     */
-    public $destroy = '';
+    public string $destroy = '';
 
     public function __construct(string $value = '', string $init = '', string $destroy = '')
     {
