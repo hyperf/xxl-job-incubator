@@ -13,6 +13,7 @@ namespace Hyperf\XxlJob;
 
 use Exception;
 use Hyperf\XxlJob\Provider\ServiceProvider;
+use JetBrains\PhpStorm\ArrayShape;
 
 /**
  * @property ServiceProvider $service
@@ -31,7 +32,7 @@ class Application
     /**
      * @var array
      */
-    protected static $jobHandlers = [];
+    protected $jobHandlerDefinitions = [];
 
     /**
      * @var Config
@@ -66,21 +67,13 @@ class Application
         return $this->config;
     }
 
-    /**
-     * @return array [
-     *               'class'=>'',
-     *               'method'=>'',
-     *               'init'=>'',
-     *               'destroy'=>'',
-     *               ]
-     */
-    public static function getJobHandlers(string $key): array
+    public function getJobHandlerDefinitions(string $jobName): ?JobDefinition
     {
-        return self::$jobHandlers[$key] ?? [];
+        return $this->jobHandlerDefinitions[$jobName] ?? null;
     }
 
-    public static function setJobHandlers(string $key, array $value): void
+    public function registerJobHandler(string $jobName, JobDefinition $definition): void
     {
-        self::$jobHandlers[$key] = $value;
+        $this->jobHandlerDefinitions[$jobName] = $definition;
     }
 }

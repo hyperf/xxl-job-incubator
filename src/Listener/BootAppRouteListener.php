@@ -23,6 +23,7 @@ use Hyperf\XxlJob\Annotation\JobHandler;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
+use Hyperf\XxlJob\JobDefinition;
 use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Psr\Container\ContainerInterface;
 
@@ -31,17 +32,23 @@ class BootAppRouteListener implements ListenerInterface
     /**
      * @var Application
      */
-    private $app;
+    private $application;
 
     /**
      * @var ContainerInterface
      */
     private $container;
 
-    public function __construct(ContainerInterface $container, Application $app)
+    protected ConfigInterface $config;
+
+    protected StdoutLoggerInterface $logger;
+
+    public function __construct(ContainerInterface $container, Application $application)
     {
         $this->container = $container;
-        $this->app = $app;
+        $this->application = $application;
+        $this->config = $container->get(ConfigInterface::class);
+        $this->logger = $container->get(StdoutLoggerInterface::class);
     }
 
     public function listen(): array
@@ -53,15 +60,11 @@ class BootAppRouteListener implements ListenerInterface
 
     public function process(object $event)
     {
-        $this->container->get(XxlJobHelper::class);
-        $logger = $this->container->get(StdoutLoggerInterface::class);
-        $config = $this->container->get(ConfigInterface::class);
-        if (! $config->get('xxl_job.enable', false)) {
-            $logger->debug('xxl_job not enable');
+        if (! $this->config->get('xxl_job.enable', false)) {
             return;
         }
-        $prefixUrl = $config->get('xxl_job.prefix_url', 'php-xxl-job');
-        $servers = $config->get('server.servers');
+        $prefixUrl = $this->config->get('xxl_job.prefix_url', 'php-xxl-job');
+        $servers = $this->config->get('server.servers');
         $httpServerRouter = null;
         $serverConfig = null;
         foreach ($servers as $server) {
@@ -72,8 +75,8 @@ class BootAppRouteListener implements ListenerInterface
             }
         }
         if (empty($httpServerRouter)) {
-            $logger->warning('XxlJob: http Service not started');
-            $this->app->getConfig()->setEnable(false);
+            $this->logger->warning('XxlJob: HTTP Service is not ready.');
+            $this->application->getConfig()->setEnable(false);
             return;
         }
         $this->initAnnotationRoute();
@@ -92,25 +95,17 @@ class BootAppRouteListener implements ListenerInterface
         }
 
         $url = sprintf('http://%s:%s/%s', $host, $serverConfig['port'], $prefixUrl);
-        $this->app->getConfig()->setClientUrl($url);
+        $this->application->getConfig()->setClientUrl($url);
     }
 
     private function initAnnotationRoute(): void
     {
-        $methodArray = AnnotationCollector::getMethodsByAnnotation(XxlJob::class);
-        /*
-         * @var JobHandler $annotation
-         */
-        foreach ($methodArray as $method) {
-            /** @var XxlJob $annotation */
+        $methods = AnnotationCollector::getMethodsByAnnotation(XxlJob::class);
+        foreach ($methods as $method) {
             $annotation = $method['annotation'];
-            $xxlJobArray = [
-                'class' => $method['class'],
-                'method' => $method['method'],
-                'init' => $annotation->init,
-                'destroy' => $annotation->destroy,
-            ];
-            Application::setJobHandlers($annotation->value, $xxlJobArray);
+            if ($annotation instanceof XxlJob) {
+                $this->application->registerJobHandler($annotation->value, new JobDefinition($method['class'], $method['method'], $annotation->init, $annotation->destroy));
+            }
         }
     }
 
