@@ -20,14 +20,14 @@ class XxlJobHelper
     /**
      * @var XxlJobLogger
      */
-    private static $xxlJobLogger;
+    private $xxlJobLogger;
 
     public function __construct(XxlJobLogger $xxlJobLogger)
     {
-        self::$xxlJobLogger = $xxlJobLogger;
+        $this->xxlJobLogger = $xxlJobLogger;
     }
 
-    public static function log($message, ...$param)
+    public function log($message, ...$param)
     {
         if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
             return;
@@ -35,28 +35,28 @@ class XxlJobHelper
         if (! empty($param)) {
             $message = sprintf($message, ...$param);
         }
-        self::$xxlJobLogger->get()->info($message);
+        $this->xxlJobLogger->get()->info($message);
     }
 
-    public static function get(): ?LoggerInterface
+    public function get(): ?LoggerInterface
     {
         if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
             return null;
         }
-        return self::$xxlJobLogger->get();
+        return $this->xxlJobLogger->get();
     }
 
-    public static function logFile(): string
+    public function logFile(): string
     {
-        return self::$xxlJobLogger->getStream()->getTimedFilename();
+        return $this->xxlJobLogger->getStream()->getTimedFilename();
     }
 
-    public static function getRunRequest(): RunRequest
+    public function getRunRequest(): RunRequest
     {
         return Context::get(RunRequest::class);
     }
 
-    public static function getJobParam(): string
+    public function getJobParam(): string
     {
         return self::getRunRequest()->getExecutorParams();
     }

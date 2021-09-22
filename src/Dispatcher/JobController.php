@@ -17,7 +17,6 @@ use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\Utils\Context;
 use Hyperf\Utils\Coroutine;
 use Hyperf\XxlJob\Application;
-use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Hyperf\XxlJob\Logger\XxlJobLogger;
 use Hyperf\XxlJob\Requests\LogRequest;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -29,7 +28,7 @@ class JobController extends BaseJobController
     {
         $runRequest = RunRequest::create($this->input());
         $stdoutLogger = $this->container->get(StdoutLoggerInterface::class);
-        $stdoutLogger->debug('>>>>>>>>>>> xxl-job receive job, jobId:' . $runRequest->getJobId());
+        $stdoutLogger->debug(sprintf('>>>>>>>>>>> xxl-job receive job, executorHandler:%s jobId:%s logId:%s', $runRequest->getExecutorHandler(), $runRequest->getJobId(), $runRequest->getLogId()));
         if ($runRequest->getGlueType() != 'BEAN') {
             $message = 'xxl-job the client only supports BEAN';
             $stdoutLogger->warning($message);
@@ -39,7 +38,7 @@ class JobController extends BaseJobController
         $classMethod = Application::getJobHandlers($executorHandler);
 
         if (empty($classMethod)) {
-            $message = 'xxl-job executorHandler:' . $executorHandler . ' class not found!';
+            $message = 'xxl-job executorHandler:' . $executorHandler . ' class::method not found!';
             $stdoutLogger->warning($message);
             return $this->resultJson($this->fail['msg'] = $message);
         }
@@ -64,7 +63,7 @@ class JobController extends BaseJobController
     {
         $logRequest = LogRequest::create($this->input());
 
-        $logFile = XxlJobHelper::logFile();
+        $logFile = $this->getXxlJobHelper()->logFile();
 
         if (! file_exists($logFile)) {
             $data = [
@@ -125,10 +124,10 @@ class JobController extends BaseJobController
         /*$server = $this->serverFactory->getServer()->getServer();
         $workerId = $server->getWorkerId();
         $cid = Coroutine::id();
-        XxlJobHelper::log("----------- workId:{$workerId} cid:{$cid} -----------");*/
+        $this->getXxlJobHelper()->log("----------- workId:{$workerId} cid:{$cid} -----------");*/
         //log
-        XxlJobHelper::log('----------- php xxl-job job execute start -----------');
-        XxlJobHelper::log('----------- param:' . $runRequest->getExecutorParams());
+        $this->getXxlJobHelper()->log('----------- php xxl-job job execute start -----------');
+        $this->getXxlJobHelper()->log('----------- param:' . $runRequest->getExecutorParams());
 
         try {
             //init
@@ -142,7 +141,7 @@ class JobController extends BaseJobController
             if (! empty($destroy)) {
                 $jobHandlerObj->{$destroy}();
             }
-            XxlJobHelper::log('----------- php xxl-job job execute end(finish) -----------');
+            $this->getXxlJobHelper()->log('----------- php xxl-job job execute end(finish) -----------');
         } catch (Throwable $throwable) {
             $message = $throwable->getMessage();
             if ($this->container->has(FormatterInterface::class)) {
@@ -150,7 +149,7 @@ class JobController extends BaseJobController
                 $message = $formatter->format($throwable);
                 $message = str_replace("\n", '<br>', $message);
             }
-            XxlJobHelper::get()->error($message);
+            $this->getXxlJobHelper()->get()->error($message);
             $this->app->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $message);
             throw $throwable;
         }
