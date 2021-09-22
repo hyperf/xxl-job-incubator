@@ -31,7 +31,7 @@ class RunRequest extends BaseRequest
 
     protected string $glueSource;  // GLUE脚本代码
 
-    protected string $glueUpdatetime; // GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新
+    protected int $glueUpdatetime; // GLUE脚本更新时间，用于判定脚本是否变更以及是否需要刷新
 
     protected int $broadcastIndex; // 分片参数：当前分片
 
@@ -82,7 +82,7 @@ class RunRequest extends BaseRequest
         return $this->glueSource;
     }
 
-    public function getGlueUpdatetime(): string
+    public function getGlueUpdatetime(): int
     {
         return $this->glueUpdatetime;
     }
