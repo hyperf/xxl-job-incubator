@@ -36,26 +36,22 @@ class JobController extends BaseJobController
             return $this->responseFail($message);
         }
         $executorHandler = $runRequest->getExecutorHandler();
-        $classMethod = Application::getJobHandlerDefinitions($executorHandler);
+        $jobDefinition = $this->application->getJobHandlerDefinitions($executorHandler);
 
-        if (empty($classMethod)) {
+        if (empty($jobDefinition)) {
             $message = 'xxl-job executorHandler:' . $executorHandler . ' class not found!';
             $stdoutLogger->warning($message);
             return $this->responseFail($message);
         }
 
-        $class = $classMethod['class'];
-        $method = $classMethod['method'];
-        $init = $classMethod['init'];
-        $destroy = $classMethod['destroy'];
-        $classObj = $this->container->get($class);
-        if (! method_exists($classObj, $method)) {
-            $message = sprintf('xxl-job %s::%s method not exist', $class, $method);
+        $jobInstance = $this->container->get($jobDefinition->getClass());
+        if (! method_exists($jobInstance, $jobDefinition->getMethod())) {
+            $message = sprintf('xxl-job %s::%s method not exist', $jobDefinition->getClass(), $jobDefinition->getMethod());
             $stdoutLogger->error($message);
             return $this->responseFail($message);
         }
-        Coroutine::create(function () use ($classObj, $method, $init, $destroy, $runRequest) {
-            $this->handle($classObj, $method, $init, $destroy, $runRequest);
+        Coroutine::create(function () use ($jobInstance, $jobDefinition, $runRequest) {
+            $this->handle($jobInstance, $jobDefinition->getMethod(), $jobDefinition->getInit(), $jobDefinition->getDestroy(), $runRequest);
         });
         return $this->responseSuccess();
     }
@@ -111,21 +107,13 @@ class JobController extends BaseJobController
     }
 
     /**
-     * @param mixed $jobHandlerObj
-     * @param mixed $method
-     * @param mixed $init
-     * @param mixed $destroy
      * @throws Throwable
      */
-    private function handle($jobHandlerObj, $method, $init, $destroy, RunRequest $runRequest)
+    private function handle(object $jobInstance, string $method, string $init, string $destroy, RunRequest $runRequest)
     {
         //set
         Context::set(XxlJobLogger::MARK_JOB_LOG_ID, $runRequest->getLogId());
         Context::set(RunRequest::class, $runRequest);
-        /*$server = $this->serverFactory->getServer()->getServer();
-        $workerId = $server->getWorkerId();
-        $cid = Coroutine::id();
-        XxlJobHelper::log("----------- workId:{$workerId} cid:{$cid} -----------");*/
         //log
         XxlJobHelper::log('----------- php xxl-job job execute start -----------');
         XxlJobHelper::log('----------- param:' . $runRequest->getExecutorParams());
@@ -133,14 +121,14 @@ class JobController extends BaseJobController
         try {
             //init
             if (! empty($init)) {
-                $jobHandlerObj->{$init}();
+                $jobInstance->{$init}();
             }
 
-            $jobHandlerObj->{$method}();
+            $jobInstance->{$method}();
 
             //destroy
             if (! empty($destroy)) {
-                $jobHandlerObj->{$destroy}();
+                $jobInstance->{$destroy}();
             }
             XxlJobHelper::log('----------- php xxl-job job execute end(finish) -----------');
         } catch (Throwable $throwable) {
