@@ -24,7 +24,6 @@ use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
 use Hyperf\XxlJob\Handler\JobHandlerInterface;
-use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Psr\Container\ContainerInterface;
 
 class BootAppRouteListener implements ListenerInterface

@@ -53,15 +53,15 @@ class XxlJobLogger
 
     public function getStream(): JobFileHandler
     {
-        $this->get();
+        $this->getLogger();
         return $this->stream;
     }
 
-    public function get(): LoggerInterface
+    public function getLogger(): LoggerInterface
     {
         return Context::override(self::class, function () {
             $logId = Context::get(XxlJobLogger::MARK_JOB_LOG_ID);
-            return $this->make($logId);
+            return $this->makeLogger($logId);
         });
     }
 
@@ -84,7 +84,7 @@ class XxlJobLogger
         return [$content, $row];
     }
 
-    protected function make($logId): Logger
+    protected function makeLogger($logId): Logger
     {
         $log = new Logger('xxl-job-log');
         $this->stream = new JobFileHandler($logId, $this->filename, Logger::DEBUG);

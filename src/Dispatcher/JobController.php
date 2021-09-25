@@ -63,7 +63,7 @@ class JobController extends BaseJobController
     {
         $logRequest = LogRequest::create($this->input());
 
-        $logFile = $this->getXxlJobHelper()->logFile();
+        $logFile = $this->getXxlJobHelper()->getLogFilename();
 
         if (! file_exists($logFile)) {
             $data = [
@@ -149,7 +149,7 @@ class JobController extends BaseJobController
                 $message = $formatter->format($throwable);
                 $message = str_replace("\n", '<br>', $message);
             }
-            $this->getXxlJobHelper()->get()->error($message);
+            $this->getXxlJobHelper()->getLogger()->error($message);
             $this->app->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $message);
             throw $throwable;
         }

@@ -35,18 +35,18 @@ class XxlJobHelper
         if (! empty($param)) {
             $message = sprintf($message, ...$param);
         }
-        $this->xxlJobLogger->get()->info($message);
+        $this->xxlJobLogger->getLogger()->info($message);
     }
 
-    public function get(): ?LoggerInterface
+    public function getLogger(): ?LoggerInterface
     {
         if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
             return null;
         }
-        return $this->xxlJobLogger->get();
+        return $this->xxlJobLogger->getLogger();
     }
 
-    public function logFile(): string
+    public function getLogFilename(): string
     {
         return $this->xxlJobLogger->getStream()->getTimedFilename();
     }
@@ -58,6 +58,6 @@ class XxlJobHelper
 
     public function getJobParam(): string
     {
-        return self::getRunRequest()->getExecutorParams();
+        return static::getRunRequest()->getExecutorParams();
     }
 }
