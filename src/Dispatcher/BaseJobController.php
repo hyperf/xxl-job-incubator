@@ -11,11 +11,13 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Dispatcher;
 
+use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\Server\ServerFactory;
 use Hyperf\Utils\Codec\Json;
 use Hyperf\XxlJob\Application;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Logger\XxlJobLogger;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -30,12 +32,18 @@ class BaseJobController
 
     private XxlJobLogger $xxlJobLogger;
 
-    public function __construct(ContainerInterface $container, Application $application, ServerFactory $serverFactory, XxlJobLogger $xxlJobLogger)
+    protected StdoutLoggerInterface $stdoutLogger;
+
+    protected JobExecutorLoggerInterface $jobExecutorLogger;
+
+    public function __construct(ContainerInterface $container, Application $application, ServerFactory $serverFactory, XxlJobLogger $xxlJobLogger, StdoutLoggerInterface $stdoutLogger, JobExecutorLoggerInterface $jobExecutorLogger)
     {
         $this->container = $container;
         $this->xxlJobLogger = $xxlJobLogger;
         $this->application = $application;
         $this->serverFactory = $serverFactory;
+        $this->stdoutLogger = $stdoutLogger;
+        $this->jobExecutorLogger = $jobExecutorLogger;
     }
 
     public function getXxlJobLogger(): XxlJobLogger
