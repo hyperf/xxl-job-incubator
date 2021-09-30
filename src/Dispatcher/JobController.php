@@ -31,6 +31,8 @@ class JobController extends BaseJobController
     {
         $runRequest = RunRequest::create($this->input());
         $this->stdoutLogger->debug('>>>>>>>>>>> xxl-job receive job, jobId:' . $runRequest->getJobId());
+        $stdoutLogger = $this->container->get(StdoutLoggerInterface::class);
+        $stdoutLogger->debug(sprintf('>>>>>>>>>>> xxl-job receive job, executorHandler:%s jobId:%s logId:%s', $runRequest->getExecutorHandler(), $runRequest->getJobId(), $runRequest->getLogId()));
         if ($runRequest->getGlueType() != 'BEAN') {
             $message = 'xxl-job the client only supports BEAN';
             $this->stdoutLogger->warning($message);
@@ -42,6 +44,11 @@ class JobController extends BaseJobController
         if (empty($jobDefinition)) {
             $message = 'xxl-job executorHandler:' . $executorHandler . ' class not found!';
             $this->stdoutLogger->warning($message);
+            return $this->responseFail($message);
+        }
+        if (empty($classMethod)) {
+            $message = 'xxl-job executorHandler:' . $executorHandler . ' class::method not found!';
+            $stdoutLogger->warning($message);
             return $this->responseFail($message);
         }
 
@@ -61,7 +68,7 @@ class JobController extends BaseJobController
     {
         $logRequest = LogRequest::create($this->input());
 
-        $logFile = XxlJobHelper::logFile();
+        $logFile = $this->getXxlJobHelper()->getLogFilename();
 
         if (! file_exists($logFile)) {
             $data = [
@@ -141,6 +148,7 @@ class JobController extends BaseJobController
             }
             XxlJobHelper::get()->error($message);
             $this->application->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $message);
+            $this->getXxlJobHelper()->getLogger()->error($message);
             throw $throwable;
         }
         $this->application->service->callback($runRequest->getLogId(), $runRequest->getLogDateTime());

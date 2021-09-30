@@ -18,6 +18,7 @@ use Hyperf\Server\ServerFactory;
 use Hyperf\Utils\Codec\Json;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Hyperf\XxlJob\Logger\XxlJobLogger;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -36,6 +37,11 @@ class BaseJobController
 
     protected JobExecutorLoggerInterface $jobExecutorLogger;
 
+    /**
+     * @var XxlJobHelper
+     */
+    private $xxlJobHelper;
+
     public function __construct(ContainerInterface $container, Application $application, ServerFactory $serverFactory, XxlJobLogger $xxlJobLogger, StdoutLoggerInterface $stdoutLogger, JobExecutorLoggerInterface $jobExecutorLogger)
     {
         $this->container = $container;
@@ -44,6 +50,7 @@ class BaseJobController
         $this->serverFactory = $serverFactory;
         $this->stdoutLogger = $stdoutLogger;
         $this->jobExecutorLogger = $jobExecutorLogger;
+        $this->xxlJobHelper = $container->get(XxlJobHelper::class);
     }
 
     public function getXxlJobLogger(): XxlJobLogger
@@ -51,7 +58,15 @@ class BaseJobController
         return $this->xxlJobLogger;
     }
 
-    protected function input(): array
+    /**
+     * @return XxlJobHelper
+     */
+    public function getXxlJobHelper(): mixed
+    {
+        return $this->xxlJobHelper;
+    }
+
+    public function input(): array
     {
         return (array) $this->container->get(ServerRequestInterface::class)->getParsedBody();
     }

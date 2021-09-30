@@ -25,6 +25,7 @@ use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
 use Hyperf\XxlJob\JobDefinition;
 use Hyperf\XxlJob\Logger\XxlJobHelper;
+use Hyperf\XxlJob\Handler\JobHandlerInterface;
 use Psr\Container\ContainerInterface;
 
 class BootAppRouteListener implements ListenerInterface
@@ -60,7 +61,9 @@ class BootAppRouteListener implements ListenerInterface
 
     public function process(object $event)
     {
-        if (! $this->config->get('xxl_job.enable', false)) {
+        $config = $this->container->get(ConfigInterface::class);
+        if (! $config->get('xxl_job.enable', false)) {
+            $this->logger->debug('xxl_job not enable');
             return;
         }
         $prefixUrl = $this->config->get('xxl_job.prefix_url', 'php-xxl-job');
@@ -98,6 +101,9 @@ class BootAppRouteListener implements ListenerInterface
         $this->application->getConfig()->setClientUrl($url);
     }
 
+    /**
+     * @throws Exception
+     */
     private function initAnnotationRoute(): void
     {
         $methods = AnnotationCollector::getMethodsByAnnotation(XxlJob::class);
@@ -107,6 +113,33 @@ class BootAppRouteListener implements ListenerInterface
                 $this->application->registerJobHandler($annotation->value, new JobDefinition($method['class'], $method['method'], $annotation->init, $annotation->destroy));
             }
         }
+
+        $classArray = AnnotationCollector::getClassesByAnnotation(JobHandler::class);
+        /**
+         * @var string $className
+         * @var JobHandler $annotation
+         */
+        foreach ($classArray as $className => $annotation) {
+            $classObj = $this->container->get($className);
+            if (! $classObj instanceof JobHandlerInterface) {
+                throw new Exception(sprintf('xxl-job: %s does not implement the JobHandlerInterface interface', $className));
+            }
+            $this->setJobHandlers($annotation->value, $className, 'execute');
+        }
+    }
+
+    private function setJobHandlers(string $jobHandler, string $class, string $method, string $init = '', string $destroy = '')
+    {
+        if (! empty(Application::getJobHandlers($jobHandler))) {
+            throw new Exception("xxl-job jobHandler[{$jobHandler}] naming conflicts.");
+        }
+        $xxlJobArray = [
+            'class' => $class,
+            'method' => $method,
+            'init' => $init,
+            'destroy' => $destroy,
+        ];
+        Application::setJobHandlers($jobHandler, $xxlJobArray);
     }
 
     /**
