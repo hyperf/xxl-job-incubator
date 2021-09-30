@@ -1,8 +1,8 @@
-## PHP XxlJob Client
+## PHP XxlJob Job Executor
 
- xxlJob PHP 客户端
+此为 xxl-job 的 PHP 版本的任务执行器(Job Executor)，特别适配于 Hyperf 框架，其余框架尚未验证适配性。
 
-##### 优点
+## 优点
 
 - 分布式任务调度平台
 - 任务可以随时关闭与开启
@@ -17,7 +17,7 @@
 ## 安装
 
 ```
-composer require hyperf/xxljob
+composer require hyperf/xxl-job-incubator
 ```
 
 ## 使用
@@ -25,117 +25,125 @@ composer require hyperf/xxljob
 #### 发布配置文件
 
 ```bash
-php bin/hyperf.php vendor:publish hyperf/xxljob
+php bin/hyperf.php vendor:publish hyperf/xxl-job-incubator
 ```
+
 ##### 配置信息
 > config/autoload/xxl_job.php
+
 ```php
 return [
-    // enable false 将不会启动服务
-    'enable' => true,
-    //服务端地址
-    'admin_address' => 'http://127.0.0.1:8769/xxl-job-admin',
-    //执行器名称
-    'app_name' => 'xxl-job-demo',
-    //客户端请求前缀
-    'prefix_url' => 'php-xxl-job',
-    //access_token
-    'access_token' => null,
-    'log' => [
-        'filename' => BASE_PATH . '/runtime/logs/xxl-job/job.log',
-        //日志最大留存天数 0:不删除
-        'maxDay' => 30,
-    ],
+    'enable' => env('XXL_JOB_ENABLE', true),
+    'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8769/xxl-job-admin'),
+    'app_name' => env('XXL_JOB_APP_NAME', 'xxl-job-demo'),
+    'prefix_url' => env('XXL_JOB_PREFIX_URL', 'php-xxl-job'),
+    'access_token' => env('XXL_JOB_ACCESS_TOKEN', null),
 ];
 ```
 #### BEAN模式(类形式)
-Bean模式任务，支持基于类的开发方式，每个任务对应一个PHP类。
-##### 步骤一：新建目录，开发Job类：
+Bean模式任务，支持基于类的开发方式，每个任务对应一个 PHP 类。
+
+##### 步骤一：新建目录，开发 Job 类：
 ```php
 class DemoJob extends AbstractJobHandler{}
 ```
 ##### 步骤二：调度中心，新建调度任务
 ```
-1. 编写job类继承AbstractJobHandler
-2. 注解配置：为Job类添加注解 "#[JobHandler('自定义jobhandler名称')]"，注解value值对应的是调度中心新建任务的JobHandler属性的值。
-3. 执行日志：需要通过 "$this->getXxlJobHelper()->log('...')" 打印执行日志;
+1. 编写一个实现 Hyperf\XxlJob\Handler\JobHandlerInterface 的 Job 类，可直接继承 Hyperf\XxlJob\Handler\AbstractJobHandler 得到对应的实现
+2. 注解配置：为 Job 类添加注解 "#[XxlJob('自定义JobHandler名称')]"，注解的 value 值对应的是调度中心新建任务的 JobHandler 属性的值
 ```
 #### 完整示例
-```php
-namespace App\Job;
 
-use Hyperf\XxlJob\Annotation\JobHandler;
-use Hyperf\XxlJob\Handler\AbstractJobHandler;
-
-#[JobHandler("demoJobClassHandler")]
-class DemoJobClass extends AbstractJobHandler
-{
-    /**
-     * 执行任务
-     */
-    public function execute(): void
-    {
-        //获取参数
-        $params = $this->getXxlJobHelper()->getJobParam();
-        //获取logId
-        $logId = $this->getXxlJobHelper()->getRunRequest()->getLogId();
-        $this->getXxlJobHelper()->log('demoJobClassHandler...');
-        $this->getXxlJobHelper()->log('params:' . $params);
-        for ($i = 1; $i < 5; ++$i) {
-            sleep(2);
-            $this->getXxlJobHelper()->log($i);
-            $this->getXxlJobHelper()->log('logId:' . $logId);
-            $this->getXxlJobHelper()->log('params:' . $params);
-        }
-    }
-}
-```
-####  BEAN模式(方法形式)
-基于方法的开发方式，每个任务对应一个方法。
-##### 步骤一：开发Job方法
-```php
-#[XxlJob('demoJobHandler')]
-public function demoJobHandler(){}
-```
-##### 步骤二：调度中心，新建调度任务
-```
-1. 编写job方法
-2. 注解配置：在job方法添加注解 "#[XxlJob('自定义jobhandler名称')]"，注解value值对应的是调度中心新建任务的JobHandler属性的值。
-3. 执行日志：注入XxlJobHelper类 通过 $this->xxlJobHelper->log('...') 打印执行日志;
-```
-对新建的任务进行参数配置，运行模式选中 “BEAN模式”，JobHandler属性填写任务注解“#[XxlJob]”中定义的值
-![hMvJnQ](https://www.xuxueli.com/doc/static/xxl-job/images/img_ZAsz.png)
-
-#### 完整示例
 ```php
 namespace App\Job;
 
 use Hyperf\Di\Annotation\Inject;
 use Hyperf\XxlJob\Annotation\XxlJob;
-use Hyperf\XxlJob\Logger\XxlJobHelper;
-use Swoole\Coroutine\System;
+use Hyperf\XxlJob\Handler\AbstractJobHandler;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\Requests\RunRequest;
+
+#[XxlJob("demoJobClassHandler")]
+class DemoJobClass extends AbstractJobHandler
+{
+
+    #[Inject]
+    protected JobExecutorLoggerInterface $jobExecutorLogger;
+
+    /**
+     * 执行任务
+     */
+    public function execute(RunRequest $request): void
+    {
+        // 获取参数
+        $params = $request->getExecutorParams();
+        // 获取 LogId
+        $logId = $request->getLogId();
+        $this->jobExecutorLogger->log('demoJobClassHandler...');
+        $this->jobExecutorLogger->log('params:' . $params);
+        for ($i = 1; $i < 5; ++$i) {
+            sleep(2);
+            $this->jobExecutorLogger->log($i);
+            $this->jobExecutorLogger->log('logId:' . $logId);
+            $this->jobExecutorLogger->log('params:' . $params);
+        }
+    }
+}
+```
+
+####  BEAN模式(方法形式)
+基于方法的开发方式，每个任务对应一个方法，相对比类形式更加灵活，但也更难管理。
+
+##### 步骤一：开发 Job 方法
+对任意类中的 Public 方法增加 `#[XxlJob('自定义JobHandler名称')]` 注解，注解的 value 值对应的是调度中心新建任务的 JobHandler 属性的值
+
+```php
+use Hyperf\XxlJob\Annotation\XxlJob;
+
+class Foo {
+
+    #[XxlJob('demoJobHandler')]
+    public function demoJobHandler(){}
+
+}
+```
+
+##### 步骤二：调度中心，新建调度任务
+对新建的任务进行参数配置，运行模式选中 `BEAN模式`，JobHandler 属性填写注解 “#[XxlJob]”中定义 value 值
+![hMvJnQ](https://www.xuxueli.com/doc/static/xxl-job/images/img_ZAsz.png)
+
+#### 完整示例
+
+```php
+namespace App\Job;
+
+use Hyperf\Di\Annotation\Inject;
+use Hyperf\XxlJob\Annotation\XxlJob;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\Requests\RunRequest;
 
 class DemoJob
 {
+    
     #[Inject]
-    private XxlJobHelper $xxlJobHelper;
+    protected JobExecutorLoggerInterface $jobExecutorLogger;
     
     /**
      * 1.任务示例.
      */
     #[XxlJob('demoJobHandler')]
-    public function demoJobHandler()
+    public function demoJobHandler(RunRequest $request)
     {
         //获取参数
-        $params = $this->xxlJobHelper->getJobParam();
+        $params = $request->getExecutorParams();
         //获取logId
-        $logId = $this->xxlJobHelper->getRunRequest()->getLogId();
-        $this->xxlJobHelper->log('params:' . $params);
+        $logId = $request->getLogId();
+        $this->jobExecutorLogger->log('params:' . $params);
         for ($i = 1; $i < 5; ++$i) {
             sleep(2);
-            $this->xxlJobHelper->log($i);
-            $this->xxlJobHelper->log('logId:' . $logId);
-            $this->xxlJobHelper->log('params:' . $params);
+            $this->jobExecutorLogger->log($i);
+            $this->jobExecutorLogger->log('logId:' . $logId);
+            $this->jobExecutorLogger->log('params:' . $params);
         }
     }
 
@@ -143,18 +151,18 @@ class DemoJob
      * 2、分片广播任务
      */
     #[XxlJob('shardingJobHandler')]
-    public function shardingJobHandler()
+    public function shardingJobHandler(RunRequest $request)
     {
         // 分片参数
-        $shardIndex = $this->xxlJobHelper->getRunRequest()->getBroadcastIndex();
-        $shardTotal = $this->xxlJobHelper->getRunRequest()->getBroadcastTotal();
-        $this->xxlJobHelper->log(sprintf('分片参数：当前分片序号 = %d, 总分片数 = %d', $shardIndex, $shardTotal));
+        $shardIndex = $request->getBroadcastIndex();
+        $shardTotal = $request->getBroadcastTotal();
+        $this->jobExecutorLogger->log(sprintf('分片参数：当前分片序号 = %d, 总分片数 = %d', $shardIndex, $shardTotal));
         // 业务逻辑
         for ($i = 0; $i < $shardTotal; ++$i) {
             if ($i == $shardIndex) {
-                $this->xxlJobHelper->log('第 %d 片, 命中分片开始处理', $i);
+                $this->jobExecutorLogger->log('第 %d 片, 命中分片开始处理', $i);
             } else {
-                $this->xxlJobHelper->log('第 %d 片, 忽略', $i);
+                $this->jobExecutorLogger->log('第 %d 片, 忽略', $i);
             }
         }
     }
@@ -163,15 +171,15 @@ class DemoJob
      * 3、执行命令.
      */
     #[XxlJob('commandJobHandler')]
-    public function commandJobHandler()
+    public function commandJobHandler(RunRequest $request)
     {
         //获取参数
         //例子:php -v
-        $command = $this->xxlJobHelper->getJobParam();
+        $command = $request->getExecutorParams();
         var_dump($command);
         $result = System::exec($command);
         $message = str_replace("\n", '<br>', $result['output']);
-        $this->xxlJobHelper->log($message);
+        $this->jobExecutorLogger->log($message);
     }
 
     /**
@@ -181,12 +189,11 @@ class DemoJob
      *      "method: get".
      */
     #[XxlJob('paramJobHandler')]
-    public function paramJobHandler()
+    public function paramJobHandler(RunRequest $request)
     {
-        $param = $this->xxlJobHelper->getJobParam();
+        $param = $request->getExecutorParams();
         $array = explode(PHP_EOL, $param);
-        /*
-         * array(2) {
+        /** array(2) {
               [0]=>
               string(25) "url: http://www.baidu.com"
               [1]=>
@@ -202,19 +209,17 @@ class DemoJob
     #[XxlJob(value: 'demoJob', init: 'initMethod', destroy: 'destroyMethod')]
     public function demoJob()
     {
-        $this->xxlJobHelper->log('demoJob run...');
+        $this->jobExecutorLogger->log('demoJob run...');
     }
 
     public function initMethod()
     {
-        $this->xxlJobHelper->log('initMethod');
+        $this->jobExecutorLogger->log('initMethod');
     }
 
     public function destroyMethod()
     {
-        $this->xxlJobHelper->log('destroyMethod');
+        $this->jobExecutorLogger->log('destroyMethod');
     }
 }
-
 ```
-详细文档 [xxl-job](https://www.xuxueli.com/xxl-job) 
