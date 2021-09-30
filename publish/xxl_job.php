@@ -10,15 +10,9 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 return [
-    // enable false 将不会启动服务
-    'enable' => true,
-    'admin_address' => 'http://127.0.0.1:8769/xxl-job-admin',
-    'app_name' => 'xxl-job-demo',
-    'prefix_url' => 'php-xxl-job',
-    //access_token
-    'access_token' => null,
-    'log' => [
-        'filename' => BASE_PATH . '/runtime/logs/xxl-job/job.log',
-        'maxDay' => 30,
-    ],
+    'enable' => env('XXL_JOB_ENABLE', true),
+    'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8769/xxl-job-admin'),
+    'app_name' => env('XXL_JOB_APP_NAME', 'xxl-job-demo'),
+    'prefix_url' => env('XXL_JOB_PREFIX_URL', 'php-xxl-job'),
+    'access_token' => env('XXL_JOB_ACCESS_TOKEN', null),
 ];
