@@ -24,19 +24,19 @@ class XxlJobLogger
 {
     public const MARK_JOB_LOG_ID = 'XXL-JOB-CONTEXT-LOG-ID';
 
-    private string $filename;
+    protected string $filename;
 
-    private mixed $maxDay;
+    protected int $maxDay;
 
-    private JobFileHandler $stream;
+    protected JobFileHandler $stream;
 
-    private int $nextMaxDayTime = 0;
+    protected int $nextMaxDayTime = 0;
 
     public function __construct(ContainerInterface $container)
     {
         $config = $container->get(ConfigInterface::class);
         $this->filename = $config->get('xxl_job.log.filename', BASE_PATH . '/runtime/logs/xxl-job/job.log');
-        $this->maxDay = $config->get('xxl_job.log.maxDay', 30);
+        $this->maxDay = (int) $config->get('xxl_job.log.maxDay', 30);
     }
 
     public function getStream(): JobFileHandler

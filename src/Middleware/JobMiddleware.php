@@ -26,19 +26,13 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class JobMiddleware implements MiddlewareInterface
 {
-    /**
-     * @var Application
-     */
-    private $app;
+    protected Application $application;
 
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
+    protected ContainerInterface $container;
 
-    public function __construct(ContainerInterface $container, Application $app)
+    public function __construct(ContainerInterface $container, Application $application)
     {
-        $this->app = $app;
+        $this->application = $application;
         $this->container = $container;
     }
 
@@ -49,7 +43,7 @@ class JobMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $token = $request->getHeaders()['xxl-job-access-token'][0] ?? '';
-        if ($token != $this->app->getConfig()->getAccessToken()) {
+        if ($token != $this->application->getConfig()->getAccessToken()) {
             $response = $this->container->get(HttpResponse::class);
             $json = json_encode([
                 'code' => 401,
@@ -59,9 +53,8 @@ class JobMiddleware implements MiddlewareInterface
                 ->withAddedHeader('content-type', 'application/json; charset=utf-8')
                 ->withBody(new SwooleStream($json));
         }
-        $body = $this->container->get(ServerRequestInterface::class)->getParsedBody();
 
-        Context::set(XxlJobLogger::MARK_JOB_LOG_ID, $body['logId'] ?? null);
+        Context::set(XxlJobLogger::MARK_JOB_LOG_ID, $request->getParsedBody()['logId'] ?? null);
 
         return $handler->handle($request);
     }

@@ -17,10 +17,7 @@ use Hyperf\XxlJob\Config;
 
 abstract class AbstractProvider
 {
-    /**
-     * @var Config
-     */
-    protected $config;
+    protected Config $config;
 
     public function __construct(Config $config)
     {

@@ -19,7 +19,6 @@ use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
-use Hyperf\XxlJob\Annotation\JobHandler;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
@@ -105,7 +104,7 @@ class BootAppRouteListener implements ListenerInterface
     /**
      * @throws Exception
      */
-    private function initAnnotationRoute(): void
+    protected function initAnnotationRoute(): void
     {
         $methods = AnnotationCollector::getMethodsByAnnotation(XxlJob::class);
         foreach ($methods as $method) {
@@ -131,7 +130,7 @@ class BootAppRouteListener implements ListenerInterface
     /**
      * @throws Exception
      */
-    private function getIp(): string
+    protected function getIp(): string
     {
         $ips = swoole_get_local_ip();
         if (is_array($ips) && ! empty($ips)) {

@@ -20,31 +20,19 @@ use Psr\Container\ContainerInterface;
 
 class OnShutdownListener implements ListenerInterface
 {
-    /**
-     * @var ContainerInterface
-     */
-    protected $container;
+    protected ContainerInterface $container;
 
-    /**
-     * @var StdoutLoggerInterface
-     */
-    protected $logger;
+    protected StdoutLoggerInterface $logger;
 
-    /**
-     * @var bool
-     */
-    private $processed = false;
+    protected bool $processed = false;
 
-    /**
-     * @var Application
-     */
-    private $app;
+    protected Application $application;
 
     public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
         $this->logger = $container->get(StdoutLoggerInterface::class);
-        $this->app = $container->get(Application::class);
+        $this->application = $container->get(Application::class);
     }
 
     public function listen(): array
@@ -62,15 +50,15 @@ class OnShutdownListener implements ListenerInterface
         }
         $this->processed = true;
 
-        $config = $this->app->getConfig();
+        $config = $this->application->getConfig();
         if (! $config->isEnable()) {
             return;
         }
-        $response = $this->app->service->registryRemove($config->getAppName(), $config->getClientUrl());
+        $response = $this->application->service->registryRemove($config->getAppName(), $config->getClientUrl());
         if ($response->getStatusCode() === 200) {
-            $this->logger->debug(sprintf('xxl-job app name:%s url:%s remove successfully!', $config->getAppName(), $config->getClientUrl()));
+            $this->logger->debug(sprintf('Remove the XXL-JOB app name: %s url:%s is successful', $config->getAppName(), $config->getClientUrl()));
         } else {
-            $this->logger->error(sprintf('xxl-job app name:%s url:%s remove failed!', $config->getAppName(), $config->getClientUrl()));
+            $this->logger->error(sprintf('Failed to remove the XXL-JOB app name:%s url:%s', $config->getAppName(), $config->getClientUrl()));
         }
     }
 }

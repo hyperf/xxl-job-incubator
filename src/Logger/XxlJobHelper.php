@@ -11,10 +11,6 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Logger;
 
-use Hyperf\Utils\Context;
-use Hyperf\XxlJob\Requests\RunRequest;
-use Psr\Log\LoggerInterface;
-
 class XxlJobHelper
 {
     /**
