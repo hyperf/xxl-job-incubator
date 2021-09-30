@@ -27,7 +27,7 @@ class MainWorkerStartListener implements ListenerInterface
     /**
      * @var Application
      */
-    private $app;
+    private $application;
 
     /**
      * @var StdoutLoggerInterface
@@ -36,7 +36,7 @@ class MainWorkerStartListener implements ListenerInterface
 
     public function __construct(Application $app, StdoutLoggerInterface $logger)
     {
-        $this->app = $app;
+        $this->application = $app;
         $this->logger = $logger;
     }
 
@@ -50,7 +50,7 @@ class MainWorkerStartListener implements ListenerInterface
 
     public function process(object $event)
     {
-        $config = $this->app->getConfig();
+        $config = $this->application->getConfig();
         if (! $config->isEnable()) {
             return;
         }
@@ -68,12 +68,12 @@ class MainWorkerStartListener implements ListenerInterface
                     }
                     $isFirstRegister = false;
                     try {
-                        $response = $this->app->service->registry($appName, $url);
+                        $response = $this->application->service->registry($appName, $url);
                         $result = Json::decode((string) $response->getBody());
                         if ($result['code'] == 200) {
-                            $this->logger->debug(sprintf('xxl-job registry app name:%s heartbeat successfully', $appName));
+                            $this->logger->debug(sprintf('Register XXL-JOB app name %s is successful', $appName));
                         } else {
-                            $this->logger->error(sprintf('xxl-job registry app name:%s fail, %s', $appName, $result['msg']));
+                            $this->logger->error(sprintf('Failed to register XXL-JOB app name %s with error message: %s', $appName, $result['msg']));
                         }
                     } catch (Throwable $throwable) {
                         $this->logger->error(sprintf('xxl-job registry failed. %s', $throwable->getMessage()));

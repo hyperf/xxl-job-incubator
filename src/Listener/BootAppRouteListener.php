@@ -23,26 +23,23 @@ use Hyperf\XxlJob\Annotation\JobHandler;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Application;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
-use Hyperf\XxlJob\JobDefinition;
-use Hyperf\XxlJob\Logger\XxlJobHelper;
 use Hyperf\XxlJob\Handler\JobHandlerInterface;
+use Hyperf\XxlJob\JobDefinition;
 use Psr\Container\ContainerInterface;
 
 class BootAppRouteListener implements ListenerInterface
 {
-    /**
-     * @var Application
-     */
-    private $application;
+    protected Application $application;
 
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
+    protected ContainerInterface $container;
 
     protected ConfigInterface $config;
 
     protected StdoutLoggerInterface $logger;
+
+    protected DispatcherFactory $dispatcherFactory;
+
+    protected XxlJobRoute $xxlJobRoute;
 
     public function __construct(ContainerInterface $container, Application $application)
     {
@@ -50,6 +47,8 @@ class BootAppRouteListener implements ListenerInterface
         $this->application = $application;
         $this->config = $container->get(ConfigInterface::class);
         $this->logger = $container->get(StdoutLoggerInterface::class);
+        $this->dispatcherFactory = $container->get(DispatcherFactory::class);
+        $this->xxlJobRoute = $container->get(XxlJobRoute::class);
     }
 
     public function listen(): array
@@ -59,10 +58,12 @@ class BootAppRouteListener implements ListenerInterface
         ];
     }
 
+    /**
+     * @throws \Exception
+     */
     public function process(object $event)
     {
-        $config = $this->container->get(ConfigInterface::class);
-        if (! $config->get('xxl_job.enable', false)) {
+        if (! $this->config->get('xxl_job.enable', false)) {
             $this->logger->debug('xxl_job not enable');
             return;
         }
@@ -71,7 +72,7 @@ class BootAppRouteListener implements ListenerInterface
         $httpServerRouter = null;
         $serverConfig = null;
         foreach ($servers as $server) {
-            $router = $this->container->get(DispatcherFactory::class)->getRouter($server['name']);
+            $router = $this->dispatcherFactory->getRouter($server['name']);
             if (empty($httpServerRouter) && $server['type'] == ServerInterface::SERVER_HTTP) {
                 $httpServerRouter = $router;
                 $serverConfig = $server;
@@ -82,15 +83,15 @@ class BootAppRouteListener implements ListenerInterface
             $this->application->getConfig()->setEnable(false);
             return;
         }
+
         $this->initAnnotationRoute();
 
-        $route = new XxlJobRoute();
         if (! empty($prefixUrl)) {
             $prefixUrl = trim($prefixUrl, '/') . '/';
         } else {
             $prefixUrl = '';
         }
-        $route->add($httpServerRouter, $prefixUrl);
+        $this->xxlJobRoute->add($httpServerRouter, $prefixUrl);
 
         $host = $serverConfig['host'];
         if (in_array($host, ['0.0.0.0', 'localhost'])) {
@@ -114,32 +115,17 @@ class BootAppRouteListener implements ListenerInterface
             }
         }
 
-        $classArray = AnnotationCollector::getClassesByAnnotation(JobHandler::class);
-        /**
-         * @var string $className
-         * @var JobHandler $annotation
-         */
-        foreach ($classArray as $className => $annotation) {
+
+        $classes = AnnotationCollector::getClassesByAnnotation(XxlJob::class);
+        foreach ($classes as $className => $annotation) {
             $classObj = $this->container->get($className);
             if (! $classObj instanceof JobHandlerInterface) {
-                throw new Exception(sprintf('xxl-job: %s does not implement the JobHandlerInterface interface', $className));
+                throw new Exception(sprintf('The %s job should be implement the %s interface', $className, JobHandlerInterface::class));
             }
-            $this->setJobHandlers($annotation->value, $className, 'execute');
+            if ($annotation instanceof XxlJob) {
+                $this->application->registerJobHandler($annotation->value, new JobDefinition($className, 'execute', 'init', 'destory'));
+            }
         }
-    }
-
-    private function setJobHandlers(string $jobHandler, string $class, string $method, string $init = '', string $destroy = '')
-    {
-        if (! empty(Application::getJobHandlers($jobHandler))) {
-            throw new Exception("xxl-job jobHandler[{$jobHandler}] naming conflicts.");
-        }
-        $xxlJobArray = [
-            'class' => $class,
-            'method' => $method,
-            'init' => $init,
-            'destroy' => $destroy,
-        ];
-        Application::setJobHandlers($jobHandler, $xxlJobArray);
     }
 
     /**

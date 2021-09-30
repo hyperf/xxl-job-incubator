@@ -11,10 +11,12 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Handler;
 
+use Hyperf\XxlJob\Requests\RunRequest;
+
 interface JobHandlerInterface
 {
     /**
      * The logical of process will place in here.
      */
-    public function execute(): void;
+    public function execute(RunRequest $request): void;
 }

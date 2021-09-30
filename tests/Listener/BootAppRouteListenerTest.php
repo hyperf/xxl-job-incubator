@@ -41,7 +41,7 @@ class BootAppRouteListenerTest extends TestCase
     {
         AnnotationCollector::clear();
         AnnotationCollector::collectMethod('Foo', 'fooDemo', XxlJob::class, new XxlJob('foo', 'init', 'destroy'));
-        AnnotationCollector::collectClass(BarJobClass::class, JobHandler::class, new JobHandler('bar'));
+        AnnotationCollector::collectClass(BarJobClass::class, XxlJob::class, new XxlJob('bar', 'execute', 'init', 'destory'));
         $container = m::mock(ContainerInterface::class);
         ApplicationContext::setContainer($container);
 
@@ -66,7 +66,7 @@ class BootAppRouteListenerTest extends TestCase
 
         $this->assertSame(BarJobClass::class, Application::getJobHandlers('bar')['class']);
         $this->assertSame('execute', Application::getJobHandlers('bar')['method']);
-        $this->assertSame('', Application::getJobHandlers('bar')['init']);
-        $this->assertSame('', Application::getJobHandlers('bar')['destroy']);
+        $this->assertSame('init', Application::getJobHandlers('bar')['init']);
+        $this->assertSame('destory', Application::getJobHandlers('bar')['destroy']);
     }
 }

@@ -18,9 +18,8 @@ class JobExecutorLogger extends StdoutLogger implements JobExecutorLoggerInterfa
         if (! in_array($level, $config['log_level'], true)) {
             return;
         }
-        $prefixMessage = '[XxlJobExecutor] ';
-        $jobIdMessage = 'JobId:' . Context::get(XxlJobLogger::MARK_JOB_LOG_ID) . ' ';
-        $message = $prefixMessage . $jobIdMessage . $message;
+        $jobIdMessage = 'XXL-JOB-ID:' . Context::get(XxlJobLogger::MARK_JOB_LOG_ID) . ' ';
+        $message = $jobIdMessage . $message;
         $keys = array_keys($context);
         $tags = [];
         foreach ($keys as $k => $key) {

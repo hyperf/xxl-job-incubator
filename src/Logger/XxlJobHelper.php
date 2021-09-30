@@ -27,37 +27,9 @@ class XxlJobHelper
         $this->xxlJobLogger = $xxlJobLogger;
     }
 
-    public function log($message, ...$param)
-    {
-        if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
-            return;
-        }
-        if (! empty($param)) {
-            $message = sprintf($message, ...$param);
-        }
-        $this->xxlJobLogger->getLogger()->info($message);
-    }
-
-    public function getLogger(): ?LoggerInterface
-    {
-        if (empty(Context::get(XxlJobLogger::MARK_JOB_LOG_ID))) {
-            return null;
-        }
-        return $this->xxlJobLogger->getLogger();
-    }
-
     public function getLogFilename(): string
     {
         return $this->xxlJobLogger->getStream()->getTimedFilename();
     }
 
-    public function getRunRequest(): RunRequest
-    {
-        return Context::get(RunRequest::class);
-    }
-
-    public function getJobParam(): string
-    {
-        return static::getRunRequest()->getExecutorParams();
-    }
 }

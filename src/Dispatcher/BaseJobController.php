@@ -37,11 +37,6 @@ class BaseJobController
 
     protected JobExecutorLoggerInterface $jobExecutorLogger;
 
-    /**
-     * @var XxlJobHelper
-     */
-    private $xxlJobHelper;
-
     public function __construct(ContainerInterface $container, Application $application, ServerFactory $serverFactory, XxlJobLogger $xxlJobLogger, StdoutLoggerInterface $stdoutLogger, JobExecutorLoggerInterface $jobExecutorLogger)
     {
         $this->container = $container;
@@ -50,7 +45,6 @@ class BaseJobController
         $this->serverFactory = $serverFactory;
         $this->stdoutLogger = $stdoutLogger;
         $this->jobExecutorLogger = $jobExecutorLogger;
-        $this->xxlJobHelper = $container->get(XxlJobHelper::class);
     }
 
     public function getXxlJobLogger(): XxlJobLogger

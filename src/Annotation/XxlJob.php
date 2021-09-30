@@ -16,9 +16,9 @@ use Hyperf\Di\Annotation\AbstractAnnotation;
 
 /**
  * @Annotation
- * @Target({"METHOD"})
+ * @Target({"METHOD", "CLASS"})
  */
-#[Attribute(Attribute::TARGET_METHOD)]
+#[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_CLASS)]
 class XxlJob extends AbstractAnnotation
 {
     public string $value = '';

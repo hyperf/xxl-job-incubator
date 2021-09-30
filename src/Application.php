@@ -13,7 +13,6 @@ namespace Hyperf\XxlJob;
 
 use Exception;
 use Hyperf\XxlJob\Provider\ServiceProvider;
-use JetBrains\PhpStorm\ArrayShape;
 
 /**
  * @property ServiceProvider $service
