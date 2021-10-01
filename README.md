@@ -56,7 +56,7 @@ php bin/hyperf.php vendor:publish hyperf/xxl-job-incubator
 
 Bean 模式任务，支持基于类的开发方式，每个任务对应一个 PHP 类
 
-优点：与 Hyperf 整合性好，易于管理
+优点：与 Hyperf 整合性好，易于管理   
 缺点：任务运行于单独的，协程任务代码不能存在阻塞 IO，每个 Job 需占用一个类文件，Job 逻辑简单但数量过多时过于累赘
 
 #### 编写 Job 类
@@ -111,7 +111,7 @@ class DemoJobClass extends AbstractJobHandler
 
 基于方法的开发方式，每个任务对应一个方法
 
-优点：相对比 `Bean(类形式)` 更加灵活
+优点：相对比 `Bean(类形式)` 更加灵活   
 缺点：数量多时更难管理，代码复杂度高时多个任务间容易造成耦合度过高
 
 #### 编写 Job 方法
@@ -252,7 +252,7 @@ class DemoJob
 
 > 要使用 `Glue 脚本模式` 必须配置 Access Token 方可启用
 
-优点：极度灵活，可以实现不重启新增和修改 Job 代码，支持多种脚本语言，独立进程
+优点：极度灵活，可以实现不重启新增和修改 Job 代码，支持多种脚本语言，独立进程   
 缺点：大批量任务时容易造成进程数过多，脚本代码由 XXL-JOB 远程编辑发放容易导致安全问题，Job 代码可对 Executor 所在服务器环境进行与启动 Hyperf 应用的权限相同的操作
 
 ### 引用
