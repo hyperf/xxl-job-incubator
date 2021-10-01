@@ -124,7 +124,7 @@ class BootAppRouteListener implements ListenerInterface
                 throw new Exception(sprintf('The %s job should be implement the %s interface', $className, JobHandlerInterface::class));
             }
             if ($annotation instanceof XxlJob) {
-                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($className, 'execute', 'init', 'destory'));
+                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($className, 'execute', 'init', 'destroy'));
             }
         }
     }

@@ -11,11 +11,15 @@ declare(strict_types=1);
  */
 namespace HyperfTest\XxlJob\Listener;
 
+use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Di\Annotation\AnnotationCollector;
+use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Utils\ApplicationContext;
 use Hyperf\Utils\Reflection\ClassInvoker;
 use Hyperf\XxlJob\Annotation\XxlJob;
+use Hyperf\XxlJob\Config;
+use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
 use Hyperf\XxlJob\JobHandlerManager;
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use HyperfTest\XxlJob\BarJobClass;
@@ -35,35 +39,46 @@ class BootAppRouteListenerTest extends TestCase
         AnnotationCollector::clear();
     }
 
-    public function testInitAnnotationRoute()
+    public function testInitAnnotationRouteWithMethodBean()
     {
-        AnnotationCollector::clear();
-        AnnotationCollector::collectMethod('Foo', 'fooDemo', XxlJob::class, new XxlJob('foo', 'init', 'destroy'));
-        AnnotationCollector::collectClass(BarJobClass::class, XxlJob::class, new XxlJob('bar', 'execute', 'init', 'destory'));
         $container = m::mock(ContainerInterface::class);
-        ApplicationContext::setContainer($container);
-
-        $container->shouldReceive('get')->with(JobHandlerManager::class)->andReturn(m::mock(JobHandlerManager::class));
+        $container->shouldReceive('get')->with(Config::class)->andReturn(m::mock(Config::class));
+        $container->shouldReceive('get')->with(XxlJobRoute::class)->andReturn(m::mock(XxlJobRoute::class));
+        $container->shouldReceive('get')->with(DispatcherFactory::class)->andReturn(m::mock(DispatcherFactory::class));
+        $container->shouldReceive('get')->with(ConfigInterface::class)->andReturn(m::mock(ConfigInterface::class));
+        $jobHandlerManager = new JobHandlerManager();
+        $container->shouldReceive('get')->with(JobHandlerManager::class)->andReturn($jobHandlerManager);
         $container->shouldReceive('get')->with(StdoutLoggerInterface::class)->andReturn(m::mock(StdoutLoggerInterface::class));
         $container->shouldReceive('get')->with(BarJobClass::class)->andReturn(m::mock(BarJobClass::class));
 
         $listener = new BootAppRouteListener($container);
         $listener = new ClassInvoker($listener);
+
+        // Method mode with init and destroy
+        AnnotationCollector::collectMethod('Foo', 'fooDemo', XxlJob::class, new XxlJob('foo-method-1', 'init', 'destroy'));
         $listener->initAnnotationRoute();
+        $jobHandlerDefinition = $jobHandlerManager->getJobHandlers('foo-method-1');
+        $this->assertSame('Foo', $jobHandlerDefinition->getClass());
+        $this->assertSame('fooDemo', $jobHandlerDefinition->getMethod());
+        $this->assertSame('init', $jobHandlerDefinition->getInit());
+        $this->assertSame('destroy', $jobHandlerDefinition->getDestroy());
 
-        $this->assertSame('Foo', JobHandlerManager::getJobHandlers('foo')['class']);
-        $this->assertSame('fooDemo', JobHandlerManager::getJobHandlers('foo')['method']);
-        $this->assertSame('init', JobHandlerManager::getJobHandlers('foo')['init']);
-        $this->assertSame('destroy', JobHandlerManager::getJobHandlers('foo')['destroy']);
+        // Method mode without init and destroy
+        AnnotationCollector::collectMethod('Foo', 'fooDemo', XxlJob::class, new XxlJob('foo-method-2', '', ''));
+        $listener->initAnnotationRoute();
+        $jobHandlerDefinition = $jobHandlerManager->getJobHandlers('foo-method-2');
+        $this->assertSame('Foo', $jobHandlerDefinition->getClass());
+        $this->assertSame('fooDemo', $jobHandlerDefinition->getMethod());
+        $this->assertSame('', $jobHandlerDefinition->getInit());
+        $this->assertSame('', $jobHandlerDefinition->getDestroy());
 
-        $this->assertSame('Bar', JobHandlerManager::getJobHandlers('bar')['class']);
-        $this->assertSame('barDemo', JobHandlerManager::getJobHandlers('bar')['method']);
-        $this->assertSame('', JobHandlerManager::getJobHandlers('bar')['init']);
-        $this->assertSame('', JobHandlerManager::getJobHandlers('bar')['destroy']);
-
-        $this->assertSame(BarJobClass::class, JobHandlerManager::getJobHandlers('bar')['class']);
-        $this->assertSame('execute', JobHandlerManager::getJobHandlers('bar')['method']);
-        $this->assertSame('init', JobHandlerManager::getJobHandlers('bar')['init']);
-        $this->assertSame('destory', JobHandlerManager::getJobHandlers('bar')['destroy']);
+        // Class moed
+        AnnotationCollector::collectClass(BarJobClass::class, XxlJob::class, new XxlJob('bar-job-class-1', 'execute', '', ''));
+        $listener->initAnnotationRoute();
+        $jobHandlerDefinition = $jobHandlerManager->getJobHandlers('bar-job-class-1');
+        $this->assertSame(BarJobClass::class, $jobHandlerDefinition->getClass());
+        $this->assertSame('execute', $jobHandlerDefinition->getMethod());
+        $this->assertSame('init', $jobHandlerDefinition->getInit());
+        $this->assertSame('destroy', $jobHandlerDefinition->getDestroy());
     }
 }
