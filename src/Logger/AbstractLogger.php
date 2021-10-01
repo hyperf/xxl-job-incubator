@@ -10,11 +10,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 class AbstractLogger extends StdoutLogger
 {
 
-    protected ConfigInterface $config;
+    /**
+     * @var ConfigInterface
+     */
+    protected $config;
 
-    protected OutputInterface $output;
+    /**
+     * @var OutputInterface
+     */
+    protected $output;
 
-    protected array $tags = [
+    /**
+     * @var string[]
+     */
+    protected $tags = [
         'component',
     ];
 
