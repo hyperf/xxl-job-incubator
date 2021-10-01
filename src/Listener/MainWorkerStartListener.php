@@ -21,6 +21,7 @@ use Hyperf\Utils\Coordinator\CoordinatorManager;
 use Hyperf\Utils\Coroutine;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Throwable;
 
 class MainWorkerStartListener implements ListenerInterface
@@ -54,7 +55,7 @@ class MainWorkerStartListener implements ListenerInterface
         $this->registerHeartbeat($this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl(), $this->xxlConfig->getHeartbeat());
     }
 
-    protected function registerHeartbeat(string $appName, string $url, $heartbeat): void
+    protected function registerHeartbeat(string $appName, string $url, int $heartbeat): void
     {
         $isFirstRegister = true;
         Coroutine::create(function () use ($appName, $url, $heartbeat, $isFirstRegister) {
@@ -74,13 +75,14 @@ class MainWorkerStartListener implements ListenerInterface
                             }
                             $isFirstRegister = false;
                         } else {
-                            $this->logger->error(sprintf('Failed to register XXL-JOB app name [%s] with error message: %s', $appName, $result['msg']));
+                            throw new XxlJobException($result['msg']);
                         }
                     } catch (Throwable $throwable) {
-                        $this->logger->error(sprintf('Failed to register XXL-JOB executor. %s', $throwable->getMessage()));
+                        $this->logger->error(sprintf('Failed to register XXL-JOB executor with message: %s', $throwable->getMessage()));
+                        throw $throwable;
                     }
                 }
-            });
+            }, $heartbeat * 1000);
         });
     }
 }
