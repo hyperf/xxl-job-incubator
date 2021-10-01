@@ -12,7 +12,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Dispatcher;
 
 use Hyperf\HttpServer\Router\RouteCollector;
-use Hyperf\XxlJob\Middleware\JobMiddleware;
+use Hyperf\XxlJob\Middleware\AuthMiddleware;
 
 class XxlJobRoute
 {
@@ -24,6 +24,6 @@ class XxlJobRoute
             $route->post('idleBeat', [JobController::class, 'idleBeat']);
             $route->post('kill', [JobController::class, 'kill']);
             $route->post('log', [JobController::class, 'log']);
-        }, ['middleware' => [JobMiddleware::class]]);
+        }, ['middleware' => [AuthMiddleware::class]]);
     }
 }

@@ -13,9 +13,8 @@ namespace Hyperf\XxlJob\Middleware;
 
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
-use Hyperf\Utils\Context;
-use Hyperf\XxlJob\Application;
-use Hyperf\XxlJob\Logger\XxlJobLogger;
+use Hyperf\XxlJob\Config;
+use Hyperf\XxlJob\JobContext;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -24,15 +23,15 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
-class JobMiddleware implements MiddlewareInterface
+class AuthMiddleware implements MiddlewareInterface
 {
-    protected Application $application;
+    protected Config $xxlConfig;
 
     protected ContainerInterface $container;
 
-    public function __construct(ContainerInterface $container, Application $application)
+    public function __construct(ContainerInterface $container, Config $xxlConfig)
     {
-        $this->application = $application;
+        $this->xxlConfig = $xxlConfig;
         $this->container = $container;
     }
 
@@ -43,7 +42,7 @@ class JobMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $token = $request->getHeaders()['xxl-job-access-token'][0] ?? '';
-        if ($token != $this->application->getConfig()->getAccessToken()) {
+        if ($token != $this->xxlConfig->getAccessToken()) {
             $response = $this->container->get(HttpResponse::class);
             $json = json_encode([
                 'code' => 401,
@@ -54,7 +53,7 @@ class JobMiddleware implements MiddlewareInterface
                 ->withBody(new SwooleStream($json));
         }
 
-        Context::set(XxlJobLogger::MARK_JOB_LOG_ID, $request->getParsedBody()['logId'] ?? null);
+        JobContext::setJobLogId($request->getParsedBody()['logId'] ?? null);
 
         return $handler->handle($request);
     }

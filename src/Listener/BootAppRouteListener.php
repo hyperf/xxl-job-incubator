@@ -20,15 +20,16 @@ use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
 use Hyperf\XxlJob\Annotation\XxlJob;
-use Hyperf\XxlJob\Application;
+use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
 use Hyperf\XxlJob\Handler\JobHandlerInterface;
-use Hyperf\XxlJob\JobDefinition;
+use Hyperf\XxlJob\JobHandlerDefinition;
+use Hyperf\XxlJob\JobHandlerManager;
 use Psr\Container\ContainerInterface;
 
 class BootAppRouteListener implements ListenerInterface
 {
-    protected Application $application;
+    protected JobHandlerManager $jobHandlerManager;
 
     protected ContainerInterface $container;
 
@@ -40,14 +41,17 @@ class BootAppRouteListener implements ListenerInterface
 
     protected XxlJobRoute $xxlJobRoute;
 
-    public function __construct(ContainerInterface $container, Application $application)
+    protected Config $xxlConfig;
+
+    public function __construct(ContainerInterface $container)
     {
         $this->container = $container;
-        $this->application = $application;
+        $this->jobHandlerManager = $container->get(JobHandlerManager::class);
         $this->config = $container->get(ConfigInterface::class);
         $this->logger = $container->get(StdoutLoggerInterface::class);
         $this->dispatcherFactory = $container->get(DispatcherFactory::class);
         $this->xxlJobRoute = $container->get(XxlJobRoute::class);
+        $this->xxlConfig = $container->get(Config::class);
     }
 
     public function listen(): array
@@ -62,11 +66,10 @@ class BootAppRouteListener implements ListenerInterface
      */
     public function process(object $event)
     {
-        if (! $this->config->get('xxl_job.enable', false)) {
-            $this->logger->debug('xxl_job not enable');
+        if (! $this->xxlConfig->isEnable()) {
             return;
         }
-        $prefixUrl = $this->config->get('xxl_job.prefix_url', 'php-xxl-job');
+        $prefixUrl = $this->xxlConfig->getExecutorServerPrefixUrl();
         $servers = $this->config->get('server.servers');
         $httpServerRouter = null;
         $serverConfig = null;
@@ -78,8 +81,8 @@ class BootAppRouteListener implements ListenerInterface
             }
         }
         if (empty($httpServerRouter)) {
-            $this->logger->warning('XxlJob: HTTP Service is not ready.');
-            $this->application->getConfig()->setEnable(false);
+            $this->logger->warning('XXL-JOB HTTP Service is not ready.');
+            $this->xxlConfig->setEnable(false);
             return;
         }
 
@@ -98,7 +101,7 @@ class BootAppRouteListener implements ListenerInterface
         }
 
         $url = sprintf('http://%s:%s/%s', $host, $serverConfig['port'], $prefixUrl);
-        $this->application->getConfig()->setClientUrl($url);
+        $this->xxlConfig->setClientUrl($url);
     }
 
     /**
@@ -110,10 +113,9 @@ class BootAppRouteListener implements ListenerInterface
         foreach ($methods as $method) {
             $annotation = $method['annotation'];
             if ($annotation instanceof XxlJob) {
-                $this->application->registerJobHandler($annotation->value, new JobDefinition($method['class'], $method['method'], $annotation->init, $annotation->destroy));
+                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($method['class'], $method['method'], $annotation->init, $annotation->destroy));
             }
         }
-
 
         $classes = AnnotationCollector::getClassesByAnnotation(XxlJob::class);
         foreach ($classes as $className => $annotation) {
@@ -122,7 +124,7 @@ class BootAppRouteListener implements ListenerInterface
                 throw new Exception(sprintf('The %s job should be implement the %s interface', $className, JobHandlerInterface::class));
             }
             if ($annotation instanceof XxlJob) {
-                $this->application->registerJobHandler($annotation->value, new JobDefinition($className, 'execute', 'init', 'destory'));
+                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($className, 'execute', 'init', 'destory'));
             }
         }
     }

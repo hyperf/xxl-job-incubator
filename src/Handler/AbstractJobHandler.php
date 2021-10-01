@@ -13,5 +13,4 @@ namespace Hyperf\XxlJob\Handler;
 
 abstract class AbstractJobHandler implements JobHandlerInterface
 {
-
 }

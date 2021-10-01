@@ -19,7 +19,7 @@ class Config
 
     private string $accessToken = '';
 
-    private string $serverUrlPrefix = '';
+    private string $serverUrlPath = '';
 
     private array $guzzleConfig = [
         'headers' => [
@@ -33,6 +33,8 @@ class Config
     private string $clientUrl = '';
 
     private int $heartbeat = 30;
+
+    private string $executorServerPrefixUrl = '';
 
     public function isEnable(): bool
     {
@@ -67,14 +69,14 @@ class Config
         return $this;
     }
 
-    public function getServerUrlPrefix(): string
+    public function getServerUrlPath(): string
     {
-        return $this->serverUrlPrefix;
+        return $this->serverUrlPath;
     }
 
-    public function setServerUrlPrefix(string $serverUrlPrefix): Config
+    public function setServerUrlPath(string $serverUrlPath): Config
     {
-        $this->serverUrlPrefix = $serverUrlPrefix;
+        $this->serverUrlPath = $serverUrlPath;
         return $this;
     }
 
@@ -122,5 +124,14 @@ class Config
         return $this;
     }
 
+    public function getExecutorServerPrefixUrl(): string
+    {
+        return $this->executorServerPrefixUrl;
+    }
 
+    public function setExecutorServerPrefixUrl(string $executorServerPrefixUrl): Config
+    {
+        $this->executorServerPrefixUrl = $executorServerPrefixUrl;
+        return $this;
+    }
 }

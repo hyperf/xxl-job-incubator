@@ -9,9 +9,8 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-namespace Hyperf\XxlJob\Logger;
+namespace Hyperf\XxlJob\Exception;
 
-interface JobExecutorLoggerInterface extends XxlJobLoggerInterface
+class GlueHandlerExecutionException extends XxlJobException
 {
-    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): array;
 }

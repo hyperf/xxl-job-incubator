@@ -14,7 +14,8 @@ namespace Hyperf\XxlJob;
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use Hyperf\XxlJob\Listener\MainWorkerStartListener;
 use Hyperf\XxlJob\Listener\OnShutdownListener;
-use Hyperf\XxlJob\Logger\JobExecutorLogger;
+use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
+use Hyperf\XxlJob\Logger\JobExecutorFileLoggerFactory;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Psr\Log\LogLevel;
 
@@ -24,8 +25,10 @@ class ConfigProvider
     {
         return [
             'dependencies' => [
-                Application::class => ApplicationFactory::class,
-                JobExecutorLoggerInterface::class => JobExecutorLogger::class,
+                Config::class => ConfigFactory::class,
+                // hyperf/di does not support Recursive References yet, so use JobExecutorFileLoggerFactory instead of JobExecutorFileLogger.
+                JobExecutorLoggerInterface::class => JobExecutorFileLoggerFactory::class,
+                JobExecutorFileLogger::class => JobExecutorFileLoggerFactory::class,
             ],
             'listeners' => [
                 BootAppRouteListener::class,

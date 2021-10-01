@@ -19,19 +19,23 @@ use Hyperf\Utils\Codec\Json;
 use Hyperf\Utils\Coordinator\Constants;
 use Hyperf\Utils\Coordinator\CoordinatorManager;
 use Hyperf\Utils\Coroutine;
-use Hyperf\XxlJob\Application;
+use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Config;
 use Throwable;
 
 class MainWorkerStartListener implements ListenerInterface
 {
-    protected Application $application;
+    protected Config $xxlConfig;
 
     protected StdoutLoggerInterface $logger;
 
-    public function __construct(Application $app, StdoutLoggerInterface $logger)
+    protected ApiRequest $apiRequest;
+
+    public function __construct(Config $xxlConfig, StdoutLoggerInterface $logger, ApiRequest $apiRequest)
     {
-        $this->application = $app;
+        $this->xxlConfig = $xxlConfig;
         $this->logger = $logger;
+        $this->apiRequest = $apiRequest;
     }
 
     public function listen(): array
@@ -44,14 +48,13 @@ class MainWorkerStartListener implements ListenerInterface
 
     public function process(object $event)
     {
-        $config = $this->application->getConfig();
-        if (! $config->isEnable()) {
+        if (! $this->xxlConfig->isEnable()) {
             return;
         }
-        $this->registerHeartbeat($config->getAppName(), $config->getClientUrl(), $config->getHeartbeat());
+        $this->registerHeartbeat($this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl(), $this->xxlConfig->getHeartbeat());
     }
 
-    protected function registerHeartbeat(string $appName, string $url, $heartbeat = 30): void
+    protected function registerHeartbeat(string $appName, string $url, $heartbeat): void
     {
         $isFirstRegister = true;
         Coroutine::create(function () use ($appName, $url, $heartbeat, $isFirstRegister) {
@@ -60,17 +63,21 @@ class MainWorkerStartListener implements ListenerInterface
                     if (! $isFirstRegister && CoordinatorManager::until(Constants::WORKER_EXIT)->yield($heartbeat)) {
                         break;
                     }
-                    $isFirstRegister = false;
                     try {
-                        $response = $this->application->service->registry($appName, $url);
+                        $response = $this->apiRequest->registry($appName, $url);
                         $result = Json::decode((string) $response->getBody());
                         if ($result['code'] == 200) {
-                            $this->logger->debug(sprintf('Register XXL-JOB app name %s is successful', $appName));
+                            if ($isFirstRegister) {
+                                $this->logger->info(sprintf('Register XXL-JOB app name [%s] is successful', $appName));
+                            } else {
+                                $this->logger->debug('XXL-JOB Executor heartbeat is successful');
+                            }
+                            $isFirstRegister = false;
                         } else {
-                            $this->logger->error(sprintf('Failed to register XXL-JOB app name %s with error message: %s', $appName, $result['msg']));
+                            $this->logger->error(sprintf('Failed to register XXL-JOB app name [%s] with error message: %s', $appName, $result['msg']));
                         }
                     } catch (Throwable $throwable) {
-                        $this->logger->error(sprintf('xxl-job registry failed. %s', $throwable->getMessage()));
+                        $this->logger->error(sprintf('Failed to register XXL-JOB executor. %s', $throwable->getMessage()));
                     }
                 }
             });

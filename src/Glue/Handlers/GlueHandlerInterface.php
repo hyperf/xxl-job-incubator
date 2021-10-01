@@ -9,9 +9,11 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
-namespace Hyperf\XxlJob\Logger;
+namespace Hyperf\XxlJob\Glue\Handlers;
 
-interface JobExecutorLoggerInterface extends XxlJobLoggerInterface
+use Hyperf\XxlJob\Requests\RunRequest;
+
+interface GlueHandlerInterface
 {
-    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): array;
+    public function handle(RunRequest $request);
 }

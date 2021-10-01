@@ -12,67 +12,38 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Dispatcher;
 
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
-use Hyperf\XxlJob\JobContext;
-use Hyperf\XxlJob\JobDefinition;
+use Hyperf\XxlJob\Exception\XxlJobException;
+use Hyperf\XxlJob\Glue\GlueHandlerManager;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\LogRequest;
 use Hyperf\XxlJob\Requests\RunRequest;
-use Throwable;
+use Psr\Container\ContainerInterface;
 
 class JobController extends BaseJobController
 {
+    protected GlueHandlerManager $glueHandlerManager;
+
+    public function __construct(
+        ContainerInterface $container,
+        StdoutLoggerInterface $stdoutLogger,
+        JobExecutorLoggerInterface $jobExecutorLogger
+    ) {
+        parent::__construct($container, $stdoutLogger, $jobExecutorLogger);
+        $this->glueHandlerManager = $container->get(GlueHandlerManager::class);
+    }
 
     public function run(): ResponseInterface
     {
         $runRequest = RunRequest::create($this->input());
         $this->stdoutLogger->debug(sprintf('Received a XXL-JOB, JobHandler: %s JobId: %s LogId: %s', $runRequest->getExecutorHandler(), $runRequest->getJobId(), $runRequest->getLogId()));
-        if ($runRequest->getGlueType() !== 'BEAN') {
-            $message = 'The xxl-job client only runs in BEAN mode';
-            $this->stdoutLogger->warning($message);
-            return $this->responseFail($message);
+
+        try {
+            $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+        } catch (XxlJobException $exception) {
+            $this->stdoutLogger->warning($exception->getMessage());
+            return $this->responseFail($exception->getMessage());
         }
-        $executorHandler = $runRequest->getExecutorHandler();
-        $jobDefinition = $this->application->getJobHandlerDefinitions($executorHandler);
-
-        if (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod())) {
-            $message = sprintf('The definition of executor handler %s is invalid.', $executorHandler);
-            $this->stdoutLogger->warning($message);
-            return $this->responseFail($message);
-        }
-
-        JobContext::runJob($jobDefinition, $runRequest, function (JobDefinition $jobDefinition, RunRequest $request) {
-            try {
-                $this->jobExecutorLogger->info(sprintf('is beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
-
-                $jobInstance = $this->container->get($jobDefinition->getClass());
-                $init = $jobDefinition->getInit();
-                $method = $jobDefinition->getMethod();
-                $destroy = $jobDefinition->getDestroy();
-
-                if (! empty($init) && method_exists($jobInstance, $init)) {
-                    $jobInstance->{$init}($request);
-                }
-
-                $jobInstance->{$method}($request);
-
-                if (! empty($destroy) && method_exists($jobInstance, $destroy)) {
-                    $jobInstance->{$destroy}($request);
-                }
-                $this->jobExecutorLogger->info('is finished');
-                $this->application->service->callback($request->getLogId(), $request->getLogDateTime());
-            } catch (Throwable $throwable) {
-                $message = $throwable->getMessage();
-                if ($this->container->has(FormatterInterface::class)) {
-                    $formatter = $this->container->get(FormatterInterface::class);
-                    $message = $formatter->format($throwable);
-                    $message = str_replace("\n", '<br>', $message);
-                }
-                $this->application->service->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
-                $this->jobExecutorLogger->error($message);
-                throw $throwable;
-            }
-        });
         return $this->responseSuccess();
     }
 
@@ -80,31 +51,31 @@ class JobController extends BaseJobController
     {
         $logRequest = LogRequest::create($this->input());
 
-        $logFile = $this->getXxlJobHelper()->getLogFilename();
+        [$content, $endLine, $isEnd] = $this->jobExecutorLogger->retrieveLog($logRequest->getLogId(), $logRequest->getLogDateTim(), $logRequest->getFromLineNum(), -1);
 
-        if (! file_exists($logFile)) {
+        if ($endLine <= 0) {
             $data = [
-                'code' => 200,
-                'msg' => null,
+                'code' => 500,
+                'msg' => 'Failed to read the log, the file does not exists',
                 'content' => [
                     'fromLineNum' => $logRequest->getFromLineNum(),
-                    'toLineNum' => 0,
-                    'logContent' => 'readLog fail, logFile not exists',
+                    'toLineNum' => $endLine,
+                    'logContent' => '',
                     'isEnd' => true,
                 ],
             ];
             return $this->response($data);
         }
 
-        [$content, $row] = $this->getXxlJobLogger()->getLine($logFile, $logRequest->getFromLineNum());
         $data = [
             'code' => 200,
             'msg' => null,
             'content' => [
                 'fromLineNum' => $logRequest->getFromLineNum(),
-                'toLineNum' => $row,
+                'toLineNum' => $endLine,
                 'logContent' => $content,
-                'isEnd' => false,
+                // The XXL-JOB Server will not rolling load the log content even isEnd returns false, so make sure all log content has been retrieved.
+                'isEnd' => true,
             ],
         ];
 
@@ -125,5 +96,4 @@ class JobController extends BaseJobController
     {
         return $this->responseFail('Not supported');
     }
-
 }

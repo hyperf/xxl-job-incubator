@@ -1,24 +1,31 @@
 <?php
 
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 namespace Hyperf\XxlJob\Logger;
 
+use Hyperf\XxlJob\JobContext;
 
-use Hyperf\Framework\Logger\StdoutLogger;
-use Hyperf\Utils\Context;
-
-class JobExecutorLogger extends StdoutLogger implements JobExecutorLoggerInterface
+class JobExecutorStdoutLogger extends AbstractLogger implements JobExecutorLoggerInterface
 {
 
     public function log($level, $message, array $context = [])
     {
-        if (! Context::has(XxlJobLogger::MARK_JOB_LOG_ID)) {
+        if (! JobContext::hasJobLogId()) {
             return;
         }
         $config = $this->config->get(JobExecutorLoggerInterface::class, ['log_level' => []]);
         if (! in_array($level, $config['log_level'], true)) {
             return;
         }
-        $jobIdMessage = 'XXL-JOB-ID:' . Context::get(XxlJobLogger::MARK_JOB_LOG_ID) . ' ';
+        $jobIdMessage = 'XXL-JOB-LOG-ID: ' . JobContext::getJobLogId() . ' ';
         $message = $jobIdMessage . $message;
         $keys = array_keys($context);
         $tags = [];
@@ -36,4 +43,8 @@ class JobExecutorLogger extends StdoutLogger implements JobExecutorLoggerInterfa
         $this->output->writeln($message);
     }
 
+    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): array
+    {
+        return [sprintf('%s does not supports retrieve log', static::class), 0, true];
+    }
 }
