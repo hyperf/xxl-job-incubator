@@ -12,18 +12,25 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
+use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Throwable;
 
-class PHPScriptHandler extends AbstractGlueHandler
+class ScriptHandler extends AbstractGlueHandler
 {
     protected string $scriptDir = BASE_PATH . '/runtime/xxl_job/glue_scripts/';
+
+    protected string $glueType;
 
     public function handle(RunRequest $request)
     {
         if (! is_dir($this->scriptDir)) {
             mkdir($this->scriptDir, 0777, true);
+        }
+        $this->glueType = $request->getGlueType();
+        if (! GlueEnum::isScript($this->glueType)) {
+            return;
         }
         JobContext::runJob($request, function (RunRequest $request) {
             try {
@@ -62,12 +69,23 @@ class PHPScriptHandler extends AbstractGlueHandler
 
     protected function generateFilePath(int $logId, int $glueUpdateTime): string
     {
-        return $this->scriptDir . $logId . '-' . $glueUpdateTime . '.php';
+        return $this->scriptDir . $logId . '-' . $glueUpdateTime . $this->getFileSuffix($this->glueType);
     }
 
     protected function executeCmd(string $filePath, array $arguments): string
     {
-        $cmd = sprintf('php %s %s', $filePath, implode(' ', $arguments));
+        $bin = $this->getCmdBin($this->glueType);
+        $cmd = sprintf('%s %s %s', $bin, $filePath, implode(' ', $arguments));
         return trim(shell_exec("{$cmd} 2>&1"));
+    }
+
+    protected function getCmdBin(string $type): string
+    {
+        return GlueEnum::getCmd($type);
+    }
+
+    protected function getFileSuffix(string $type): string
+    {
+        return GlueEnum::getSuffix($type);
     }
 }

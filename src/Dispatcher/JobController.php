@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob\Dispatcher;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\XxlJob\Exception\XxlJobException;
+use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\LogRequest;
@@ -36,7 +37,11 @@ class JobController extends BaseJobController
     public function run(): ResponseInterface
     {
         $runRequest = RunRequest::create($this->input());
-        $this->stdoutLogger->debug(sprintf('Received a XXL-JOB, JobHandler: %s JobId: %s LogId: %s', $runRequest->getExecutorHandler(), $runRequest->getJobId(), $runRequest->getLogId()));
+        $message = sprintf('Received a XXL-JOB, JobId:%s LogId:%s GlueType:%s', $runRequest->getJobId(), $runRequest->getLogId(), $runRequest->getGlueType());
+        if ($runRequest->getGlueType() === GlueEnum::BEAN) {
+            $message .= sprintf(' ExecutorHandler:%s', $runRequest->getExecutorHandler());
+        }
+        $this->stdoutLogger->debug($message);
 
         try {
             $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
