@@ -12,9 +12,15 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
+use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Config;
+use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\JobContext;
+use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Psr\Container\ContainerInterface;
 use Throwable;
 
 class ScriptHandler extends AbstractGlueHandler
@@ -22,6 +28,18 @@ class ScriptHandler extends AbstractGlueHandler
     protected string $scriptDir = BASE_PATH . '/runtime/xxl_job/glue_scripts/';
 
     protected string $glueType;
+
+    protected Config $config;
+
+    public function __construct(
+        ContainerInterface $container,
+        JobHandlerManager $jobHandlerManager,
+        ApiRequest $apiRequest,
+        JobExecutorLoggerInterface $jobExecutorLogger
+    ) {
+        parent::__construct($container, $jobHandlerManager, $apiRequest, $jobExecutorLogger);
+        $this->config = $container->get(Config::class);
+    }
 
     public function handle(RunRequest $request)
     {
@@ -31,6 +49,9 @@ class ScriptHandler extends AbstractGlueHandler
         $this->glueType = $request->getGlueType();
         if (! GlueEnum::isScript($this->glueType)) {
             return;
+        }
+        if (! $this->config->getAccessToken()) {
+            throw new GlueHandlerExecutionException('No configuration value of AccessToken, cannot handle ALL Script Glue Type');
         }
         JobContext::runJob($request, function (RunRequest $request) {
             try {

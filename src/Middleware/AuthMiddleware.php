@@ -11,7 +11,6 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Middleware;
 
-use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\JobContext;
@@ -41,16 +40,18 @@ class AuthMiddleware implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $token = $request->getHeaders()['xxl-job-access-token'][0] ?? '';
-        if ($token != $this->xxlConfig->getAccessToken()) {
+        $configToken = $this->xxlConfig->getAccessToken();
+        if (! $configToken) {
+            return $handler->handle($request);
+        }
+
+        $token = $request->getHeaderLine('xxl-job-access-token') ?? '';
+        if ($token !== $configToken) {
             $response = $this->container->get(HttpResponse::class);
-            $json = json_encode([
+            return $response->json([
                 'code' => 401,
-                'msg' => 'Invalid Token',
-            ], JSON_UNESCAPED_UNICODE);
-            return $response->withStatus(401)
-                ->withAddedHeader('content-type', 'application/json; charset=utf-8')
-                ->withBody(new SwooleStream($json));
+                'msg' => 'Invalid Access Token',
+            ])->withStatus(401);
         }
 
         JobContext::setJobLogId($request->getParsedBody()['logId'] ?? null);
