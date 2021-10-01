@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob\Glue;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanHandler;
 use Hyperf\XxlJob\Glue\Handlers\GlueHandlerInterface;
+use Hyperf\XxlJob\Glue\Handlers\PHPScriptHandler;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
 
@@ -21,6 +22,7 @@ class GlueHandlerManager
 {
     protected array $handlers = [
         GlueEnum::BEAN => BeanHandler::class,
+        GlueEnum::GLUE_PHP => PHPScriptHandler::class,
     ];
 
     protected ContainerInterface $container;

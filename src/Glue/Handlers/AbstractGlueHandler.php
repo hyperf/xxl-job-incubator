@@ -16,7 +16,7 @@ use Hyperf\XxlJob\JobHandlerManager;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Psr\Container\ContainerInterface;
 
-abstract class AbstractGlueHandler
+abstract class AbstractGlueHandler implements GlueHandlerInterface
 {
     protected ContainerInterface $container;
 

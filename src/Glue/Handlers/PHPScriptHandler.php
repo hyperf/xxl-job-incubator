@@ -12,40 +12,38 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
-use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Throwable;
 
-class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
+class PHPScriptHandler extends AbstractGlueHandler
 {
+    protected string $scriptDir = BASE_PATH . '/runtime/xxl_job/glue_scripts/';
+
     public function handle(RunRequest $request)
     {
-        $executorHandler = $request->getExecutorHandler();
-        $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
-
-        if (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod())) {
-            throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
+        if (! is_dir($this->scriptDir)) {
+            mkdir($this->scriptDir, 0777, true);
         }
-
-        JobContext::runJob($request, function (RunRequest $request) use ($jobDefinition) {
+        JobContext::runJob($request, function (RunRequest $request) {
             try {
                 $this->jobExecutorLogger->info(sprintf('Beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
 
-                $jobInstance = $this->container->get($jobDefinition->getClass());
-                $init = $jobDefinition->getInit();
-                $method = $jobDefinition->getMethod();
-                $destroy = $jobDefinition->getDestroy();
-
-                if (! empty($init) && method_exists($jobInstance, $init)) {
-                    $jobInstance->{$init}($request);
+                $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime());
+                if (! is_file($filePath)) {
+                    file_put_contents($filePath, $request->getGlueSource());
                 }
+                // Set the parameter value to '' wher the value is empty
+                $params = [
+                    // ExecutorParams is string, use ?:
+                    $request->getExecutorParams() ?: "''",
+                    // Index and Total is int, use ??
+                    $request->getBroadcastIndex() ?? "''",
+                    $request->getBroadcastTotal() ?? "''",
+                ];
+                $output = $this->executeCmd($filePath, $params);
+                $this->jobExecutorLogger->info($output);
 
-                $jobInstance->{$method}($request);
-
-                if (! empty($destroy) && method_exists($jobInstance, $destroy)) {
-                    $jobInstance->{$destroy}($request);
-                }
                 $this->jobExecutorLogger->info('Finished');
                 $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime());
             } catch (Throwable $throwable) {
@@ -60,5 +58,16 @@ class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
                 throw $throwable;
             }
         });
+    }
+
+    protected function generateFilePath(int $logId, int $glueUpdateTime): string
+    {
+        return $this->scriptDir . $logId . '-' . $glueUpdateTime . '.php';
+    }
+
+    protected function executeCmd(string $filePath, array $arguments): string
+    {
+        $cmd = sprintf('php %s %s', $filePath, implode(' ', $arguments));
+        return trim(shell_exec("{$cmd} 2>&1"));
     }
 }
