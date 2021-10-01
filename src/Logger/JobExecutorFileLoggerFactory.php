@@ -19,9 +19,9 @@ class JobExecutorFileLoggerFactory
     public function __invoke(ContainerInterface $container): JobExecutorFileLogger
     {
         $config = $container->get(ConfigInterface::class);
-        $logFileDir = $config->get('xxl_job.file_logger.file_dir');
+        $logFileDir = $config->get('xxl_job.file_logger.dir');
         if (! $logFileDir) {
-            $logFileDir = BASE_PATH . '/runtime/logs/xxl_job/';
+            $logFileDir = BASE_PATH . '/runtime/xxl_job/logs/';
         }
         $instance = new JobExecutorFileLogger($config, null);
         $instance->init($logFileDir);
