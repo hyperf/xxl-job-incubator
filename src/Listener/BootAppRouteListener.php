@@ -62,7 +62,7 @@ class BootAppRouteListener implements ListenerInterface
     }
 
     /**
-     * @throws \Exception
+     * @throws Exception
      */
     public function process(object $event)
     {

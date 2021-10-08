@@ -11,6 +11,8 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob;
 
+use Hyperf\XxlJob\Exception\RegisterJobHandlerException;
+
 class JobHandlerManager
 {
     protected array $jobHandlers = [];
@@ -22,6 +24,9 @@ class JobHandlerManager
 
     public function registerJobHandler(string $jobName, JobHandlerDefinition $definition): void
     {
+        if (isset($this->jobHandlers[$jobName])) {
+            throw new RegisterJobHandlerException(sprintf('xxl-job jobHandler %s naming conflicts.', $jobName));
+        }
         $this->jobHandlers[$jobName] = $definition;
     }
 }

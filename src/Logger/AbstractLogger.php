@@ -13,6 +13,7 @@ namespace Hyperf\XxlJob\Logger;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Framework\Logger\StdoutLogger;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class AbstractLogger extends StdoutLogger
@@ -33,4 +34,10 @@ class AbstractLogger extends StdoutLogger
     protected $tags = [
         'component',
     ];
+
+    public function __construct(ConfigInterface $config, $output = null)
+    {
+        $this->config = $config;
+        $this->output = $output ?: new ConsoleOutput();
+    }
 }

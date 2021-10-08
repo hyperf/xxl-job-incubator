@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 
@@ -25,11 +26,9 @@ class ApiRequest
     }
 
     /**
-     * @param mixed $method
-     * @param mixed $uri
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
-    public function request($method, $uri, array $options = []): ResponseInterface
+    public function request(string $method, string $uri, array $options = []): ResponseInterface
     {
         $token = $this->config->getAccessToken();
         $uri = $this->config->getServerUrlPath() . $uri;
@@ -46,7 +45,7 @@ class ApiRequest
     }
 
     /**
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function registry(string $registryKey, string $registryValue): ResponseInterface
     {
@@ -61,7 +60,7 @@ class ApiRequest
     }
 
     /**
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function registryRemove(string $registryKey, string $registryValue): ResponseInterface
     {
@@ -77,7 +76,7 @@ class ApiRequest
 
     /**
      * @param null|mixed $handleMsg
-     * @throws \GuzzleHttp\Exception\GuzzleException
+     * @throws GuzzleException
      */
     public function callback(int $logId, int $logDateTim, int $handleCode = 200, $handleMsg = null): ResponseInterface
     {

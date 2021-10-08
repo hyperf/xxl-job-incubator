@@ -23,7 +23,7 @@ class ConfigFactory
         $instance->setEnable($config->get('xxl_job.enable') ?? false);
         $instance->setAppName($config->get('xxl_job.app_name') ?? '');
         $instance->setAccessToken($config->get('xxl_job.access_token') ?? '');
-        $adminAddressArr = parse_url($config->get('xxl_job.admin_address') ?? 'http://127.0.0.1:8769/xxl-job-admin');
+        $adminAddressArr = parse_url($config->get('xxl_job.admin_address') ?? 'http://127.0.0.1:8080/xxl-job-admin');
         $instance->setBaseUri(sprintf('%s://%s:%s', $adminAddressArr['scheme'], $adminAddressArr['host'], $adminAddressArr['port']));
         $instance->setServerUrlPath($adminAddressArr['path'] ?? '');
         $instance->setHeartbeat($config->get('xxl_job.heartbeat') ?? 30);

@@ -13,7 +13,6 @@ namespace Hyperf\XxlJob\Logger;
 
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\JobContext;
-use JetBrains\PhpStorm\Pure;
 
 class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerInterface
 {
@@ -50,13 +49,11 @@ class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerI
         file_put_contents($logFilePath, $message, FILE_APPEND);
     }
 
-    #[Pure]
     public function getLogFileFullPath(int $logId): string
     {
         return $this->logFileDir . $this->generateFileName($logId);
     }
 
-    #[Pure]
     public function generateFileName(int $logId): string
     {
         return $logId . '.log';
