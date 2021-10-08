@@ -31,7 +31,7 @@ return [
     // 是否启用
     'enable' => env('XXL_JOB_ENABLE', true),
     // XXL-JOB 服务端地址
-    'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8769/xxl-job-admin'),
+    'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8080/xxl-job-admin'),
     // 对应的 AppName
     'app_name' => env('XXL_JOB_APP_NAME', 'xxl-job-demo'),
     // 访问凭证
@@ -90,13 +90,13 @@ class DemoJobClass extends AbstractJobHandler
         $params = $request->getExecutorParams();
         // 获取 LogId
         $logId = $request->getLogId();
-        $this->jobExecutorLogger->log('demoJobClassHandler...');
-        $this->jobExecutorLogger->log('params:' . $params);
+        $this->jobExecutorLogger->info('demoJobClassHandler...');
+        $this->jobExecutorLogger->info('params:' . $params);
         for ($i = 1; $i < 5; ++$i) {
             sleep(2);
-            $this->jobExecutorLogger->log($i);
-            $this->jobExecutorLogger->log('logId:' . $logId);
-            $this->jobExecutorLogger->log('params:' . $params);
+            $this->jobExecutorLogger->info($i);
+            $this->jobExecutorLogger->info('logId:' . $logId);
+            $this->jobExecutorLogger->info('params:' . $params);
         }
     }
 }
@@ -160,12 +160,12 @@ class DemoJob
         $params = $request->getExecutorParams();
         //获取logId
         $logId = $request->getLogId();
-        $this->jobExecutorLogger->log('params:' . $params);
+        $this->jobExecutorLogger->info('params:' . $params);
         for ($i = 1; $i < 5; ++$i) {
             sleep(2);
-            $this->jobExecutorLogger->log($i);
-            $this->jobExecutorLogger->log('logId:' . $logId);
-            $this->jobExecutorLogger->log('params:' . $params);
+            $this->jobExecutorLogger->info($i);
+            $this->jobExecutorLogger->info('logId:' . $logId);
+            $this->jobExecutorLogger->info('params:' . $params);
         }
     }
 
@@ -178,13 +178,13 @@ class DemoJob
         // 分片参数
         $shardIndex = $request->getBroadcastIndex();
         $shardTotal = $request->getBroadcastTotal();
-        $this->jobExecutorLogger->log(sprintf('分片参数：当前分片序号 = %d, 总分片数 = %d', $shardIndex, $shardTotal));
+        $this->jobExecutorLogger->info(sprintf('分片参数：当前分片序号 = %d, 总分片数 = %d', $shardIndex, $shardTotal));
         // 业务逻辑
         for ($i = 0; $i < $shardTotal; ++$i) {
             if ($i == $shardIndex) {
-                $this->jobExecutorLogger->log('第 %d 片, 命中分片开始处理', $i);
+                $this->jobExecutorLogger->info('第 %d 片, 命中分片开始处理', $i);
             } else {
-                $this->jobExecutorLogger->log('第 %d 片, 忽略', $i);
+                $this->jobExecutorLogger->info('第 %d 片, 忽略', $i);
             }
         }
     }
@@ -201,7 +201,7 @@ class DemoJob
         var_dump($command);
         $result = System::exec($command);
         $message = str_replace("\n", '<br>', $result['output']);
-        $this->jobExecutorLogger->log($message);
+        $this->jobExecutorLogger->info($message);
     }
 
     /**
@@ -231,17 +231,17 @@ class DemoJob
     #[XxlJob(value: 'demoJob', init: 'initMethod', destroy: 'destroyMethod')]
     public function demoJob()
     {
-        $this->jobExecutorLogger->log('demoJob run...');
+        $this->jobExecutorLogger->info('demoJob run...');
     }
 
     public function initMethod()
     {
-        $this->jobExecutorLogger->log('initMethod');
+        $this->jobExecutorLogger->info('initMethod');
     }
 
     public function destroyMethod()
     {
-        $this->jobExecutorLogger->log('destroyMethod');
+        $this->jobExecutorLogger->info('destroyMethod');
     }
 }
 ```

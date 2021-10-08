@@ -24,4 +24,7 @@ return [
         ],
         'timeout' => 10,
     ],
+    'file_logger' => [
+        'dir' => BASE_PATH . '/runtime/xxl_job/logs/',
+    ],
 ];
