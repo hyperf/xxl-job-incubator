@@ -16,7 +16,7 @@
         "source": "https://github.com/hyperf/hyperf"
     },
     "require": {
-        "php": ">=7.3",
+        "php": ">=7.4",
         "guzzlehttp/guzzle": "^6.3|^7.0",
         "hyperf/di": "^2.2",
         "hyperf/event": "^2.2",
