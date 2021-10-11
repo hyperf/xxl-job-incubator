@@ -1,6 +1,6 @@
 name: PHPUnit
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 env:
   SWOOLE_VERSION: '4.7.1'
@@ -12,9 +12,9 @@ jobs:
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        php-version: ['7.4', '8.0']
-        engine: ['swoole']
+        os: [ ubuntu-latest ]
+        php-version: [ '8.0' ]
+        engine: [ 'swoole' ]
       max-parallel: 5
     steps:
       - name: Checkout
