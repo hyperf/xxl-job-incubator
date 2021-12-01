@@ -36,7 +36,7 @@ class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerI
         return $log->getContent($fromLineNum - 1, $lineLimit);
     }
 
-    public function log($level, $message, array $context = [])
+    public function log($level, $message, array $context = []): void
     {
         $config = $this->config->get(JobExecutorLoggerInterface::class, ['log_level' => []]);
         if (! in_array($level, $config['log_level'], true)) {

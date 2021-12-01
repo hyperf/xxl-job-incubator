@@ -15,7 +15,7 @@ use Hyperf\XxlJob\JobContext;
 
 class JobExecutorStdoutLogger extends AbstractLogger implements JobExecutorLoggerInterface
 {
-    public function log($level, $message, array $context = [])
+    public function log($level, $message, array $context = []): void
     {
         if (! JobContext::hasJobLogId()) {
             return;
