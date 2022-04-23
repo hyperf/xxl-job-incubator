@@ -34,7 +34,7 @@ class Config
 
     private int $heartbeat = 30;
 
-    private string $executorServerPrefixUrl = '';
+    private string|null $executorServerPrefixUrl = '';
 
     public function isEnable(): bool
     {
@@ -129,7 +129,7 @@ class Config
         return $this->executorServerPrefixUrl;
     }
 
-    public function setExecutorServerPrefixUrl(string $executorServerPrefixUrl): Config
+    public function setExecutorServerPrefixUrl(string|null $executorServerPrefixUrl): Config
     {
         $this->executorServerPrefixUrl = $executorServerPrefixUrl;
         return $this;
