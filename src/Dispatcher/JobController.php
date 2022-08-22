@@ -56,15 +56,15 @@ class JobController extends BaseJobController
     {
         $logRequest = LogRequest::create($this->input());
 
-        [$content, $endLine, $isEnd] = $this->jobExecutorLogger->retrieveLog($logRequest->getLogId(), $logRequest->getLogDateTim(), $logRequest->getFromLineNum(), -1);
+        $logContent = $this->jobExecutorLogger->retrieveLog($logRequest->getLogId(), $logRequest->getLogDateTim(), $logRequest->getFromLineNum(), -1);
 
-        if ($endLine <= 0) {
+        if ($logContent->getEndLine() <= 0) {
             $data = [
                 'code' => 500,
                 'msg' => 'Failed to read the log, the file does not exists',
                 'content' => [
                     'fromLineNum' => $logRequest->getFromLineNum(),
-                    'toLineNum' => $endLine,
+                    'toLineNum' => $logContent->getEndLine(),
                     'logContent' => '',
                     'isEnd' => true,
                 ],
@@ -77,8 +77,8 @@ class JobController extends BaseJobController
             'msg' => null,
             'content' => [
                 'fromLineNum' => $logRequest->getFromLineNum(),
-                'toLineNum' => $endLine,
-                'logContent' => $content,
+                'toLineNum' => $logContent->getEndLine(),
+                'logContent' => $logContent->getContent(),
                 // The XXL-JOB Server will not rolling load the log content even isEnd returns false, so make sure all log content has been retrieved.
                 'isEnd' => true,
             ],

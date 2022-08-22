@@ -26,7 +26,7 @@ class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerI
         }
     }
 
-    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): array
+    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): LogContent
     {
         $filePath = $this->getLogFileFullPath($logId);
         $log = new JobLogFileObject($filePath);

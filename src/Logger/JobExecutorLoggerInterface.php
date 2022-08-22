@@ -13,5 +13,5 @@ namespace Hyperf\XxlJob\Logger;
 
 interface JobExecutorLoggerInterface extends XxlJobLoggerInterface
 {
-    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): array;
+    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): LogContent;
 }

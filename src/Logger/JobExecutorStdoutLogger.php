@@ -42,8 +42,8 @@ class JobExecutorStdoutLogger extends AbstractLogger implements JobExecutorLogge
         $this->output->writeln($message);
     }
 
-    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): array
+    public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): LogContent
     {
-        return [sprintf('%s does not supports retrieve log', static::class), 0, true];
+        return new LogContent(sprintf('%s does not supports retrieve log', static::class), 0, true);
     }
 }

@@ -15,7 +15,7 @@ use SplFileObject;
 
 class JobLogFileObject extends SplFileObject
 {
-    public function getContent(int $from, int $limit): array
+    public function getContent(int $from, int $limit): LogContent
     {
         $this->seek($from);
         $content = '';
@@ -28,6 +28,6 @@ class JobLogFileObject extends SplFileObject
             $this->next();
         }
         $endLine = $this->key();
-        return [$content, $endLine, $this->eof()];
+        return new LogContent($content, $endLine, $this->eof());
     }
 }
