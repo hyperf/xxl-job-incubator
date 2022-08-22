@@ -64,7 +64,7 @@ class BootAppRouteListener implements ListenerInterface
     /**
      * @throws Exception
      */
-    public function process(object $event)
+    public function process(object $event): void
     {
         if (! $this->xxlConfig->isEnable()) {
             return;
