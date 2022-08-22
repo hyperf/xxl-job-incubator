@@ -11,8 +11,8 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob;
 
+use Hyperf\Context\Context;
 use Hyperf\Engine\Coroutine as Co;
-use Hyperf\Utils\Context;
 use Hyperf\Utils\Coroutine;
 use Hyperf\XxlJob\Requests\RunRequest;
 
@@ -44,7 +44,7 @@ class JobContext extends Context
         return Context::has(self::JOB_LOG_ID_KEY);
     }
 
-    public static function setJobLogId(int $logId): void
+    public static function setJobLogId(?int $logId): void
     {
         Context::set(self::JOB_LOG_ID_KEY, $logId);
     }

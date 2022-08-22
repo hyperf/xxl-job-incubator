@@ -18,11 +18,11 @@
     "require": {
         "php": ">=8.0",
         "guzzlehttp/guzzle": "^6.3|^7.0",
-        "hyperf/di": "^2.2",
-        "hyperf/event": "^2.2",
-        "hyperf/framework": "^2.2",
-        "hyperf/http-server": "^2.2",
-        "hyperf/logger": "^2.2",
+        "hyperf/di": "~3.0.0",
+        "hyperf/event": "~3.0.0",
+        "hyperf/framework": "~3.0.0",
+        "hyperf/http-server": "~3.0.0",
+        "hyperf/logger": "~3.0.0",
         "jetbrains/phpstorm-attributes": "^1.0"
     },
     "require-dev": {
