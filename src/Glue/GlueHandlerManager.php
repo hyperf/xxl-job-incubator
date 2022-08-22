@@ -11,12 +11,15 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Glue;
 
+use Hyperf\XxlJob\Event\AfterJobRun;
+use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanHandler;
 use Hyperf\XxlJob\Glue\Handlers\GlueHandlerInterface;
 use Hyperf\XxlJob\Glue\Handlers\ScriptHandler;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 class GlueHandlerManager
 {
@@ -29,11 +32,8 @@ class GlueHandlerManager
         GlueEnum::GLUE_POWERSHELL => ScriptHandler::class,
     ];
 
-    protected ContainerInterface $container;
-
-    public function __construct(ContainerInterface $container)
+    public function __construct(protected ContainerInterface $container,protected EventDispatcherInterface $eventDispatcher)
     {
-        $this->container = $container;
     }
 
     public function handle(string $glueType, RunRequest $request)
@@ -45,6 +45,10 @@ class GlueHandlerManager
         if (! $instance instanceof GlueHandlerInterface) {
             throw new XxlJobException(sprintf('The glue handler %s is invalid handler, should be implement %s', $this->handlers[$glueType], GlueHandlerInterface::class));
         }
+        $this->eventDispatcher->dispatch(new BeforeJobRun($request));
+
         $instance->handle($request);
+
+        $this->eventDispatcher->dispatch(new AfterJobRun($request));
     }
 }
