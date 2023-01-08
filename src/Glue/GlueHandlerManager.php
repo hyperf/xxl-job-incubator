@@ -11,15 +11,12 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Glue;
 
-use Hyperf\XxlJob\Event\AfterJobRun;
-use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanHandler;
 use Hyperf\XxlJob\Glue\Handlers\GlueHandlerInterface;
 use Hyperf\XxlJob\Glue\Handlers\ScriptHandler;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
-use Psr\EventDispatcher\EventDispatcherInterface;
 
 class GlueHandlerManager
 {
