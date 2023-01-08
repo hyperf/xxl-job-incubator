@@ -32,7 +32,7 @@ class GlueHandlerManager
         GlueEnum::GLUE_POWERSHELL => ScriptHandler::class,
     ];
 
-    public function __construct(protected ContainerInterface $container,protected EventDispatcherInterface $eventDispatcher)
+    public function __construct(protected ContainerInterface $container)
     {
     }
 
@@ -45,10 +45,6 @@ class GlueHandlerManager
         if (! $instance instanceof GlueHandlerInterface) {
             throw new XxlJobException(sprintf('The glue handler %s is invalid handler, should be implement %s', $this->handlers[$glueType], GlueHandlerInterface::class));
         }
-        $this->eventDispatcher->dispatch(new BeforeJobRun($request));
-
         $instance->handle($request);
-
-        $this->eventDispatcher->dispatch(new AfterJobRun($request));
     }
 }
