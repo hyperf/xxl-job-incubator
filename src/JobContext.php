@@ -13,21 +13,11 @@ namespace Hyperf\XxlJob;
 
 use Hyperf\Context\Context;
 use Hyperf\Engine\Coroutine as Co;
-use Hyperf\Utils\Coroutine;
 use Hyperf\XxlJob\Requests\RunRequest;
 
 class JobContext extends Context
 {
     public const JOB_LOG_ID_KEY = 'XXL-JOB-LOG-ID';
-
-    public static function runJob(RunRequest $request, callable $callback): int
-    {
-        return Coroutine::create(function () use ($request, $callback) {
-            static::setJobLogId($request->getLogId());
-            static::setRunRequest($request);
-            return $callback($request);
-        });
-    }
 
     public static function getAll(): ?\ArrayObject
     {

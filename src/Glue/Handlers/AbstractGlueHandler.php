@@ -11,26 +11,18 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Glue\Handlers;
 
-use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\JobRun;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Psr\Container\ContainerInterface;
 
 abstract class AbstractGlueHandler implements GlueHandlerInterface
 {
-    protected ContainerInterface $container;
-
-    protected JobHandlerManager $jobHandlerManager;
-
-    protected ApiRequest $apiRequest;
-
-    protected JobExecutorLoggerInterface $jobExecutorLogger;
-
-    public function __construct(ContainerInterface $container, JobHandlerManager $jobHandlerManager, ApiRequest $apiRequest, JobExecutorLoggerInterface $jobExecutorLogger)
-    {
-        $this->container = $container;
-        $this->jobHandlerManager = $jobHandlerManager;
-        $this->apiRequest = $apiRequest;
-        $this->jobExecutorLogger = $jobExecutorLogger;
+    public function __construct(
+        protected ContainerInterface $container,
+        protected JobHandlerManager $jobHandlerManager,
+        protected JobExecutorLoggerInterface $jobExecutorLogger,
+        protected JobRun $jobRun
+    ){
     }
 }

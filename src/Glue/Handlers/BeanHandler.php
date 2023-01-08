@@ -11,11 +11,8 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Glue\Handlers;
 
-use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
-use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
-use Throwable;
 
 class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
 {
@@ -28,36 +25,21 @@ class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
             throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
         }
 
-        JobContext::runJob($request, function (RunRequest $request) use ($jobDefinition) {
-            try {
-                $this->jobExecutorLogger->info(sprintf('Beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
+        $this->jobRun->execute($request, function (RunRequest $request) use ($jobDefinition) {
 
-                $jobInstance = $this->container->get($jobDefinition->getClass());
-                $init = $jobDefinition->getInit();
-                $method = $jobDefinition->getMethod();
-                $destroy = $jobDefinition->getDestroy();
+            $jobInstance = $this->container->get($jobDefinition->getClass());
+            $init = $jobDefinition->getInit();
+            $method = $jobDefinition->getMethod();
+            $destroy = $jobDefinition->getDestroy();
 
-                if (! empty($init) && method_exists($jobInstance, $init)) {
-                    $jobInstance->{$init}($request);
-                }
+            if (! empty($init) && method_exists($jobInstance, $init)) {
+                $jobInstance->{$init}($request);
+            }
 
-                $jobInstance->{$method}($request);
+            $jobInstance->{$method}($request);
 
-                if (! empty($destroy) && method_exists($jobInstance, $destroy)) {
-                    $jobInstance->{$destroy}($request);
-                }
-                $this->jobExecutorLogger->info('Finished');
-                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime());
-            } catch (Throwable $throwable) {
-                $message = $throwable->getMessage();
-                if ($this->container->has(FormatterInterface::class)) {
-                    $formatter = $this->container->get(FormatterInterface::class);
-                    $message = $formatter->format($throwable);
-                    $message = str_replace(PHP_EOL, '<br>', $message);
-                }
-                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
-                $this->jobExecutorLogger->error($message);
-                throw $throwable;
+            if (! empty($destroy) && method_exists($jobInstance, $destroy)) {
+                $jobInstance->{$destroy}($request);
             }
         });
     }

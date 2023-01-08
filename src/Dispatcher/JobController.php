@@ -12,10 +12,12 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Dispatcher;
 
 use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Engine\Constant;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
+use Hyperf\XxlJob\Kill\JobKillExecutorSwow;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\LogRequest;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -99,6 +101,15 @@ class JobController extends BaseJobController
 
     public function kill(): ResponseInterface
     {
+        if(Constant::ENGINE == 'Swow'){
+            try {
+                $jobId = $this->input()['jobId'];
+                $this->container->get(JobKillExecutorSwow::class)->kill($jobId);
+                return $this->responseSuccess();
+            }catch (\Throwable $throwable){
+                return $this->responseFail($throwable->getMessage());
+            }
+        }
         return $this->responseFail('Not supported');
     }
 }

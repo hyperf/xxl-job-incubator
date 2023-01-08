@@ -1,0 +1,59 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Hyperf\XxlJob;
+
+use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
+use Hyperf\Utils\Coroutine;
+use Hyperf\XxlJob\Event\AfterJobRun;
+use Hyperf\XxlJob\Event\BeforeJobRun;
+use Hyperf\XxlJob\Kill\JobKillContent;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\Requests\RunRequest;
+use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
+class JobRun
+{
+    public function __construct(
+        protected ContainerInterface         $container,
+        protected EventDispatcherInterface   $eventDispatcher,
+        protected JobExecutorLoggerInterface $jobExecutorLogger,
+        protected ApiRequest                 $apiRequest,
+        protected JobKillContent             $jobKillContent,
+    ) {
+    }
+
+    public function execute(RunRequest $request, callable $callback): int
+    {
+        return Coroutine::create(function () use ($request, $callback) {
+            try {
+                $this->jobKillContent->setJobId($request->getJobId(), Coroutine::id());
+                //BeforeJobRun
+                $this->eventDispatcher->dispatch(new BeforeJobRun($request));
+                $this->jobExecutorLogger->info(sprintf('Beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
+                JobContext::setJobLogId($request->getLogId());
+                JobContext::setRunRequest($request);
+
+                $callback($request);
+
+                $this->jobExecutorLogger->info('Finished');
+                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime());
+                //AfterJobRun
+                $this->eventDispatcher->dispatch(new AfterJobRun($request));
+            } catch (\Throwable $throwable) {
+                $message = $throwable->getMessage();
+                if ($this->container->has(FormatterInterface::class)) {
+                    $formatter = $this->container->get(FormatterInterface::class);
+                    $message = $formatter->format($throwable);
+                    $message = str_replace(PHP_EOL, '<br>', $message);
+                }
+                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
+                $this->jobExecutorLogger->error($message);
+                throw $throwable;
+            } finally {
+                $this->jobKillContent->unsetJobId($request->getJobId());
+            }
+        });
+    }
+}

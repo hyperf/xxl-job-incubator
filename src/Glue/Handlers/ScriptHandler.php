@@ -11,17 +11,14 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Glue\Handlers;
 
-use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
-use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
-use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\JobRun;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
-use Throwable;
 
 class ScriptHandler extends AbstractGlueHandler
 {
@@ -34,10 +31,10 @@ class ScriptHandler extends AbstractGlueHandler
     public function __construct(
         ContainerInterface $container,
         JobHandlerManager $jobHandlerManager,
-        ApiRequest $apiRequest,
-        JobExecutorLoggerInterface $jobExecutorLogger
+        JobExecutorLoggerInterface $jobExecutorLogger,
+        JobRun $jobRun
     ) {
-        parent::__construct($container, $jobHandlerManager, $apiRequest, $jobExecutorLogger);
+        parent::__construct($container, $jobHandlerManager, $jobExecutorLogger, $jobRun);
         $this->config = $container->get(Config::class);
     }
 
@@ -53,38 +50,21 @@ class ScriptHandler extends AbstractGlueHandler
         if (! $this->config->getAccessToken()) {
             throw new GlueHandlerExecutionException('No configuration value of AccessToken, cannot handle ALL Script Glue Type');
         }
-        JobContext::runJob($request, function (RunRequest $request) {
-            try {
-                $this->jobExecutorLogger->info(sprintf('Beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
-
-                $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime());
-                if (! is_file($filePath)) {
-                    file_put_contents($filePath, $request->getGlueSource());
-                }
-                // Set the parameter value to '' wher the value is empty
-                $params = [
-                    // ExecutorParams is string, use ?:
-                    $request->getExecutorParams() ?: "''",
-                    // Index and Total is int, use ??
-                    $request->getBroadcastIndex() ?? "''",
-                    $request->getBroadcastTotal() ?? "''",
-                ];
-                $output = $this->executeCmd($filePath, $params);
-                $this->jobExecutorLogger->info($output);
-
-                $this->jobExecutorLogger->info('Finished');
-                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime());
-            } catch (Throwable $throwable) {
-                $message = $throwable->getMessage();
-                if ($this->container->has(FormatterInterface::class)) {
-                    $formatter = $this->container->get(FormatterInterface::class);
-                    $message = $formatter->format($throwable);
-                    $message = str_replace(PHP_EOL, '<br>', $message);
-                }
-                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
-                $this->jobExecutorLogger->error($message);
-                throw $throwable;
+        $this->jobRun->execute($request, function (RunRequest $request) {
+            $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime());
+            if (! is_file($filePath)) {
+                file_put_contents($filePath, $request->getGlueSource());
             }
+            // Set the parameter value to '' wher the value is empty
+            $params = [
+                // ExecutorParams is string, use ?:
+                $request->getExecutorParams() ?: "''",
+                // Index and Total is int, use ??
+                $request->getBroadcastIndex() ?? "''",
+                $request->getBroadcastTotal() ?? "''",
+            ];
+            $output = $this->executeCmd($filePath, $params);
+            $this->jobExecutorLogger->info($output);
         });
     }
 
