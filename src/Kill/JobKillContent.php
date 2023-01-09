@@ -9,16 +9,16 @@ class JobKillContent
 
     public function setJobId($jobId, int $cid): void
     {
-        static::$content[$jobId] = $cid;
+        self::$content[$jobId] = $cid;
     }
 
     public function getCid($jobId): ?int
     {
-        return static::$content[$jobId] ?? null;
+        return self::$content[$jobId] ?? null;
     }
 
     public function unsetJobId($jobId): void
     {
-        unset(static::$content[$jobId]);
+        unset(self::$content[$jobId]);
     }
 }

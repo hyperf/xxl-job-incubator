@@ -19,9 +19,9 @@ class JobKillExecutorSwow implements JobKillExecutorInterface
     {
         $cid = $this->jobKillContent->getCid($jobId);
         if (empty($cid)) {
-            $this->stdoutLogger->info("The cid for obtaining the jobId:$jobId is empty. The task may have ended");
+            $this->stdoutLogger->info("The cid for obtaining the jobId:$jobId is empty. The job may have ended");
             return;
         }
-        Coroutine::get($jobId)?->kill();
+        Coroutine::get($cid)?->kill();
     }
 }

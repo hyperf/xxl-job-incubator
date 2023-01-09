@@ -19,6 +19,7 @@ use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
+use Hyperf\Utils\Network;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
@@ -97,7 +98,7 @@ class BootAppRouteListener implements ListenerInterface
 
         $host = $serverConfig['host'];
         if (in_array($host, ['0.0.0.0', 'localhost'])) {
-            $host = $this->getIp();
+            $host = Network::ip();
         }
 
         $url = sprintf('http://%s:%s/%s', $host, $serverConfig['port'], $prefixUrl);
@@ -127,22 +128,5 @@ class BootAppRouteListener implements ListenerInterface
                 $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($className, 'execute', 'init', 'destroy'));
             }
         }
-    }
-
-    /**
-     * @throws Exception
-     */
-    protected function getIp(): string
-    {
-        $ips = swoole_get_local_ip();
-        if (is_array($ips) && ! empty($ips)) {
-            return current($ips);
-        }
-        /** @var mixed|string $ip */
-        $ip = gethostbyname(gethostname());
-        if (is_string($ip)) {
-            return $ip;
-        }
-        throw new Exception('Can not get the internal IP.');
     }
 }

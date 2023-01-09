@@ -105,8 +105,10 @@ class JobController extends BaseJobController
             try {
                 $jobId = $this->input()['jobId'];
                 $this->container->get(JobKillExecutorSwow::class)->kill($jobId);
+                $this->stdoutLogger->info("XXL-JOB, kill the jobId:$jobId successfully");
                 return $this->responseSuccess();
             }catch (\Throwable $throwable){
+                $this->stdoutLogger->error($throwable);
                 return $this->responseFail($throwable->getMessage());
             }
         }

@@ -31,16 +31,14 @@ class JobRun
                 $this->jobKillContent->setJobId($request->getJobId(), Coroutine::id());
                 //BeforeJobRun
                 $this->eventDispatcher->dispatch(new BeforeJobRun($request));
-                $this->jobExecutorLogger->info(sprintf('Beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
                 JobContext::setJobLogId($request->getLogId());
                 JobContext::setRunRequest($request);
+                $this->jobExecutorLogger->info(sprintf('Beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
 
                 $callback($request);
 
                 $this->jobExecutorLogger->info('Finished');
                 $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime());
-                //AfterJobRun
-                $this->eventDispatcher->dispatch(new AfterJobRun($request));
             } catch (\Throwable $throwable) {
                 $message = $throwable->getMessage();
                 if ($this->container->has(FormatterInterface::class)) {
@@ -53,6 +51,8 @@ class JobRun
                 throw $throwable;
             } finally {
                 $this->jobKillContent->unsetJobId($request->getJobId());
+                //AfterJobRun
+                $this->eventDispatcher->dispatch(new AfterJobRun($request));
             }
         });
     }
