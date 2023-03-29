@@ -23,6 +23,6 @@ abstract class AbstractGlueHandler implements GlueHandlerInterface
         protected JobHandlerManager $jobHandlerManager,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
         protected JobRun $jobRun
-    ){
+    ) {
     }
 }

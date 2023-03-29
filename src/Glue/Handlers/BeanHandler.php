@@ -26,7 +26,6 @@ class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
         }
 
         $this->jobRun->execute($request, function (RunRequest $request) use ($jobDefinition) {
-
             $jobInstance = $this->container->get($jobDefinition->getClass());
             $init = $jobDefinition->getInit();
             $method = $jobDefinition->getMethod();

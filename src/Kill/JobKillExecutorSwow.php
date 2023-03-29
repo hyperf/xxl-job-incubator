@@ -1,7 +1,14 @@
 <?php
 
 declare(strict_types=1);
-
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 namespace Hyperf\XxlJob\Kill;
 
 use Hyperf\Contract\StdoutLoggerInterface;
@@ -19,7 +26,7 @@ class JobKillExecutorSwow implements JobKillExecutorInterface
     {
         $cid = $this->jobKillContent->getCid($jobId);
         if (empty($cid)) {
-            $this->stdoutLogger->info("The cid for obtaining the jobId:$jobId is empty. The job may have ended");
+            $this->stdoutLogger->info("The cid for obtaining the jobId:{$jobId} is empty. The job may have ended");
             return;
         }
         Coroutine::get($cid)?->kill();

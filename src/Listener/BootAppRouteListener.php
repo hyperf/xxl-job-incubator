@@ -12,8 +12,8 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Listener;
 
 use Exception;
-use Hyperf\Contract\IPReaderInterface;
 use Hyperf\Contract\ConfigInterface;
+use Hyperf\Contract\IPReaderInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\Event\Contract\ListenerInterface;
@@ -97,14 +97,14 @@ class BootAppRouteListener implements ListenerInterface
         }
         $this->xxlJobRoute->add($httpServerRouter, $prefixUrl);
 
-		if ($this->container->has(IPReaderInterface::class)) {
-			$host = $this->container->get(IPReaderInterface::class)->read();
-		} else {
-			$host = $serverConfig['host'];
-			if (in_array($host, ['0.0.0.0', 'localhost'])) {
-				$host = Network::ip();
-			}
-		}
+        if ($this->container->has(IPReaderInterface::class)) {
+            $host = $this->container->get(IPReaderInterface::class)->read();
+        } else {
+            $host = $serverConfig['host'];
+            if (in_array($host, ['0.0.0.0', 'localhost'])) {
+                $host = Network::ip();
+            }
+        }
 
         $url = sprintf('http://%s:%s/%s', $host, $serverConfig['port'], $prefixUrl);
         $this->xxlConfig->setClientUrl($url);

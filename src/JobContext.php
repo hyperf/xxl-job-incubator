@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob;
 
+use ArrayObject;
 use Hyperf\Context\Context;
 use Hyperf\Engine\Coroutine as Co;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -19,7 +20,7 @@ class JobContext extends Context
 {
     public const JOB_LOG_ID_KEY = 'XXL-JOB-LOG-ID';
 
-    public static function getAll(): ?\ArrayObject
+    public static function getAll(): ?ArrayObject
     {
         return Co::getContextFor();
     }

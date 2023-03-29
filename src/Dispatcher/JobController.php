@@ -22,6 +22,7 @@ use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\LogRequest;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
+use Throwable;
 
 class JobController extends BaseJobController
 {
@@ -101,13 +102,13 @@ class JobController extends BaseJobController
 
     public function kill(): ResponseInterface
     {
-        if(Constant::ENGINE == 'Swow'){
+        if (Constant::ENGINE == 'Swow') {
             try {
                 $jobId = $this->input()['jobId'];
                 $this->container->get(JobKillExecutorSwow::class)->kill($jobId);
-                $this->stdoutLogger->info("XXL-JOB, kill the jobId:$jobId successfully");
+                $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
                 return $this->responseSuccess();
-            }catch (\Throwable $throwable){
+            } catch (Throwable $throwable) {
                 $this->stdoutLogger->error($throwable);
                 return $this->responseFail($throwable->getMessage());
             }

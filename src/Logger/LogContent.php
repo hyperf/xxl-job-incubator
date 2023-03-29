@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 /**
  * This file is part of Hyperf.
  *
@@ -15,52 +17,33 @@ class LogContent
     {
     }
 
-    /**
-     * @return string
-     */
     public function getContent(): string
     {
         return $this->content;
     }
 
-    /**
-     * @param string $content
-     */
     public function setContent(string $content): void
     {
         $this->content = $content;
     }
 
-    /**
-     * @return int
-     */
     public function getEndLine(): int
     {
         return $this->endLine;
     }
 
-    /**
-     * @param int $endLine
-     */
     public function setEndLine(int $endLine): void
     {
         $this->endLine = $endLine;
     }
 
-    /**
-     * @return bool
-     */
     public function isEnd(): bool
     {
         return $this->isEnd;
     }
 
-    /**
-     * @param bool $isEnd
-     */
     public function setIsEnd(bool $isEnd): void
     {
         $this->isEnd = $isEnd;
     }
-
 }
