@@ -7,3 +7,4 @@ parameters:
   reportUnmatchedIgnoredErrors: false
   ignoreErrors:
     - '#Unsafe usage of new static#'
+    - '#Swow#'
