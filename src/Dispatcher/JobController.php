@@ -11,32 +11,16 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Dispatcher;
 
-use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\Engine\Constant;
 use Hyperf\HttpServer\Contract\ResponseInterface;
+use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
-use Hyperf\XxlJob\Glue\GlueHandlerManager;
-use Hyperf\XxlJob\Kill\JobKillExecutorSwow;
-use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\LogRequest;
 use Hyperf\XxlJob\Requests\RunRequest;
-use Psr\Container\ContainerInterface;
 use Throwable;
 
 class JobController extends BaseJobController
 {
-    protected GlueHandlerManager $glueHandlerManager;
-
-    public function __construct(
-        ContainerInterface $container,
-        StdoutLoggerInterface $stdoutLogger,
-        JobExecutorLoggerInterface $jobExecutorLogger
-    ) {
-        parent::__construct($container, $stdoutLogger, $jobExecutorLogger);
-        $this->glueHandlerManager = $container->get(GlueHandlerManager::class);
-    }
-
     public function run(): ResponseInterface
     {
         $runRequest = RunRequest::create($this->input());
@@ -47,6 +31,7 @@ class JobController extends BaseJobController
         $this->stdoutLogger->debug($message);
 
         try {
+            $this->checkExecutorBlockStrategy($runRequest);
             $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
         } catch (XxlJobException $exception) {
             $this->stdoutLogger->warning($exception->getMessage());
@@ -102,17 +87,34 @@ class JobController extends BaseJobController
 
     public function kill(): ResponseInterface
     {
-        if (Constant::ENGINE == 'Swow') {
-            try {
-                $jobId = $this->input()['jobId'];
-                $this->container->get(JobKillExecutorSwow::class)->kill($jobId);
-                $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
-                return $this->responseSuccess();
-            } catch (Throwable $throwable) {
-                $this->stdoutLogger->error($throwable);
-                return $this->responseFail($throwable->getMessage());
-            }
+        $jobId = $this->input()['jobId'];
+        try {
+            $this->jobKillService->kill($jobId, 0,'Job toStop, stopReason:scheduling center kill job.');
+            $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
+            return $this->responseSuccess();
+        } catch (Throwable $throwable) {
+            $this->stdoutLogger->error($throwable);
+            return $this->responseFail($throwable->getMessage());
         }
-        return $this->responseFail('Not supported');
+        // return $this->responseFail('Not supported');
+    }
+
+    protected function checkExecutorBlockStrategy(RunRequest $runRequest): void
+    {
+        $jobKillExecutor = $this->jobKillService->getKillExecutor();
+        $isRun = $jobKillExecutor->isRun($runRequest->getJobId());
+
+        switch ($runRequest->getExecutorBlockStrategy()) {
+            case ExecutorBlockStrategyEnum::DISCARD_LATER:
+                if ($isRun) {
+                    throw new XxlJobException('block strategy effect：Discard Later');
+                }
+                break;
+            case ExecutorBlockStrategyEnum::COVER_EARLY:
+                if ($isRun) {
+                    $this->jobKillService->kill($runRequest->getJobId(),0, 'block strategy effect：Cover Early [job running, killed]');
+                }
+                break;
+        }
     }
 }

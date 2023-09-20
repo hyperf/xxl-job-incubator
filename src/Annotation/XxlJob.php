@@ -21,6 +21,10 @@ use Hyperf\Di\Annotation\AbstractAnnotation;
 #[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_CLASS)]
 class XxlJob extends AbstractAnnotation
 {
+    public const COROUTINE = 'coroutine';
+
+    public const PROCESS = 'process';
+
     public string $value = '';
 
     public string $init = '';

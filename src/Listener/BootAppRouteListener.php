@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Listener;
 
 use Exception;
@@ -16,10 +17,12 @@ use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\IPReaderInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Di\Annotation\AnnotationCollector;
+use Hyperf\Engine\Constant;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
+use Hyperf\Stringable\Str;
 use Hyperf\Utils\Network;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
@@ -116,10 +119,11 @@ class BootAppRouteListener implements ListenerInterface
     protected function initAnnotationRoute(): void
     {
         $methods = AnnotationCollector::getMethodsByAnnotation(XxlJob::class);
+
         foreach ($methods as $method) {
             $annotation = $method['annotation'];
             if ($annotation instanceof XxlJob) {
-                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($method['class'], $method['method'], $annotation->init, $annotation->destroy));
+                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($method['class'], $method['method'], $annotation->init, $annotation->destroy, $this->getExecutionMode($annotation)));
             }
         }
 
@@ -130,8 +134,22 @@ class BootAppRouteListener implements ListenerInterface
                 throw new Exception(sprintf('The %s job should be implement the %s interface', $className, JobHandlerInterface::class));
             }
             if ($annotation instanceof XxlJob) {
-                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($className, 'execute', 'init', 'destroy'));
+                $this->jobHandlerManager->registerJobHandler($annotation->value, new JobHandlerDefinition($className, 'execute', 'init', 'destroy', $this->getExecutionMode($annotation)));
             }
         }
+    }
+
+    protected function getExecutionMode(XxlJob $xxlJob): string
+    {
+        if (Str::endsWith(strtolower($xxlJob->value), XxlJob::PROCESS)) {
+            return XxlJob::PROCESS;
+        }
+        if (Str::endsWith(strtolower($xxlJob->value), XxlJob::COROUTINE)) {
+            return XxlJob::COROUTINE;
+        }
+        if (Constant::ENGINE == 'Swoole') {
+            return XxlJob::PROCESS;
+        }
+        return XxlJob::COROUTINE;
     }
 }

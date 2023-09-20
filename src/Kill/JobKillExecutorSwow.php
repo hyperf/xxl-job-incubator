@@ -9,26 +9,46 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Kill;
 
 use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\Run\JobContent;
 use Swow\Coroutine;
 
-class JobKillExecutorSwow implements JobKillExecutorInterface
+class JobKillExecutorSwow extends JobContent implements JobKillExecutorInterface
 {
     public function __construct(
-        protected JobKillContent $jobKillContent,
-        protected StdoutLoggerInterface $stdoutLogger
-    ) {
+        protected StdoutLoggerInterface $stdoutLogger,
+        protected ApiRequest $apiRequest,
+        protected JobExecutorLoggerInterface $jobExecutorLogger,
+    ) {}
+
+    public function isRun(int $jobId): bool
+    {
+        return isset(self::$content[$jobId]);
     }
 
-    public function kill(int $jobId): void
+    public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
-        $cid = $this->jobKillContent->getCid($jobId);
-        if (empty($cid)) {
-            $this->stdoutLogger->info("The cid for obtaining the jobId:{$jobId} is empty. The job may have ended");
-            return;
+        $runRequests = $this->getId($jobId);
+        if ($logId > 0) {
+            if (! isset($runRequests[$logId])) {
+                return false;
+            }
+            $runRequests = [$runRequests[$logId]];
         }
-        Coroutine::get($cid)?->kill();
+
+        foreach ($runRequests as $runRequest) {
+            Coroutine::get($runRequest->getId())?->kill();
+            $this->remove($jobId, $runRequest->getLogId());
+            if ($msg) {
+                $this->jobExecutorLogger->info($msg);
+                $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $msg);
+            }
+        }
+        return true;
     }
 }

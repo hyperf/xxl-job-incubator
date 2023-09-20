@@ -1,0 +1,54 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
+namespace Hyperf\XxlJob;
+
+use Hyperf\Command\Annotation\Command;
+use Hyperf\Command\Command as HyperfCommand;
+use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
+use Hyperf\XxlJob\Kill\JobKillExecutorProcess;
+use Hyperf\XxlJob\Requests\RunRequest;
+use Psr\Container\ContainerInterface;
+use Symfony\Component\Console\Input\InputOption;
+
+#[Command]
+class JobCommand extends HyperfCommand
+{
+    public function __construct(
+        protected ContainerInterface $container,
+        protected BeanCommandHandler $handler,
+        protected JobKillExecutorProcess $executorProcess,
+    ) {
+        parent::__construct('xxl-job:command');
+    }
+
+    public function configure()
+    {
+        parent::configure();
+        $this->setDescription('Hyperf xxl-job Command');
+        $this->addOption('runRequest', 'r', InputOption::VALUE_REQUIRED, 'xxl-job runRequest json');
+    }
+
+    public function handle()
+    {
+        $data = $this->input->getOptions();
+        if (! $data['runRequest']) {
+            var_dump('runRequest not know');
+            return;
+        }
+
+        $runArr = json_decode($data['runRequest'], true);
+        $runRequest = RunRequest::create($runArr);
+        $this->executorProcess->setJobId($runRequest->getJobId(), $runRequest->getLogId(), $runRequest);
+        $this->handler->handle($runRequest);
+        $this->executorProcess->remove($runRequest->getJobId(), $runRequest->getLogId());
+    }
+}

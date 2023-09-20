@@ -11,6 +11,8 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob;
 
+use Hyperf\XxlJob\Annotation\XxlJob;
+
 class JobHandlerDefinition
 {
     protected string $class = '';
@@ -21,9 +23,11 @@ class JobHandlerDefinition
 
     protected string $destroy = '';
 
-    public function __construct(string $class, string $method, string $init, string $destroy)
+    protected string $executionMode = XxlJob::PROCESS;
+
+    public function __construct(string $class, string $method, string $init, string $destroy, string $executionMode)
     {
-        $this->setClass($class)->setMethod($method)->setInit($init)->setDestroy($destroy);
+        $this->setClass($class)->setMethod($method)->setInit($init)->setDestroy($destroy)->setExecutionMode($executionMode);
     }
 
     public function getClass(): string
@@ -68,5 +72,17 @@ class JobHandlerDefinition
     {
         $this->destroy = $destroy;
         return $this;
+    }
+
+    public function setExecutionMode(string $executionMode): JobHandlerDefinition
+    {
+        $this->executionMode = $executionMode;
+        return $this;
+    }
+
+
+    public function getExecutionMode(): string
+    {
+        return $this->executionMode;
     }
 }

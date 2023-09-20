@@ -11,7 +11,9 @@ declare(strict_types=1);
  */
 namespace Hyperf\XxlJob\Requests;
 
-class RunRequest extends BaseRequest
+use JsonSerializable;
+
+class RunRequest extends BaseRequest implements JsonSerializable
 {
     protected int $jobId;  // 任务ID
 
@@ -36,6 +38,8 @@ class RunRequest extends BaseRequest
     protected int $broadcastIndex; // 分片参数：当前分片
 
     protected int $broadcastTotal; // 分片参数：总分片
+
+    protected int $_id; // 运行的id
 
     public function getJobId(): int
     {
@@ -95,5 +99,20 @@ class RunRequest extends BaseRequest
     public function getBroadcastTotal(): int
     {
         return $this->broadcastTotal;
+    }
+
+    public function getId(): int
+    {
+        return $this->_id;
+    }
+
+    public function setId(int $id): void
+    {
+        $this->_id = $id;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return get_object_vars($this);
     }
 }

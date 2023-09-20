@@ -9,34 +9,18 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Glue\Handlers;
 
-use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
-use Hyperf\XxlJob\JobHandlerManager;
-use Hyperf\XxlJob\JobRun;
-use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
-use Psr\Container\ContainerInterface;
 
 class ScriptHandler extends AbstractGlueHandler
 {
     protected string $scriptDir = BASE_PATH . '/runtime/xxl_job/glue_scripts/';
 
     protected string $glueType;
-
-    protected Config $config;
-
-    public function __construct(
-        ContainerInterface $container,
-        JobHandlerManager $jobHandlerManager,
-        JobExecutorLoggerInterface $jobExecutorLogger,
-        JobRun $jobRun
-    ) {
-        parent::__construct($container, $jobHandlerManager, $jobExecutorLogger, $jobRun);
-        $this->config = $container->get(Config::class);
-    }
 
     public function handle(RunRequest $request)
     {
@@ -50,7 +34,7 @@ class ScriptHandler extends AbstractGlueHandler
         if (! $this->config->getAccessToken()) {
             throw new GlueHandlerExecutionException('No configuration value of AccessToken, cannot handle ALL Script Glue Type');
         }
-        $this->jobRun->execute($request, function (RunRequest $request) {
+        $this->jobRun->executeCoroutine($request, function (RunRequest $request) {
             $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime());
             if (! is_file($filePath)) {
                 file_put_contents($filePath, $request->getGlueSource());

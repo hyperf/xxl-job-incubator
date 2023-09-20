@@ -15,23 +15,21 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\Utils\Codec\Json;
+use Hyperf\XxlJob\Glue\GlueHandlerManager;
+use Hyperf\XxlJob\Kill\JobKillService;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class BaseJobController
 {
-    protected ContainerInterface $container;
-
-    protected StdoutLoggerInterface $stdoutLogger;
-
-    protected JobExecutorLoggerInterface $jobExecutorLogger;
-
-    public function __construct(ContainerInterface $container, StdoutLoggerInterface $stdoutLogger, JobExecutorLoggerInterface $jobExecutorLogger)
-    {
-        $this->container = $container;
-        $this->stdoutLogger = $stdoutLogger;
-        $this->jobExecutorLogger = $jobExecutorLogger;
+    public function __construct(
+        protected ContainerInterface $container,
+        protected StdoutLoggerInterface $stdoutLogger,
+        protected JobExecutorLoggerInterface $jobExecutorLogger,
+        protected JobKillService $jobKillService,
+        protected GlueHandlerManager $glueHandlerManager
+    ) {
     }
 
     public function input(): array
