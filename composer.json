@@ -23,6 +23,7 @@
         "hyperf/framework": "~3.0.0",
         "hyperf/http-server": "~3.0.0",
         "hyperf/logger": "~3.0.0",
+        "hyperf/command": "~3.0.0",
         "jetbrains/phpstorm-attributes": "^1.0"
     },
     "require-dev": {
