@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Logger;
 
 use Hyperf\XxlJob\Exception\XxlJobException;
@@ -57,5 +58,15 @@ class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerI
     public function generateFileName(int $logId): string
     {
         return $logId . '.log';
+    }
+
+    public function deleteExpiredFiles(int $logRetentionDays): void
+    {
+        $logFiles = glob($this->logFileDir . '*.log');
+        foreach ($logFiles as $file) {
+            if (time() - filectime($file) > $logRetentionDays * 24 * 3600) {
+                is_writable($file) && unlink($file);
+            }
+        }
     }
 }

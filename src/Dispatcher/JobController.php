@@ -82,6 +82,12 @@ class JobController extends BaseJobController
 
     public function idleBeat(): ResponseInterface
     {
+        $jobId = $this->input()['jobId'];
+        $jobKillExecutor = $this->jobKillService->getKillExecutor();
+        $isRun = $jobKillExecutor->isRun($jobId);
+        if ($isRun) {
+            return $this->responseFail('job thread is running or has trigger queue.');
+        }
         return $this->responseSuccess();
     }
 
@@ -89,7 +95,7 @@ class JobController extends BaseJobController
     {
         $jobId = $this->input()['jobId'];
         try {
-            $this->jobKillService->kill($jobId, 0,'Job toStop, stopReason:scheduling center kill job.');
+            $this->jobKillService->kill($jobId, 0, 'Job toStop, stopReason:scheduling center kill job.');
             $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
             return $this->responseSuccess();
         } catch (Throwable $throwable) {
@@ -112,7 +118,7 @@ class JobController extends BaseJobController
                 break;
             case ExecutorBlockStrategyEnum::COVER_EARLY:
                 if ($isRun) {
-                    $this->jobKillService->kill($runRequest->getJobId(),0, 'block strategy effect：Cover Early [job running, killed]');
+                    $this->jobKillService->kill($runRequest->getJobId(), 0, 'block strategy effect：Cover Early [job running, killed]');
                 }
                 break;
         }

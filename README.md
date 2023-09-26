@@ -37,6 +37,8 @@ return [
     'access_token' => env('XXL_JOB_ACCESS_TOKEN', ''),
     // 执行器心跳间隔（秒）
     'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
+    // 日志文件保存天数 [选填]: 过期日志自动清理, 限制值大于等于3时生效; 否则, 如-1, 关闭自动清理功能；
+    'log_retention_days' => -1,
     // 执行器 HTTP Server 相关配置
     'executor_server' => [
         // HTTP Server 路由前缀

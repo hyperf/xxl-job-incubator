@@ -32,28 +32,48 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
         protected JobExecutorLoggerInterface $jobExecutorLogger,
     ) {}
 
+    public function getPidArr(int $jobId, int $logId = 0): array
+    {
+        $logIdStr = $logId > 0 ? "_{$logId}" : '';
+        $cmd = sprintf('ps aux | grep %s_%s%s | grep -v grep', self::PROCESS_PREFIX_TITLE, $jobId, $logIdStr);
+        $processTitlesStr = shell_exec($cmd);
+        if (empty($processTitlesStr)) {
+            return [];
+        }
+        $processTitles = explode(PHP_EOL, $processTitlesStr);
+        $data = [];
+        foreach ($processTitles as $processTitle) {
+            $pattern = sprintf('/%s_(.*)_end/', static::PROCESS_PREFIX_TITLE);
+            preg_match($pattern, $processTitle, $matches);
+            if ($matches[1] ?? '') {
+                [$jobId,$logId,$logDateTime,$pid] = explode('_', $matches[1]);
+                $data[] = [
+                    'jobId' => (int) $jobId,
+                    'logId' => (int) $logId,
+                    'logDateTime' => (int) $logDateTime,
+                    'pid' => $pid,
+                ];
+            }
+        }
+        return $data;
+    }
+
     public function isRun(int $jobId): bool
     {
-        $cmd = sprintf(" ps aux | grep %s_%s | grep -v grep | awk '{print $11}'", self::PROCESS_PREFIX_TITLE, $jobId);
-        $processTitlesStr = shell_exec($cmd);
-        return ! empty($processTitlesStr);
+        return ! empty($this->getPidArr($jobId));
     }
 
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
-        $logIdStr = $logId > 0 ? "_{$logId}" : '';
-        $cmd = sprintf(" ps aux | grep %s_%s%s | grep -v grep | awk '{print $11}'", self::PROCESS_PREFIX_TITLE, $jobId, $logIdStr);
-        $processTitlesStr = shell_exec($cmd);
-        if (empty($processTitlesStr)) {
+        $processTitleArr = $this->getPidArr($jobId, $logId);
+        if (empty($processTitleArr)) {
             $this->stdoutLogger->warning('xxl-job task has ended');
             return false;
         }
-
-        $processTitleArr = explode(PHP_EOL, trim($processTitlesStr));
         foreach ($processTitleArr as $processTitle) {
-            [,,$logId,$logDateTime,$pid] = explode('_', $processTitle);
-            $logId = intval($logId);
-            $logDateTime = intval($logDateTime);
+            $pid = $processTitle['pid'];
+            $logId = $processTitle['logId'];
+            $logDateTime = $processTitle['logDateTime'];
 
             $result = shell_exec("kill -9 {$pid}");
             if ($result) {
@@ -71,7 +91,7 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
 
     public function setJobId(int $jobId, int $logId, RunRequest $runRequest): void
     {
-        $process_title = sprintf(self::PROCESS_PREFIX_TITLE . '_%s_%s_%s_%s', $runRequest->getJobId(), $runRequest->getLogId(), $runRequest->getLogDateTime(), getmypid());
+        $process_title = sprintf(self::PROCESS_PREFIX_TITLE . '_%s_%s_%s_%s_end', $runRequest->getJobId(), $runRequest->getLogId(), $runRequest->getLogDateTime(), getmypid());
         cli_set_process_title($process_title);
     }
 

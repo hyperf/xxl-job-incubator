@@ -16,7 +16,7 @@ use Hyperf\XxlJob\Middleware\AuthMiddleware;
 
 class XxlJobRoute
 {
-    public function add(RouteCollector $route, $prefixUrl)
+    public function add(RouteCollector $route, $prefixUrl): void
     {
         $route->addGroup('/' . $prefixUrl, function ($route) {
             $route->post('beat', [JobController::class, 'beat']);

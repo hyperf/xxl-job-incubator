@@ -31,6 +31,7 @@ class ConfigFactory
         if ($config->has('xxl_job.guzzle.config') && ! empty($config->get('xxl_job.guzzle.config'))) {
             $instance->setGuzzleConfig($config->get('xxl_job.guzzle.config'));
         }
+        $instance->setLogRetentionDays($config->get('xxl_job.log_retention_days') ?? -1);
         return $instance;
     }
 }

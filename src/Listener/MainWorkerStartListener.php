@@ -9,35 +9,31 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Listener;
 
+use Hyperf\Codec\Json;
 use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Coordinator\Constants;
+use Hyperf\Coordinator\CoordinatorManager;
+use Hyperf\Coroutine\Coroutine;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\MainWorkerStart;
 use Hyperf\Server\Event\MainCoroutineServerStart;
-use Hyperf\Utils\Codec\Json;
-use Hyperf\Utils\Coordinator\Constants;
-use Hyperf\Utils\Coordinator\CoordinatorManager;
-use Hyperf\Utils\Coroutine;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\XxlJobException;
+use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Throwable;
 
 class MainWorkerStartListener implements ListenerInterface
 {
-    protected Config $xxlConfig;
-
-    protected StdoutLoggerInterface $logger;
-
-    protected ApiRequest $apiRequest;
-
-    public function __construct(Config $xxlConfig, StdoutLoggerInterface $logger, ApiRequest $apiRequest)
-    {
-        $this->xxlConfig = $xxlConfig;
-        $this->logger = $logger;
-        $this->apiRequest = $apiRequest;
-    }
+    public function __construct(
+        protected Config $xxlConfig,
+        protected StdoutLoggerInterface $logger,
+        protected ApiRequest $apiRequest,
+        protected JobExecutorFileLogger $jobExecutorFileLogger,
+    ) {}
 
     public function listen(): array
     {
@@ -52,7 +48,28 @@ class MainWorkerStartListener implements ListenerInterface
         if (! $this->xxlConfig->isEnable()) {
             return;
         }
+        $this->deleteExpiredFiles($this->xxlConfig->getLogRetentionDays());
         $this->registerHeartbeat($this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl(), $this->xxlConfig->getHeartbeat());
+    }
+
+    protected function deleteExpiredFiles(int $logRetentionDays): void
+    {
+        if ($logRetentionDays < 3) {
+            return;
+        }
+        Coroutine::create(function () use ($logRetentionDays) {
+            while (true) {
+                if (CoordinatorManager::until(Constants::WORKER_EXIT)->yield(24 * 3600)) {
+                    break;
+                }
+                try {
+                    $this->logger->info('XXL-JOB delete expired files, log retention days : '.$logRetentionDays);
+                    $this->jobExecutorFileLogger->deleteExpiredFiles($logRetentionDays);
+                } catch (Throwable $throwable) {
+                    $this->logger->error($throwable);
+                }
+            }
+        });
     }
 
     protected function registerHeartbeat(string $appName, string $url, int $heartbeat): void

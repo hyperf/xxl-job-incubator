@@ -15,6 +15,7 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\OnShutdown;
 use Hyperf\Server\Event\CoroutineServerStop;
+use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Psr\Container\ContainerInterface;
 
@@ -53,7 +54,7 @@ class OnShutdownListener implements ListenerInterface
         if (! $this->xxlConfig->isEnable()) {
             return;
         }
-        $response = $this->xxlConfig->service->registryRemove($this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl());
+        $response = $this->container->get(ApiRequest::class)->registryRemove($this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl());
         if ($response->getStatusCode() === 200) {
             $this->logger->debug(sprintf('Remove the XXL-JOB app name: %s url:%s is successful', $this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl()));
         } else {

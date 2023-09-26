@@ -35,6 +35,7 @@ class Config
     private int $heartbeat = 30;
 
     private string $executorServerPrefixUrl = '';
+    private int $logRetentionDays = -1;
 
     public function isEnable(): bool
     {
@@ -134,4 +135,22 @@ class Config
         $this->executorServerPrefixUrl = $executorServerPrefixUrl;
         return $this;
     }
+
+    /**
+     * @return int
+     */
+    public function getLogRetentionDays(): int
+    {
+        return $this->logRetentionDays;
+    }
+
+    /**
+     * @param int $logRetentionDays
+     */
+    public function setLogRetentionDays(int $logRetentionDays): void
+    {
+        $this->logRetentionDays = $logRetentionDays;
+    }
+
+
 }
