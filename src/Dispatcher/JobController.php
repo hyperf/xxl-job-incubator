@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Dispatcher;
 
 use Hyperf\HttpServer\Contract\ResponseInterface;
@@ -95,7 +96,11 @@ class JobController extends BaseJobController
     {
         $jobId = $this->input()['jobId'];
         try {
-            $this->jobKillService->kill($jobId, 0, 'Job toStop, stopReason:scheduling center kill job.');
+            $bool = $this->jobKillService->kill($jobId, 0, 'Job toStop, stopReason:scheduling center kill job.');
+            if (! $bool) {
+                return $this->responseFail('job cannot be completely killed. Please try again');
+            }
+
             $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
             return $this->responseSuccess();
         } catch (Throwable $throwable) {

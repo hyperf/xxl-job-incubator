@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Run;
 
 use Hyperf\Coroutine\Coroutine;
@@ -18,6 +19,7 @@ use Hyperf\XxlJob\ChannelFactory;
 use Hyperf\XxlJob\Event\AfterJobRun;
 use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\JobContext;
+use Hyperf\XxlJob\Kill\JobKillExecutorProcess;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
@@ -33,8 +35,8 @@ class JobRun
         protected ApiRequest $apiRequest,
         protected JobContent $jobContent,
         protected ChannelFactory $channelFactory,
-    ) {
-    }
+        protected JobKillExecutorProcess $jobKillExecutorProcess,
+    ) {}
 
     public function executeCoroutine(RunRequest $request, callable $callback): int
     {

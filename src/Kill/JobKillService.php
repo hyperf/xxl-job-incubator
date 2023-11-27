@@ -32,9 +32,9 @@ class JobKillService
         return $this->container->get($classname);
     }
 
-    public function kill(int $jobId, int $logId = 0, string $msg = ''): void
+    public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
         $class = $this->getKillExecutor();
-        $class->kill($jobId, $logId, $msg);
+        return $class->kill($jobId, $logId, $msg);
     }
 }
