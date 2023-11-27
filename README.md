@@ -260,6 +260,21 @@ class DemoJob
 优点：极度灵活，可以实现不重启新增和修改 Job 代码，支持多种脚本语言，独立进程   
 缺点：大批量任务时容易造成进程数过多，脚本代码由 XXL-JOB 远程编辑发放容易导致安全问题，Job 代码可对 Executor 所在服务器环境进行与启动 Hyperf 应用的权限相同的操作
 
+
+### 安装xxl-job-admin(2.4.0版本)
+#### 初始化“调度数据库”
+[初始化SQL脚本](https://github.com/xuxueli/xxl-job/blob/2.4.0/doc/db/tables_xxl_job.sql)
+#### docker安装
+```bash
+docker run -d \
+-e PARAMS="--spring.datasource.url=jdbc:mysql://127.0.0.1:3306/xxl_job?Unicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+--spring.datasource.username=root
+--spring.datasource.password=123456
+--xxl.job.accessToken=123456" \
+-p 8080:8080 --name xxl-job --restart=always xuxueli/xxl-job-admin:2.4.0
+```
+> 替换:数据库地址/账号/密码和accessToken
+
 ### 引用
 
 关于 XXL-JOB 更多的使用细节可参考 [XXL-JOB 官方文档](https://www.xuxueli.com/xxl-job/#%E3%80%8A%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E5%B9%B3%E5%8F%B0XXL-JOB%E3%80%8B)
