@@ -82,7 +82,7 @@ class JobRun
     {
         $str = json_encode($request);
         $file = BASE_PATH . '/bin/hyperf.php';
-        $cmd = sprintf("php %s xxl-job:command -r '%s' 2>&1", $file, $str);
+        $cmd = sprintf("php %s execute:xxl-job -r '%s' 2>&1", $file, $str);
         Coroutine::create(function () use ($cmd, $request) {
             shell_exec($cmd);
             $this->channelFactory->push($request->getJobId());

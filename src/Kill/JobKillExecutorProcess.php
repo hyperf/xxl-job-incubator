@@ -17,12 +17,12 @@ use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\ProcessTitle;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Run\JobContent;
 
 class JobKillExecutorProcess implements JobKillExecutorInterface
 {
-    public const PROCESS_PREFIX_TITLE = 'hyperf:xxl-job';
 
     public function __construct(
         protected JobContent $jobKillContent,
@@ -35,7 +35,7 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
     public function getPidArr(int $jobId, int $logId = 0): array
     {
         $logIdStr = $logId > 0 ? "_{$logId}" : '';
-        $cmd = sprintf('ps aux | grep %s_%s%s | grep -v grep', self::PROCESS_PREFIX_TITLE, $jobId, $logIdStr);
+        $cmd = sprintf('ps aux | grep %s_%s%s | grep -v grep', ProcessTitle::PROCESS_PREFIX_TITLE, $jobId, $logIdStr);
         $processTitlesStr = shell_exec($cmd);
         if (empty($processTitlesStr)) {
             return [];
@@ -43,7 +43,7 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
         $processTitles = explode(PHP_EOL, $processTitlesStr);
         $data = [];
         foreach ($processTitles as $processTitle) {
-            $pattern = sprintf('/%s_(.*)_end/', static::PROCESS_PREFIX_TITLE);
+            $pattern = sprintf('/%s_(.*)_end/', ProcessTitle::PROCESS_PREFIX_TITLE);
             preg_match($pattern, $processTitle, $matches);
             if ($matches[1] ?? '') {
                 [$jobId,$logId,$logDateTime,$pid] = explode('_', $matches[1]);
@@ -98,15 +98,8 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
 
     public function setJobId(int $jobId, int $logId, RunRequest $runRequest): void
     {
-        $process_title = $this->getProcessTitle($runRequest,getmypid());
-        cli_set_process_title($process_title);
+        ProcessTitle::setByRunRequest($runRequest);
     }
 
     public function remove(int $jobId, int $logId): void {}
-
-    public function getProcessTitle(RunRequest $runRequest,int $pid): string
-    {
-        return sprintf(self::PROCESS_PREFIX_TITLE . '_%s_%s_%s_%s_end', $runRequest->getJobId(), $runRequest->getLogId(), $runRequest->getLogDateTime(), $pid);
-    }
-
 }

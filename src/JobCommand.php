@@ -27,13 +27,13 @@ class JobCommand extends HyperfCommand
         protected BeanCommandHandler $handler,
         protected JobKillExecutorProcess $executorProcess,
     ) {
-        parent::__construct('xxl-job:command');
+        parent::__construct('execute:xxl-job');
     }
 
     public function configure()
     {
         parent::configure();
-        $this->setDescription('Hyperf xxl-job Command');
+        $this->setDescription('Execute xxl-job');
         $this->addOption('runRequest', 'r', InputOption::VALUE_REQUIRED, 'xxl-job runRequest json');
     }
 
