@@ -32,6 +32,7 @@ class ConfigFactory
             $instance->setGuzzleConfig($config->get('xxl_job.guzzle.config'));
         }
         $instance->setLogRetentionDays($config->get('xxl_job.log_retention_days') ?? -1);
+        $instance->setStartCommand($config->get('xxl_job.start_command') ?? sprintf('%s %s',PHP_BINARY,BASE_PATH . '/bin/hyperf.php'));
         return $instance;
     }
 }

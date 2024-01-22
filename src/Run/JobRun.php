@@ -12,10 +12,12 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Run;
 
+use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\ChannelFactory;
+use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Event\AfterJobRun;
 use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\JobContext;
@@ -36,6 +38,8 @@ class JobRun
         protected JobContent $jobContent,
         protected ChannelFactory $channelFactory,
         protected JobKillExecutorProcess $jobKillExecutorProcess,
+        protected Config $config,
+        protected StdoutLoggerInterface $stdoutLogger,
     ) {}
 
     public function executeCoroutine(RunRequest $request, callable $callback): int
@@ -81,8 +85,8 @@ class JobRun
     public function command(RunRequest $request): void
     {
         $str = json_encode($request);
-        $file = BASE_PATH . '/bin/hyperf.php';
-        $cmd = sprintf("php %s execute:xxl-job -r '%s' 2>&1", $file, $str);
+        $cmd = sprintf("%s execute:xxl-job -r '%s' 2>&1", $this->config->getStartCommand(), $str);
+        $this->stdoutLogger->debug('XXL-JOB execute commands:'.$cmd);
         Coroutine::create(function () use ($cmd, $request) {
             shell_exec($cmd);
             $this->channelFactory->push($request->getJobId());
