@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob\Kill;
 
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
@@ -23,39 +24,19 @@ use Hyperf\XxlJob\Run\JobContent;
 
 class JobKillExecutorProcess implements JobKillExecutorInterface
 {
-
     public function __construct(
         protected JobContent $jobKillContent,
         protected StdoutLoggerInterface $stdoutLogger,
         protected JobExecutorFileLogger $fileLogger,
         protected ApiRequest $apiRequest,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
+        protected Config $xxlConfig,
     ) {}
 
     public function getPidArr(int $jobId, int $logId = 0): array
     {
-        $logIdStr = $logId > 0 ? "_{$logId}" : '';
-        $cmd = sprintf('ps aux | grep %s_%s%s | grep -v grep', ProcessTitle::PROCESS_PREFIX_TITLE, $jobId, $logIdStr);
-        $processTitlesStr = shell_exec($cmd);
-        if (empty($processTitlesStr)) {
-            return [];
-        }
-        $processTitles = explode(PHP_EOL, $processTitlesStr);
-        $data = [];
-        foreach ($processTitles as $processTitle) {
-            $pattern = sprintf('/%s_(.*)_end/', ProcessTitle::PROCESS_PREFIX_TITLE);
-            preg_match($pattern, $processTitle, $matches);
-            if ($matches[1] ?? '') {
-                [$jobId,$logId,$logDateTime,$pid] = explode('_', $matches[1]);
-                $data[] = [
-                    'jobId' => (int) $jobId,
-                    'logId' => (int) $logId,
-                    'logDateTime' => (int) $logDateTime,
-                    'pid' => $pid,
-                ];
-            }
-        }
-        return $data;
+        $filename = $this->xxlConfig->getLogFileDir() . sprintf('jobId_%s_logId_%s.info', $jobId, $logId > 0 ? $logId : '*');
+        return glob($filename);
     }
 
     public function isRun(int $jobId): bool
@@ -65,18 +46,21 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
 
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
-        $processTitleArr = $this->getPidArr($jobId, $logId);
-        if (empty($processTitleArr)) {
+        $processFileArr = $this->getPidArr($jobId, $logId);
+        if (empty($processFileArr)) {
             $this->stdoutLogger->warning('xxl-job task has ended');
             return false;
         }
         $bool = true;
-        foreach ($processTitleArr as $processTitle) {
-            $pid = $processTitle['pid'];
-            $logId = $processTitle['logId'];
-            $logDateTime = $processTitle['logDateTime'];
+        foreach ($processFileArr as $processFile) {
+            $strInfo = file_get_contents($processFile);
+            $infoArr = json_decode($strInfo, true);
+            $pid = $infoArr['pid'];
+            $logId = $infoArr['logId'];
+            $logDateTime = $infoArr['logDateTime'];
             $bool = true;
-            if($pid == -1){
+            if (! $pid || $pid == -1) {
+                @unlink($processFile);
                 $bool = false;
                 $this->stdoutLogger->error('xxl-job kill error, the job is being started');
                 continue;
@@ -87,6 +71,7 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
                 $this->stdoutLogger->error('xxl-job kill error:' . $result);
                 continue;
             }
+            @unlink($processFile);
             JobContext::setJobLogId($logId);
             if ($msg) {
                 $this->jobExecutorLogger->info($msg);

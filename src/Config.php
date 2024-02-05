@@ -38,7 +38,9 @@ class Config
 
     private int $logRetentionDays = -1;
 
-    private string $startCommand = '';
+    private array $startCommand = [];
+
+    private string $logFileDir = '';
 
     public function isEnable(): bool
     {
@@ -139,31 +141,33 @@ class Config
         return $this;
     }
 
-    /**
-     * @return int
-     */
     public function getLogRetentionDays(): int
     {
         return $this->logRetentionDays;
     }
 
-    /**
-     * @param int $logRetentionDays
-     */
     public function setLogRetentionDays(int $logRetentionDays): void
     {
         $this->logRetentionDays = $logRetentionDays;
     }
 
-    public function getStartCommand(): string
+    public function getStartCommand(): array
     {
         return $this->startCommand;
     }
 
-    public function setStartCommand(string $startCommand): void
+    public function setStartCommand(array $startCommand): void
     {
         $this->startCommand = $startCommand;
     }
 
+    public function getLogFileDir(): string
+    {
+        return $this->logFileDir;
+    }
 
+    public function setLogFileDir(string $logFileDir): void
+    {
+        $this->logFileDir = $logFileDir;
+    }
 }

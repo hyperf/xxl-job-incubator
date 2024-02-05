@@ -22,12 +22,14 @@ use Symfony\Component\Console\Input\InputOption;
 #[Command]
 class JobCommand extends HyperfCommand
 {
+    public const COMMAND_NAME = 'execute:xxl-job';
+
     public function __construct(
         protected ContainerInterface $container,
         protected BeanCommandHandler $handler,
         protected JobKillExecutorProcess $executorProcess,
     ) {
-        parent::__construct('execute:xxl-job');
+        parent::__construct(self::COMMAND_NAME);
     }
 
     public function configure()

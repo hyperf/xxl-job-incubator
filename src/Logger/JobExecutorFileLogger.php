@@ -22,9 +22,6 @@ class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerI
     public function init(string $logFileDir)
     {
         $this->logFileDir = $logFileDir;
-        if (! is_dir($logFileDir)) {
-            mkdir($logFileDir, 0777, true);
-        }
     }
 
     public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): LogContent
@@ -58,15 +55,5 @@ class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerI
     public function generateFileName(int $logId): string
     {
         return $logId . '.log';
-    }
-
-    public function deleteExpiredFiles(int $logRetentionDays): void
-    {
-        $logFiles = glob($this->logFileDir . '*.log');
-        foreach ($logFiles as $file) {
-            if (time() - filectime($file) > $logRetentionDays * 24 * 3600) {
-                is_writable($file) && unlink($file);
-            }
-        }
     }
 }

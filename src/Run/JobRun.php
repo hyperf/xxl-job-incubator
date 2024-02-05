@@ -20,12 +20,15 @@ use Hyperf\XxlJob\ChannelFactory;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Event\AfterJobRun;
 use Hyperf\XxlJob\Event\BeforeJobRun;
+use Hyperf\XxlJob\JobCommand;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Kill\JobKillExecutorProcess;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Process\Exception\ProcessSignaledException;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 class JobRun
@@ -69,7 +72,7 @@ class JobRun
             if ($this->container->has(FormatterInterface::class)) {
                 $formatter = $this->container->get(FormatterInterface::class);
                 $message = $formatter->format($throwable);
-                $message = str_replace(PHP_EOL, '<br>', $message);
+                // $message = str_replace(PHP_EOL, '<br>', $message);
             }
             $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
             $this->jobExecutorLogger->error($message);
@@ -84,11 +87,35 @@ class JobRun
 
     public function command(RunRequest $request): void
     {
-        $str = json_encode($request);
-        $cmd = sprintf("%s execute:xxl-job -r '%s' 2>&1", $this->config->getStartCommand(), $str);
-        $this->stdoutLogger->debug('XXL-JOB execute commands:'.$cmd);
-        Coroutine::create(function () use ($cmd, $request) {
-            shell_exec($cmd);
+        $command = $this->config->getStartCommand();
+        $command[] = JobCommand::COMMAND_NAME;
+        $command[] = '-r';
+        $command[] = json_encode($request);
+        $this->stdoutLogger->debug('XXL-JOB execute commands:' . implode(' ', $command));
+        Coroutine::create(function () use ($command, $request) {
+            $filename = $this->config->getLogFileDir() . sprintf('jobId_%s_logId_%s.info', $request->getJobId(), $request->getLogId());
+            $process = new Process($command);
+            $process->start();
+            $data['logId'] = $request->getLogId();
+            $data['logDateTime'] = $request->getLogDateTime();
+            $data['jobId'] = $request->getJobId();
+            $data['pid'] = $process->getPid();
+            file_put_contents($filename, json_encode($data));
+            /*foreach ($process as $type => $data) {
+                if ($process::OUT === $type) {
+                    // echo "\nRead from stdout: ".$data;
+                }   // $process::ERR === $type
+                // echo "\nRead from stderr: ".$data;
+                // $this->stdoutLogger->error($data);
+            }*/
+            try {
+                $process->wait();
+            } catch (ProcessSignaledException $e) {
+                $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
+                $this->stdoutLogger->warning($message);
+            } finally {
+                @unlink($filename);
+            }
             $this->channelFactory->push($request->getJobId());
         });
     }

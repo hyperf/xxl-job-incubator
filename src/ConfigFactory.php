@@ -32,7 +32,17 @@ class ConfigFactory
             $instance->setGuzzleConfig($config->get('xxl_job.guzzle.config'));
         }
         $instance->setLogRetentionDays($config->get('xxl_job.log_retention_days') ?? -1);
-        $instance->setStartCommand($config->get('xxl_job.start_command') ?? sprintf('%s %s',PHP_BINARY,BASE_PATH . '/bin/hyperf.php'));
+        $instance->setStartCommand($config->get('xxl_job.start_command') ?? [PHP_BINARY, BASE_PATH . '/bin/hyperf.php']);
+
+        $logFileDir = $config->get('xxl_job.file_logger.dir');
+        if (! $logFileDir) {
+            $logFileDir = BASE_PATH . '/runtime/xxl_job/logs/';
+        }
+        if (! is_dir($logFileDir)) {
+            mkdir($logFileDir, 0777, true);
+        }
+        $instance->setLogFileDir($logFileDir);
+
         return $instance;
     }
 }

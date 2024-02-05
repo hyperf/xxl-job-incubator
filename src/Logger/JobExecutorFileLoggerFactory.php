@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Logger;
 
 use Hyperf\Contract\ConfigInterface;
+use Hyperf\XxlJob\Config;
 use Psr\Container\ContainerInterface;
 
 class JobExecutorFileLoggerFactory
@@ -19,12 +20,9 @@ class JobExecutorFileLoggerFactory
     public function __invoke(ContainerInterface $container): JobExecutorFileLogger
     {
         $config = $container->get(ConfigInterface::class);
-        $logFileDir = $config->get('xxl_job.file_logger.dir');
-        if (! $logFileDir) {
-            $logFileDir = BASE_PATH . '/runtime/xxl_job/logs/';
-        }
+        $xxlConfig = $container->get(Config::class);
         $instance = new JobExecutorFileLogger($config, null);
-        $instance->init($logFileDir);
+        $instance->init($xxlConfig->getLogFileDir());
         return $instance;
     }
 }
