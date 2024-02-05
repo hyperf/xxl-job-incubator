@@ -17,43 +17,43 @@ class ChannelFactory
 {
     protected array $channels = [];
 
-    public function get(int $jobId): ?Channel
+    public function get(int $logId): ?Channel
     {
-        if ($this->has($jobId)) {
-            return $this->channels[$jobId];
+        if ($this->has($logId)) {
+            return $this->channels[$logId];
         }
 
-        return $this->channels[$jobId] = new Channel(1);
+        return $this->channels[$logId] = new Channel(1);
     }
 
-    public function pop(int $jobId, float $timeout = -1)
+    public function pop(int $logId, float $timeout = -1)
     {
-        $channel = $this->get($jobId);
+        $channel = $this->get($logId);
 
         $result = $channel->pop($timeout);
         // Removed channel from factory.
-        $this->remove($jobId);
+        $this->remove($logId);
         return $result;
     }
 
-    public function push(int $jobId): void
+    public function push(int $logId): void
     {
-        $channel = $this->get($jobId);
+        $channel = $this->get($logId);
 
         if ($channel instanceof Channel) {
-            $channel->push($jobId);
+            $channel->push($logId);
         } else {
-            $this->remove($jobId);
+            $this->remove($logId);
         }
     }
 
-    public function has(int $jobId): bool
+    public function has(int $logId): bool
     {
-        return array_key_exists($jobId, $this->channels);
+        return array_key_exists($logId, $this->channels);
     }
 
-    public function remove(int $jobId): void
+    public function remove(int $logId): void
     {
-        unset($this->channels[$jobId]);
+        unset($this->channels[$logId]);
     }
 }

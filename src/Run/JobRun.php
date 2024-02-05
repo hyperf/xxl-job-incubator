@@ -79,7 +79,7 @@ class JobRun
             throw $throwable;
         } finally {
             $this->jobContent->remove($request->getJobId(), $request->getJobId());
-            $this->channelFactory->push($request->getJobId());
+            $this->channelFactory->push($request->getLogId());
             // AfterJobRun
             $this->eventDispatcher->dispatch(new AfterJobRun($request));
         }
@@ -116,7 +116,7 @@ class JobRun
             } finally {
                 @unlink($filename);
             }
-            $this->channelFactory->push($request->getJobId());
+            $this->channelFactory->push($request->getLogId());
         });
     }
 }

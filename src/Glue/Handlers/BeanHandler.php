@@ -36,7 +36,7 @@ class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
         $executorTimeout = $request->getExecutorTimeout();
         if ($executorTimeout > 0) {
             Coroutine::create(function () use ($request, $executorTimeout) {
-                $result = $this->channelFactory->pop($request->getJobId(), $request->getExecutorTimeout());
+                $result = $this->channelFactory->pop($request->getLogId(), $request->getExecutorTimeout());
                 if ($result === false) {
                     $this->jobKillService->kill($request->getJobId(),$request->getLogId(), 'scheduling center kill job. [job running, killed]');
                 }
