@@ -1,14 +1,6 @@
 <?php
 
 declare(strict_types=1);
-/**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
- */
 
 namespace Hyperf\XxlJob\Kill;
 
@@ -18,7 +10,6 @@ use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
-use Hyperf\XxlJob\ProcessTitle;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Run\JobContent;
 
@@ -81,10 +72,7 @@ class JobKillExecutorProcess implements JobKillExecutorInterface
         return $bool;
     }
 
-    public function setJobId(int $jobId, int $logId, RunRequest $runRequest): void
-    {
-        ProcessTitle::setByRunRequest($runRequest);
-    }
+    public function setJobId(int $jobId, int $logId, RunRequest $runRequest): void {}
 
     public function remove(int $jobId, int $logId): void {}
 }
