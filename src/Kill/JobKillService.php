@@ -21,7 +21,8 @@ class JobKillService
     public function __construct(
         protected ContainerInterface $container,
         protected ApiRequest $apiRequest,
-    ) {}
+    ) {
+    }
 
     public function getKillExecutor(): JobKillExecutorInterface
     {

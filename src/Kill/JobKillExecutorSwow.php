@@ -24,7 +24,8 @@ class JobKillExecutorSwow extends JobContent implements JobKillExecutorInterface
         protected StdoutLoggerInterface $stdoutLogger,
         protected ApiRequest $apiRequest,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
-    ) {}
+    ) {
+    }
 
     public function isRun(int $jobId): bool
     {

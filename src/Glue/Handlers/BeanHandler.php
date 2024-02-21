@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Closure;
@@ -35,10 +36,10 @@ class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
         // executorTimeout
         $executorTimeout = $request->getExecutorTimeout();
         if ($executorTimeout > 0) {
-            Coroutine::create(function () use ($request, $executorTimeout) {
+            Coroutine::create(function () use ($request) {
                 $result = $this->channelFactory->pop($request->getLogId(), $request->getExecutorTimeout());
                 if ($result === false) {
-                    $this->jobKillService->kill($request->getJobId(),$request->getLogId(), 'scheduling center kill job. [job running, killed]');
+                    $this->jobKillService->kill($request->getJobId(), $request->getLogId(), 'scheduling center kill job. [job running, killed]');
                 }
             });
         }

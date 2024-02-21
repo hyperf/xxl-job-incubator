@@ -43,7 +43,8 @@ class JobRun
         protected JobKillExecutorProcess $jobKillExecutorProcess,
         protected Config $config,
         protected StdoutLoggerInterface $stdoutLogger,
-    ) {}
+    ) {
+    }
 
     public function executeCoroutine(RunRequest $request, callable $callback): int
     {
