@@ -95,7 +95,8 @@ class JobRun
         $this->stdoutLogger->debug('XXL-JOB execute commands:' . implode(' ', $command));
         Coroutine::create(function () use ($command, $request) {
             $filename = $this->config->getLogFileDir() . sprintf('jobId_%s_logId_%s.info', $request->getJobId(), $request->getLogId());
-            $process = new Process($command);
+            $executorTimeout = $request->getExecutorTimeout();
+            $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
             $process->start();
             $data['logId'] = $request->getLogId();
             $data['logDateTime'] = $request->getLogDateTime();
