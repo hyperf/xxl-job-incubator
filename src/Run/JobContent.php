@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Run;
 
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -18,6 +19,7 @@ class JobContent
     protected static array $content = [];
 
     /**
+     * @param mixed $jobId
      * @return RunRequest[]
      */
     public function getId($jobId): array

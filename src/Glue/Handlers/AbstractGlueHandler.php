@@ -9,6 +9,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\Contract\StdoutLoggerInterface;
@@ -23,6 +24,7 @@ use Psr\Container\ContainerInterface;
 abstract class AbstractGlueHandler implements GlueHandlerInterface
 {
     protected Config $config;
+
     public function __construct(
         protected ContainerInterface $container,
         protected JobHandlerManager $jobHandlerManager,

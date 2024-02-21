@@ -35,7 +35,8 @@ class MainWorkerStartListener implements ListenerInterface
         protected StdoutLoggerInterface $logger,
         protected ApiRequest $apiRequest,
         protected JobExecutorFileLogger $jobExecutorFileLogger,
-    ) {}
+    ) {
+    }
 
     public function listen(): array
     {
@@ -65,7 +66,7 @@ class MainWorkerStartListener implements ListenerInterface
                     break;
                 }
                 try {
-                    $this->logger->info('XXL-JOB delete expired files, log retention days : '.$logRetentionDays);
+                    $this->logger->info('XXL-JOB delete expired files, log retention days : ' . $logRetentionDays);
                     $logFiles = glob($this->xxlConfig->getLogFileDir() . '*.log');
                     foreach ($logFiles as $file) {
                         if (time() - filectime($file) > $logRetentionDays * 24 * 3600) {

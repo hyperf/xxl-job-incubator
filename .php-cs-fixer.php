@@ -70,6 +70,7 @@ return (new PhpCsFixer\Config())
             'import_constants' => true,
             'import_functions' => true,
         ],
+        'phpdoc_to_comment' => false,
         'class_attributes_separation' => true,
         'combine_consecutive_unsets' => true,
         'declare_strict_types' => true,
@@ -85,6 +86,7 @@ return (new PhpCsFixer\Config())
         'single_quote' => true,
         'standardize_not_equals' => true,
         'multiline_comment_opening_closing' => true,
+        'single_line_empty_body' => false,
     ])
     ->setFinder(
         PhpCsFixer\Finder::create()
