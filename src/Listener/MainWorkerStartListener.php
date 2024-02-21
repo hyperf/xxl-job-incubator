@@ -26,6 +26,8 @@ use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Throwable;
 
+use function Hyperf\Support\retry;
+
 class MainWorkerStartListener implements ListenerInterface
 {
     public function __construct(
