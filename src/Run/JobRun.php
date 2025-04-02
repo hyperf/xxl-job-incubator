@@ -23,6 +23,7 @@ use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\JobCommand;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Kill\JobKillExecutorProcess;
+use Hyperf\XxlJob\Kill\JobKillService;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
@@ -43,6 +44,7 @@ class JobRun
         protected JobKillExecutorProcess $jobKillExecutorProcess,
         protected Config $config,
         protected StdoutLoggerInterface $stdoutLogger,
+        protected JobKillService $jobKillService,
     ) {
     }
 
@@ -94,22 +96,10 @@ class JobRun
         $command[] = json_encode($request);
         $this->stdoutLogger->debug('XXL-JOB execute commands:' . implode(' ', $command));
         Coroutine::create(function () use ($command, $request) {
-            $filename = $this->config->getLogFileDir() . sprintf('jobId_%s_logId_%s.info', $request->getJobId(), $request->getLogId());
             $executorTimeout = $request->getExecutorTimeout();
             $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
             $process->start();
-            $data['logId'] = $request->getLogId();
-            $data['logDateTime'] = $request->getLogDateTime();
-            $data['jobId'] = $request->getJobId();
-            $data['pid'] = $process->getPid();
-            file_put_contents($filename, json_encode($data));
-            /*foreach ($process as $type => $data) {
-                if ($process::OUT === $type) {
-                    // echo "\nRead from stdout: ".$data;
-                }   // $process::ERR === $type
-                // echo "\nRead from stderr: ".$data;
-                // $this->stdoutLogger->error($data);
-            }*/
+            $filename = $this->jobKillService->putProcessInfo($process->getPid(),$request);
             try {
                 $process->wait();
             } catch (ProcessSignaledException $e) {

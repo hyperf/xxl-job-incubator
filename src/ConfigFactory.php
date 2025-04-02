@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob;
 
 use Hyperf\Contract\ConfigInterface;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\Process\PhpExecutableFinder;
 
 class ConfigFactory
 {
@@ -33,7 +34,11 @@ class ConfigFactory
             $instance->setGuzzleConfig($config->get('xxl_job.guzzle.config'));
         }
         $instance->setLogRetentionDays($config->get('xxl_job.log_retention_days') ?? -1);
-        $instance->setStartCommand($config->get('xxl_job.start_command') ?? [PHP_BINARY, BASE_PATH . '/bin/hyperf.php']);
+
+        $phpBinaryFinder = new PhpExecutableFinder();
+        $phpBinaryPath = $phpBinaryFinder->find();
+
+        $instance->setStartCommand($config->get('xxl_job.start_command') ?? [$phpBinaryPath, BASE_PATH . '/bin/hyperf.php']);
 
         $logFileDir = $config->get('xxl_job.file_logger.dir');
         if (! $logFileDir) {

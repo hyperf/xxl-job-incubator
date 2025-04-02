@@ -1,20 +1,14 @@
 <?php
 
 declare(strict_types=1);
-/**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
- */
 
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Symfony\Component\Process\Exception\ProcessSignaledException;
+use Symfony\Component\Process\Process;
 
 class ScriptHandler extends AbstractGlueHandler
 {
@@ -39,16 +33,7 @@ class ScriptHandler extends AbstractGlueHandler
             if (! is_file($filePath)) {
                 file_put_contents($filePath, $request->getGlueSource());
             }
-            // Set the parameter value to '' wher the value is empty
-            $params = [
-                // ExecutorParams is string, use ?:
-                $request->getExecutorParams() ?: "''",
-                // Index and Total is int, use ??
-                $request->getBroadcastIndex() ?? "''",
-                $request->getBroadcastTotal() ?? "''",
-            ];
-            $output = $this->executeCmd($filePath, $params);
-            $this->jobExecutorLogger->info($output);
+            $this->executeCmd($filePath, $request);
         });
     }
 
@@ -57,11 +42,27 @@ class ScriptHandler extends AbstractGlueHandler
         return $this->scriptDir . $logId . '-' . $glueUpdateTime . $this->getFileSuffix($this->glueType);
     }
 
-    protected function executeCmd(string $filePath, array $arguments): string
+    protected function executeCmd(string $filePath, RunRequest $request): void
     {
         $bin = $this->getCmdBin($this->glueType);
-        $cmd = sprintf('%s %s %s', $bin, $filePath, implode(' ', $arguments));
-        return trim(shell_exec("{$cmd} 2>&1"));
+        $executorTimeout = $request->getExecutorTimeout();
+        $process = new Process([$bin, $filePath, $request->getExecutorParams(), $request->getBroadcastIndex(), $request->getBroadcastTotal()], timeout: $executorTimeout > 0 ? $executorTimeout : null);
+        $process->start();
+        $filename = $this->jobKillService->putProcessInfo($process->getPid(), $request);
+        try {
+            $process->wait(function ($type, $buffer): void {
+                if ($type === Process::ERR) {
+                    $this->jobExecutorLogger->error($buffer);
+                } else {
+                    $this->jobExecutorLogger->info($buffer);
+                }
+            });
+        } catch (ProcessSignaledException $e) {
+            $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
+            $this->stdoutLogger->warning($message);
+        } finally {
+            @unlink($filename);
+        }
     }
 
     protected function getCmdBin(string $type): string
