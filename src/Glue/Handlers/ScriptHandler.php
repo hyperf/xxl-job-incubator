@@ -1,6 +1,14 @@
 <?php
 
 declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 
 namespace Hyperf\XxlJob\Glue\Handlers;
 
@@ -8,6 +16,7 @@ use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Symfony\Component\Process\Exception\ProcessSignaledException;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 
 class ScriptHandler extends AbstractGlueHandler
@@ -51,13 +60,14 @@ class ScriptHandler extends AbstractGlueHandler
         $filename = $this->jobKillService->putProcessInfo($process->getPid(), $request);
         try {
             $process->wait(function ($type, $buffer): void {
+                $buffer = trim($buffer);
                 if ($type === Process::ERR) {
                     $this->jobExecutorLogger->error($buffer);
                 } else {
                     $this->jobExecutorLogger->info($buffer);
                 }
             });
-        } catch (ProcessSignaledException $e) {
+        } catch (ProcessSignaledException|ProcessTimedOutException $e) {
             $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
             $this->stdoutLogger->warning($message);
         } finally {
