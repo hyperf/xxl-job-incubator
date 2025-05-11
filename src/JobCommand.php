@@ -15,9 +15,7 @@ namespace Hyperf\XxlJob;
 use Hyperf\Command\Annotation\Command;
 use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
-use Hyperf\XxlJob\Kill\JobKillExecutorProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
-use Psr\Container\ContainerInterface;
 use Symfony\Component\Console\Input\InputOption;
 
 #[Command]
@@ -26,9 +24,7 @@ class JobCommand extends HyperfCommand
     public const COMMAND_NAME = 'execute:xxl-job';
 
     public function __construct(
-        protected ContainerInterface $container,
         protected BeanCommandHandler $handler,
-        protected JobKillExecutorProcess $executorProcess,
     ) {
         parent::__construct(self::COMMAND_NAME);
     }
@@ -50,8 +46,6 @@ class JobCommand extends HyperfCommand
 
         $runArr = json_decode($data['runRequest'], true);
         $runRequest = RunRequest::create($runArr);
-        $this->executorProcess->setJobId($runRequest->getJobId(), $runRequest->getLogId(), $runRequest);
         $this->handler->handle($runRequest);
-        $this->executorProcess->remove($runRequest->getJobId(), $runRequest->getLogId());
     }
 }

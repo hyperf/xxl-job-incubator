@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Glue\Handlers;
 
-use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Requests\RunRequest;
 
 class BeanCommandHandler extends BeanHandler implements GlueHandlerInterface
@@ -21,11 +20,6 @@ class BeanCommandHandler extends BeanHandler implements GlueHandlerInterface
     {
         $executorHandler = $request->getExecutorHandler();
         $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
-
-        if (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod())) {
-            throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
-        }
-
         $this->jobRun->execute($request, $this->executeCallable($jobDefinition));
     }
 }

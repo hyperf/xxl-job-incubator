@@ -10,17 +10,15 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 
-namespace Hyperf\XxlJob\Kill;
+namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\XxlJob\Requests\RunRequest;
 
-interface JobKillExecutorInterface
+interface JobExecutorInterface
 {
     public function isRun(int $jobId): bool;
 
-    public function setJobId(int $jobId, int $logId, RunRequest $runRequest): void;
-
-    public function remove(int $jobId, int $logId): void;
-
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool;
+
+    public function run(RunRequest $request, ?callable $callback): void;
 }

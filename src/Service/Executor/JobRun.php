@@ -10,25 +10,24 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 
-namespace Hyperf\XxlJob\Run;
+namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
 use Hyperf\XxlJob\ApiRequest;
-use Hyperf\XxlJob\ChannelFactory;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Event\AfterJobRun;
 use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\JobCommand;
+use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\JobContext;
-use Hyperf\XxlJob\Kill\JobKillExecutorProcess;
-use Hyperf\XxlJob\Kill\JobKillService;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Process\Exception\ProcessSignaledException;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 use Throwable;
 
@@ -39,12 +38,9 @@ class JobRun
         protected EventDispatcherInterface $eventDispatcher,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
         protected ApiRequest $apiRequest,
-        protected JobContent $jobContent,
         protected ChannelFactory $channelFactory,
-        protected JobKillExecutorProcess $jobKillExecutorProcess,
         protected Config $config,
         protected StdoutLoggerInterface $stdoutLogger,
-        protected JobKillService $jobKillService,
     ) {
     }
 
@@ -59,7 +55,6 @@ class JobRun
     {
         try {
             $request->setId(Coroutine::id());
-            $this->jobContent->setJobId($request->getJobId(), $request->getJobId(), $request);
             // BeforeJobRun
             $this->eventDispatcher->dispatch(new BeforeJobRun($request));
             JobContext::setJobLogId($request->getLogId());
@@ -81,14 +76,14 @@ class JobRun
             $this->jobExecutorLogger->error($message);
             throw $throwable;
         } finally {
-            $this->jobContent->remove($request->getJobId(), $request->getJobId());
+            JobContent::remove($request->getJobId());
             $this->channelFactory->push($request->getLogId());
             // AfterJobRun
             $this->eventDispatcher->dispatch(new AfterJobRun($request));
         }
     }
 
-    public function command(RunRequest $request): void
+    public function executeCommand(RunRequest $request): void
     {
         $command = $this->config->getStartCommand();
         $command[] = JobCommand::COMMAND_NAME;
@@ -99,16 +94,34 @@ class JobRun
             $executorTimeout = $request->getExecutorTimeout();
             $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
             $process->start();
-            $filename = $this->jobKillService->putProcessInfo($process->getPid(),$request);
+            $filename = $this->putProcessInfo($process->getPid(), $request);
             try {
                 $process->wait();
             } catch (ProcessSignaledException $e) {
                 $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
                 $this->stdoutLogger->warning($message);
+            } catch (ProcessTimedOutException) {
+                JobContext::setJobLogId($request->getLogId());
+                $this->jobExecutorLogger->warning('scheduling center kill job. [job running, killed]');
+                $this->stdoutLogger->warning('scheduling center kill job. [job running, killed] JobId:' . $request->getJobId());
             } finally {
                 @unlink($filename);
+                JobContent::remove($request->getJobId());
+                // AfterJobRun
+                $this->eventDispatcher->dispatch(new AfterJobRun($request));
             }
-            $this->channelFactory->push($request->getLogId());
         });
+    }
+
+    public function putProcessInfo(int $pid, RunRequest $request): string
+    {
+        $filename = $this->config->getLogFileDir() . sprintf('jobId_%s.info', $request->getJobId());
+        $data['logId'] = $request->getLogId();
+        $data['logDateTime'] = $request->getLogDateTime();
+        $data['jobId'] = $request->getJobId();
+        $data['pid'] = $pid;
+        $data['createTime'] = time();
+        file_put_contents($filename, json_encode($data));
+        return $filename;
     }
 }

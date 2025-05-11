@@ -13,12 +13,12 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\XxlJob\ChannelFactory;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\JobHandlerManager;
-use Hyperf\XxlJob\Kill\JobKillService;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
-use Hyperf\XxlJob\Run\JobRun;
+use Hyperf\XxlJob\Service\Executor\JobExecutorCoroutine;
+use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
+use Hyperf\XxlJob\Service\Executor\JobRun;
 use Psr\Container\ContainerInterface;
 
 abstract class AbstractGlueHandler implements GlueHandlerInterface
@@ -31,8 +31,8 @@ abstract class AbstractGlueHandler implements GlueHandlerInterface
         protected JobExecutorLoggerInterface $jobExecutorLogger,
         protected JobRun $jobRun,
         protected StdoutLoggerInterface $stdoutLogger,
-        protected ChannelFactory $channelFactory,
-        protected JobKillService $jobKillService,
+        protected JobExecutorProcess $jobExecutorProcess,
+        protected JobExecutorCoroutine $jobExecutorCoroutine,
     ) {
         $this->config = $container->get(Config::class);
     }

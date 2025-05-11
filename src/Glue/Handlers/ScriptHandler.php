@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
+use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Symfony\Component\Process\Exception\ProcessSignaledException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
@@ -57,7 +58,7 @@ class ScriptHandler extends AbstractGlueHandler
         $executorTimeout = $request->getExecutorTimeout();
         $process = new Process([$bin, $filePath, $request->getExecutorParams(), $request->getBroadcastIndex(), $request->getBroadcastTotal()], timeout: $executorTimeout > 0 ? $executorTimeout : null);
         $process->start();
-        $filename = $this->jobKillService->putProcessInfo($process->getPid(), $request);
+        $filename = $this->jobRun->putProcessInfo($process->getPid(), $request);
         try {
             $process->wait(function ($type, $buffer): void {
                 $buffer = trim($buffer);
@@ -67,9 +68,13 @@ class ScriptHandler extends AbstractGlueHandler
                     $this->jobExecutorLogger->info($buffer);
                 }
             });
-        } catch (ProcessSignaledException|ProcessTimedOutException $e) {
+        } catch (ProcessSignaledException $e) {
             $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
             $this->stdoutLogger->warning($message);
+        } catch (ProcessTimedOutException) {
+            JobContext::setJobLogId($request->getLogId());
+            $this->jobExecutorLogger->warning('scheduling center kill job. [job running, killed]');
+            $this->stdoutLogger->warning('scheduling center kill job. [job running, killed] JobId:' . $request->getJobId());
         } finally {
             @unlink($filename);
         }

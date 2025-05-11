@@ -34,6 +34,8 @@ use Psr\Container\ContainerInterface;
 
 class BootAppRouteListener implements ListenerInterface
 {
+    public static int $AppStartTime = 0;
+
     protected JobHandlerManager $jobHandlerManager;
 
     protected ContainerInterface $container;
@@ -57,6 +59,7 @@ class BootAppRouteListener implements ListenerInterface
         $this->dispatcherFactory = $container->get(DispatcherFactory::class);
         $this->xxlJobRoute = $container->get(XxlJobRoute::class);
         $this->xxlConfig = $container->get(Config::class);
+        static::$AppStartTime = time();
     }
 
     public function listen(): array

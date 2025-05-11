@@ -13,9 +13,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Closure;
-use Hyperf\Coroutine\Coroutine;
 use Hyperf\XxlJob\Annotation\XxlJob;
-use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Requests\RunRequest;
 
 class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
@@ -24,32 +22,17 @@ class BeanHandler extends AbstractGlueHandler implements GlueHandlerInterface
     {
         $executorHandler = $request->getExecutorHandler();
         $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
-
-        if (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod())) {
-            throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
-        }
         $this->executionMode($request, $jobDefinition);
     }
 
     protected function executionMode($request, $jobDefinition): void
     {
-        // executorTimeout
-        $executorTimeout = $request->getExecutorTimeout();
-        if ($executorTimeout > 0) {
-            Coroutine::create(function () use ($request) {
-                $result = $this->channelFactory->pop($request->getLogId(), $request->getExecutorTimeout());
-                if ($result === false) {
-                    $this->jobKillService->kill($request->getJobId(), $request->getLogId(), 'scheduling center kill job. [job running, killed]');
-                }
-            });
-        }
-
         switch ($jobDefinition->getExecutionMode()) {
             case XxlJob::COROUTINE:
-                $this->jobRun->executeCoroutine($request, $this->executeCallable($jobDefinition));
+                $this->jobExecutorCoroutine->run($request, $this->executeCallable($jobDefinition));
                 break;
             case XxlJob::PROCESS:
-                $this->jobRun->command($request);
+                $this->jobExecutorProcess->run($request, null);
                 break;
             default:
         }

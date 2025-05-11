@@ -13,14 +13,14 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Dispatcher;
 
 use Hyperf\HttpServer\Contract\ResponseInterface;
-use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
+use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Requests\LogRequest;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Throwable;
 
-class JobController extends BaseJobController
+class JobController extends BaseController
 {
     public function run(): ResponseInterface
     {
@@ -32,8 +32,7 @@ class JobController extends BaseJobController
         $this->stdoutLogger->debug($message);
 
         try {
-            $this->checkExecutorBlockStrategy($runRequest);
-            $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+            $this->jobService->executorBlockStrategy($runRequest);
         } catch (XxlJobException $exception) {
             $this->stdoutLogger->warning($exception->getMessage());
             return $this->responseFail($exception->getMessage());
@@ -84,8 +83,7 @@ class JobController extends BaseJobController
     public function idleBeat(): ResponseInterface
     {
         $jobId = $this->input()['jobId'];
-        $jobKillExecutor = $this->jobKillService->getKillExecutor();
-        $isRun = $jobKillExecutor->isRun($jobId);
+        $isRun = $this->jobService->isRun($jobId);
         if ($isRun) {
             return $this->responseFail('job thread is running or has trigger queue.');
         }
@@ -96,10 +94,11 @@ class JobController extends BaseJobController
     {
         $jobId = $this->input()['jobId'];
         try {
-            $bool = $this->jobKillService->kill($jobId, 0, 'Job toStop, stopReason:scheduling center kill job.');
+            $bool = $this->jobService->kill($jobId, 0, 'Job toStop, stopReason:scheduling center kill job.');
             if (! $bool) {
                 return $this->responseFail('job cannot be completely killed. Please try again');
             }
+            $this->jobService->send(new JobPipeMessage(null, $jobId));
 
             $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
             return $this->responseSuccess();
@@ -108,24 +107,5 @@ class JobController extends BaseJobController
             return $this->responseFail($throwable->getMessage());
         }
         // return $this->responseFail('Not supported');
-    }
-
-    protected function checkExecutorBlockStrategy(RunRequest $runRequest): void
-    {
-        $jobKillExecutor = $this->jobKillService->getKillExecutor();
-        $isRun = $jobKillExecutor->isRun($runRequest->getJobId());
-
-        switch ($runRequest->getExecutorBlockStrategy()) {
-            case ExecutorBlockStrategyEnum::DISCARD_LATER:
-                if ($isRun) {
-                    throw new XxlJobException('block strategy effect：Discard Later');
-                }
-                break;
-            case ExecutorBlockStrategyEnum::COVER_EARLY:
-                if ($isRun) {
-                    $this->jobKillService->kill($runRequest->getJobId(), 0, 'block strategy effect：Cover Early [job running, killed]');
-                }
-                break;
-        }
     }
 }

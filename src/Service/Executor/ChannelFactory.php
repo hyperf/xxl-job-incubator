@@ -10,7 +10,7 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 
-namespace Hyperf\XxlJob;
+namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\Engine\Channel;
 
@@ -39,6 +39,10 @@ class ChannelFactory
 
     public function push(int $logId): void
     {
+        if (! $this->has($logId)) {
+            return;
+        }
+
         $channel = $this->get($logId);
 
         if ($channel instanceof Channel) {
@@ -55,6 +59,7 @@ class ChannelFactory
 
     public function remove(int $logId): void
     {
+        $this->channels[$logId]?->close();
         unset($this->channels[$logId]);
     }
 }
