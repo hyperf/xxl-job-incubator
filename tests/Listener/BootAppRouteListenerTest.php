@@ -16,7 +16,7 @@ use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\HttpServer\Router\DispatcherFactory;
-use Hyperf\Utils\Reflection\ClassInvoker;
+use Hyperf\Support\Reflection\ClassInvoker;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;

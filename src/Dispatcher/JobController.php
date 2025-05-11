@@ -94,11 +94,11 @@ class JobController extends BaseController
     {
         $jobId = $this->input()['jobId'];
         try {
+            $this->jobService->send(new JobPipeMessage(null, $jobId));
             $bool = $this->jobService->kill($jobId, 0, 'Job toStop, stopReason:scheduling center kill job.');
             if (! $bool) {
                 return $this->responseFail('job cannot be completely killed. Please try again');
             }
-            $this->jobService->send(new JobPipeMessage(null, $jobId));
 
             $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
             return $this->responseSuccess();
