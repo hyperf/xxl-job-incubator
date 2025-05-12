@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Service;
 
 use Hyperf\Engine\Constant;
+use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
 use Hyperf\XxlJob\JobHandlerManager;
 use Hyperf\XxlJob\Service\Executor\JobExecutorCoroutine;
@@ -26,6 +27,7 @@ class BaseService
         protected ContainerInterface $container,
         protected GlueHandlerManager $glueHandlerManager,
         protected JobHandlerManager $jobHandlerManager,
+        protected ApiRequest $apiRequest,
     ) {
     }
 

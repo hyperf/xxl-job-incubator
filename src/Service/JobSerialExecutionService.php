@@ -27,6 +27,7 @@ class JobSerialExecutionService extends BaseService
     public function handle(JobPipeMessage $jobPipeMessage): void
     {
         if ($jobPipeMessage->KillJobId > 0) {
+            $this->sendKillMsg($jobPipeMessage->KillJobId);
             $this->remove($jobPipeMessage->KillJobId);
             return;
         }
@@ -65,8 +66,16 @@ class JobSerialExecutionService extends BaseService
 
     protected function remove($jobId): void
     {
-        $this->channels[$jobId]?->close();
         $this->channels[$jobId] = null;
         unset($this->mark[$jobId]);
+    }
+
+    private function sendKillMsg($jobId): void
+    {
+        $channel = $this->channels[$jobId] ?? null;
+        while ($channel && ! $channel->isEmpty()) {
+            $runRequest = $this->channels[$jobId]->pop(5);
+            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
+        }
     }
 }

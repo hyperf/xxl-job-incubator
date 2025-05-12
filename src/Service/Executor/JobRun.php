@@ -65,6 +65,15 @@ class JobRun
 
             $this->jobExecutorLogger->info('Finished');
             $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime());
+        } catch (ProcessSignaledException $e) {
+            $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
+            $this->stdoutLogger->warning($message);
+        } catch (ProcessTimedOutException) {
+            JobContext::setJobLogId($request->getLogId());
+            $msg = 'scheduling center kill job. [job running, killed]';
+            $this->jobExecutorLogger->warning($msg);
+            $this->stdoutLogger->warning($msg . ' JobId:' . $request->getJobId());
+            $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $msg);
         } catch (Throwable $throwable) {
             $message = $throwable->getMessage();
             if ($this->container->has(FormatterInterface::class)) {
@@ -102,8 +111,10 @@ class JobRun
                 $this->stdoutLogger->warning($message);
             } catch (ProcessTimedOutException) {
                 JobContext::setJobLogId($request->getLogId());
-                $this->jobExecutorLogger->warning('scheduling center kill job. [job running, killed]');
-                $this->stdoutLogger->warning('scheduling center kill job. [job running, killed] JobId:' . $request->getJobId());
+                $msg = 'scheduling center kill job. [job running, killed]';
+                $this->jobExecutorLogger->warning($msg);
+                $this->stdoutLogger->warning($msg . ' JobId:' . $request->getJobId());
+                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $msg);
             } finally {
                 @unlink($filename);
                 JobContent::remove($request->getJobId());

@@ -45,13 +45,14 @@ class JobExecutorCoroutine implements JobExecutorInterface
         }
 
         if (Constant::ENGINE == 'Swoole') {
+            $this->stdoutLogger->warning('Swoole coroutine mode does not support kill tasks');
             return false;
         }
 
         SwowCoroutine::get($runRequest->getId())?->kill();
         JobContent::remove($jobId);
         if ($msg) {
-            $this->jobExecutorLogger->info($msg);
+            $this->jobExecutorLogger->warning($msg);
             $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $msg);
         }
         return true;

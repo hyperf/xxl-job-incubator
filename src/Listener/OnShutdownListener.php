@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Listener;
 
 use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Engine\Coroutine;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\OnShutdown;
 use Hyperf\Server\Event\CoroutineServerStop;
@@ -55,11 +56,13 @@ class OnShutdownListener implements ListenerInterface
         if (! $this->xxlConfig->isEnable()) {
             return;
         }
-        $response = $this->container->get(ApiRequest::class)->registryRemove($this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl());
-        if ($response->getStatusCode() === 200) {
-            $this->logger->debug(sprintf('Remove the XXL-JOB app name: %s url:%s is successful', $this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl()));
-        } else {
-            $this->logger->error(sprintf('Failed to remove the XXL-JOB app name:%s url:%s', $this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl()));
-        }
+        Coroutine::create(function () {
+            $response = $this->container->get(ApiRequest::class)->registryRemove($this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl());
+            if ($response->getStatusCode() === 200) {
+                $this->logger->debug(sprintf('Remove the XXL-JOB app name: %s url:%s is successful', $this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl()));
+            } else {
+                $this->logger->error(sprintf('Failed to remove the XXL-JOB app name:%s url:%s', $this->xxlConfig->getAppName(), $this->xxlConfig->getClientUrl()));
+            }
+        });
     }
 }

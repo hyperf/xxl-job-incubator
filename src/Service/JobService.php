@@ -16,6 +16,7 @@ use Hyperf\Engine\Constant;
 use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Exception\XxlJobException;
+use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -43,7 +44,7 @@ class JobService extends BaseService
         $executorHandler = $runRequest->getExecutorHandler();
         $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
 
-        if (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod())) {
+        if ($runRequest->getGlueType() == GlueEnum::BEAN && (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod()))) {
             throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
         }
 

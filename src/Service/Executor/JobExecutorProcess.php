@@ -83,7 +83,7 @@ class JobExecutorProcess implements JobExecutorInterface
 
         JobContext::setJobLogId($logId);
         if ($msg) {
-            $this->jobExecutorLogger->info($msg);
+            $this->jobExecutorLogger->warning($msg);
             $this->apiRequest->callback($logId, $logDateTime, 500, $msg);
         }
         return $bool;

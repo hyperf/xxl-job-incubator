@@ -59,7 +59,6 @@ class ChannelFactory
 
     public function remove(int $logId): void
     {
-        $this->channels[$logId]?->close();
         unset($this->channels[$logId]);
     }
 }

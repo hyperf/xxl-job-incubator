@@ -22,7 +22,6 @@ use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
-use Hyperf\Stringable\Str;
 use Hyperf\Support\Network;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
@@ -144,10 +143,10 @@ class BootAppRouteListener implements ListenerInterface
 
     protected function getExecutionMode(XxlJob $xxlJob): string
     {
-        if (Str::endsWith(strtolower($xxlJob->value), XxlJob::PROCESS)) {
+        if ($xxlJob->executionMode == XxlJob::PROCESS) {
             return XxlJob::PROCESS;
         }
-        if (Str::endsWith(strtolower($xxlJob->value), XxlJob::COROUTINE)) {
+        if ($xxlJob->executionMode == XxlJob::COROUTINE) {
             return XxlJob::COROUTINE;
         }
         if (Constant::ENGINE == 'Swoole') {
