@@ -27,6 +27,9 @@ class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerI
     public function retrieveLog(int $logId, int $logDateTime, int $fromLineNum, int $lineLimit): LogContent
     {
         $filePath = $this->getLogFileFullPath($logId);
+        if (! file_exists($filePath)) {
+            return new LogContent('log file does not exist', 1, true);
+        }
         $log = new JobLogFileObject($filePath);
         if (! $log->isReadable()) {
             throw new XxlJobException(sprintf('XXL-JOB log file %s is not exists or is not readable', $filePath));

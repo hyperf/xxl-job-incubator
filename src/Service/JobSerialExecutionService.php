@@ -14,9 +14,9 @@ namespace Hyperf\XxlJob\Service;
 
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Channel;
-use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Hyperf\XxlJob\Service\Executor\JobRunContent;
 
 class JobSerialExecutionService extends BaseService
 {
@@ -34,7 +34,7 @@ class JobSerialExecutionService extends BaseService
         $runRequest = $jobPipeMessage->runRequest;
         $jobId = $runRequest->getJobId();
         $this->channels[$jobId] ??= new Channel(1000);
-        $this->channels[$jobId]->push($runRequest, 2);
+        $this->channels[$jobId]->push($runRequest, 5);
         $this->loop($jobId);
     }
 
@@ -48,13 +48,13 @@ class JobSerialExecutionService extends BaseService
 
         Coroutine::create(function () use ($jobId) {
             while (true) {
-                if (JobContent::has($jobId) || $this->isRun($jobId)) {
+                if (JobRunContent::has($jobId) || $this->isRun($jobId)) {
                     usleep(500000);
                     continue;
                 }
                 $runRequest = $this->channels[$jobId]?->pop(5);
                 if ($runRequest instanceof RunRequest) {
-                    JobContent::setJobId($jobId, $runRequest);
+                    JobRunContent::setJobId($jobId, $runRequest);
                     $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
                 } else {
                     $this->remove($jobId);
@@ -72,10 +72,15 @@ class JobSerialExecutionService extends BaseService
 
     private function sendKillMsg($jobId): void
     {
+        $data = [];
         $channel = $this->channels[$jobId] ?? null;
         while ($channel && ! $channel->isEmpty()) {
+            /** @var RunRequest $runRequest */
             $runRequest = $this->channels[$jobId]->pop(5);
-            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
+            $tmp['logId'] = $runRequest->getLogId();
+            $tmp['logDateTim'] = $runRequest->getLogDateTime();
+            $data[] = $tmp;
         }
+        $this->apiRequest->multipleCallback($data, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
     }
 }

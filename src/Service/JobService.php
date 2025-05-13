@@ -17,9 +17,9 @@ use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
-use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Swoole\Server;
 
 class JobService extends BaseService
@@ -66,7 +66,7 @@ class JobService extends BaseService
                 }
                 break;
         }
-        JobContent::setJobId($runRequest->getJobId(), $runRequest);
+        JobRunContent::setJobId($runRequest->getJobId(), $runRequest);
         $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
     }
 }

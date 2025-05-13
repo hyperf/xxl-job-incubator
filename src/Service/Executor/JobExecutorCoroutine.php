@@ -16,7 +16,6 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Engine\Constant;
 use Hyperf\Engine\Coroutine;
 use Hyperf\XxlJob\ApiRequest;
-use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Swow\Coroutine as SwowCoroutine;
@@ -27,19 +26,19 @@ class JobExecutorCoroutine implements JobExecutorInterface
         protected StdoutLoggerInterface $stdoutLogger,
         protected ApiRequest $apiRequest,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
-        protected JobRun $run,
+        protected JobRun $jobRun,
         protected ChannelFactory $channelFactory,
     ) {
     }
 
     public function isRun(int $jobId): bool
     {
-        return JobContent::has($jobId);
+        return JobRunContent::has($jobId);
     }
 
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
-        $runRequest = JobContent::getId($jobId);
+        $runRequest = JobRunContent::getId($jobId);
         if (empty($runRequest)) {
             return true;
         }
@@ -50,7 +49,7 @@ class JobExecutorCoroutine implements JobExecutorInterface
         }
 
         SwowCoroutine::get($runRequest->getId())?->kill();
-        JobContent::remove($jobId);
+        JobRunContent::remove($jobId);
         if ($msg) {
             $this->jobExecutorLogger->warning($msg);
             $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $msg);
@@ -71,6 +70,6 @@ class JobExecutorCoroutine implements JobExecutorInterface
             });
         }
 
-        $this->run->executeCoroutine($request, $callback);
+        $this->jobRun->executeCoroutine($request, $callback);
     }
 }

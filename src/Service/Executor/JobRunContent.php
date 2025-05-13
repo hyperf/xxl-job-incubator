@@ -10,17 +10,25 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 
-namespace Hyperf\XxlJob;
+namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\XxlJob\Requests\RunRequest;
 
-class JobContent
+class JobRunContent
 {
+    /**
+     * @var RunRequest[]
+     */
     protected static array $content = [];
 
     public static function getId(int $jobId): ?RunRequest
     {
         return self::$content[$jobId] ?? null;
+    }
+
+    public static function getAll(): array
+    {
+        return self::$content;
     }
 
     public static function has(int $jobId): bool

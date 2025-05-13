@@ -95,4 +95,27 @@ class ApiRequest
             RequestOptions::JSON => $body,
         ]);
     }
+
+    public function multipleCallback(array $data, int $handleCode = 200, $handleMsg = null): ?ResponseInterface
+    {
+        if (empty($data)) {
+            return null;
+        }
+        $body = [];
+        foreach ($data as $v) {
+            $body[] = [
+                'logId' => $v['logId'],
+                'logDateTim' => $v['logDateTim'] ?? 0,
+                'handleCode' => $v['handleCode'] ?? $handleCode,
+                'handleMsg' => $v['handleMsg'] ?? $handleMsg,
+                'executeResult' => [
+                    'code' => $v['handleCode'] ?? $handleCode,
+                    'msg' => $v['handleMsg'] ?? $handleMsg,
+                ],
+            ];
+        }
+        return $this->request('POST', '/api/callback', [
+            RequestOptions::JSON => $body,
+        ]);
+    }
 }

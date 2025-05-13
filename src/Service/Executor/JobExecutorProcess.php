@@ -15,10 +15,8 @@ namespace Hyperf\XxlJob\Service\Executor;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
-use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
-use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 
@@ -27,13 +25,11 @@ class JobExecutorProcess implements JobExecutorInterface
     protected static array $content = [];
 
     public function __construct(
-        protected JobContent $jobKillContent,
         protected StdoutLoggerInterface $stdoutLogger,
-        protected JobExecutorFileLogger $fileLogger,
         protected ApiRequest $apiRequest,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
         protected Config $xxlConfig,
-        protected JobRun $run,
+        protected JobRun $jobRun,
     ) {
     }
 
@@ -78,7 +74,7 @@ class JobExecutorProcess implements JobExecutorInterface
             $this->stdoutLogger->error("xxl-job kill error with PID {$pid}");
         } else {
             @unlink($processFile);
-            JobContent::remove($jobId);
+            JobRunContent::remove($jobId);
         }
 
         JobContext::setJobLogId($logId);
@@ -91,7 +87,7 @@ class JobExecutorProcess implements JobExecutorInterface
 
     public function run(RunRequest $request, ?callable $callback): void
     {
-        $this->run->executeCommand($request);
+        $this->jobRun->executeCommand($request);
     }
 
     protected function getProcessFile(int $jobId): string

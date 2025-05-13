@@ -16,8 +16,8 @@ use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanHandler;
 use Hyperf\XxlJob\Glue\Handlers\GlueHandlerInterface;
 use Hyperf\XxlJob\Glue\Handlers\ScriptHandler;
-use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Psr\Container\ContainerInterface;
 
 class GlueHandlerManager
@@ -38,12 +38,12 @@ class GlueHandlerManager
     public function handle(string $glueType, RunRequest $request)
     {
         if (! GlueEnum::isExists($glueType) || ! isset($this->handlers[$glueType])) {
-            JobContent::remove($request->getJobId());
+            JobRunContent::remove($request->getJobId());
             throw new XxlJobException('Glue type is invalid or does not support yet');
         }
         $instance = $this->container->get($this->handlers[$glueType]);
         if (! $instance instanceof GlueHandlerInterface) {
-            JobContent::remove($request->getJobId());
+            JobRunContent::remove($request->getJobId());
             throw new XxlJobException(sprintf('The glue handler %s is invalid handler, should be implement %s', $this->handlers[$glueType], GlueHandlerInterface::class));
         }
         $instance->handle($request);

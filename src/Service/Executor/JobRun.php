@@ -20,7 +20,6 @@ use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Event\AfterJobRun;
 use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\JobCommand;
-use Hyperf\XxlJob\JobContent;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -85,7 +84,7 @@ class JobRun
             $this->jobExecutorLogger->error($message);
             throw $throwable;
         } finally {
-            JobContent::remove($request->getJobId());
+            JobRunContent::remove($request->getJobId());
             $this->channelFactory->push($request->getLogId());
             // AfterJobRun
             $this->eventDispatcher->dispatch(new AfterJobRun($request));
@@ -117,7 +116,7 @@ class JobRun
                 $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $msg);
             } finally {
                 @unlink($filename);
-                JobContent::remove($request->getJobId());
+                JobRunContent::remove($request->getJobId());
                 // AfterJobRun
                 $this->eventDispatcher->dispatch(new AfterJobRun($request));
             }
