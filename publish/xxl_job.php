@@ -15,7 +15,7 @@ return [
     'app_name' => env('XXL_JOB_APP_NAME', 'xxl-job-demo'),
     'access_token' => env('XXL_JOB_ACCESS_TOKEN', ''),
     'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
-    'log_retention_days' => -1,
+    'log_retention_days' => 30,
     'executor_server' => [
         'prefix_url' => env('XXL_JOB_EXECUTOR_PREFIX_URL', 'php-xxl-job')
     ],
