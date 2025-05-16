@@ -26,21 +26,20 @@ use Swoole\Server;
 
 class JobService extends BaseService
 {
-    public function send(JobPipeMessage $jobPipeMessage): void
+    public function send(?RunRequest $runRequest = null, int $killJobId = 0): void
     {
         $jobSerialExecutionService = $this->container->get(JobSerialExecutionService::class);
         if (Constant::ENGINE == 'Swoole') {
             $server = $this->container->get(Server::class);
             if ($server instanceof Server) {
-                $jobPipeMessage->fromWorkerId = $server->worker_id;
+                $jobPipeMessage = new JobPipeMessage($runRequest, $killJobId, $server->worker_id);
                 $process = ProcessCollector::get(JobDispatcherProcess::JOB_DISPATCHER_NAME)[0] ?? null;
-                $run = serialize($jobPipeMessage);
                 $exportSocket = $process->exportSocket();
-                $exportSocket->send($run, 10);
+                $exportSocket->send(serialize($jobPipeMessage), 10);
                 return;
             }
         }
-        $jobSerialExecutionService->handle($jobPipeMessage);
+        $jobSerialExecutionService->handle($runRequest, $killJobId);
     }
 
     public function executorBlockStrategy(RunRequest $runRequest): void
@@ -57,7 +56,7 @@ class JobService extends BaseService
 
         switch ($runRequest->getExecutorBlockStrategy()) {
             case ExecutorBlockStrategyEnum::SERIAL_EXECUTION:
-                $this->send(new JobPipeMessage($runRequest));
+                $this->send($runRequest);
                 return;
             case ExecutorBlockStrategyEnum::DISCARD_LATER:
                 if ($isRun) {

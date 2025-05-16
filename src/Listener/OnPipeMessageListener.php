@@ -46,7 +46,7 @@ class OnPipeMessageListener implements ListenerInterface
     {
         if ($event instanceof UserProcessPipeMessage) {
             if ($event->data instanceof JobPipeMessage) {
-                $this->jobSerialExecutionService->handle($event->data);
+                $this->jobSerialExecutionService->handle($event->data->runRequest, $event->data->killJobId);
             }
         }
     }

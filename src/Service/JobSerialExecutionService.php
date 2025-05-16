@@ -14,7 +14,6 @@ namespace Hyperf\XxlJob\Service;
 
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Channel;
-use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 
@@ -24,21 +23,20 @@ class JobSerialExecutionService extends BaseService
 
     protected array $mark = [];
 
-    public function handle(JobPipeMessage $jobPipeMessage): void
+    public function handle(?RunRequest $runRequest = null, int $killJobId = 0): void
     {
-        if ($jobPipeMessage->KillJobId > 0) {
-            $this->sendKillMsg($jobPipeMessage->KillJobId);
-            $this->remove($jobPipeMessage->KillJobId);
+        if ($killJobId > 0) {
+            $this->sendKillMsg($killJobId);
+            $this->remove($killJobId);
             return;
         }
-        $runRequest = $jobPipeMessage->runRequest;
         $jobId = $runRequest->getJobId();
         $this->channels[$jobId] ??= new Channel(1000);
         $this->channels[$jobId]->push($runRequest, 5);
         $this->loop($jobId);
     }
 
-    protected function loop($jobId): void
+    protected function loop(int $jobId): void
     {
         $mark = $this->mark[$jobId] ?? false;
         if ($mark) {
@@ -68,12 +66,12 @@ class JobSerialExecutionService extends BaseService
         });
     }
 
-    protected function remove($jobId): void
+    protected function remove(int $jobId): void
     {
         unset($this->channels[$jobId], $this->mark[$jobId]);
     }
 
-    private function sendKillMsg($jobId): void
+    private function sendKillMsg(int $jobId): void
     {
         $data = [];
         $channel = $this->channels[$jobId] ?? null;

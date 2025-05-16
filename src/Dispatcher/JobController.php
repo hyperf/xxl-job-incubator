@@ -15,7 +15,6 @@ namespace Hyperf\XxlJob\Dispatcher;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
-use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Requests\LogRequest;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Throwable;
@@ -94,7 +93,7 @@ class JobController extends BaseController
     {
         $jobId = $this->input()['jobId'];
         try {
-            $this->jobService->send(new JobPipeMessage(null, $jobId));
+            $this->jobService->send(killJobId: $jobId);
             $bool = $this->jobService->kill($jobId, 0, 'Job toStop, stopReason:scheduling center kill job.');
             if (! $bool) {
                 return $this->responseFail('job cannot be completely killed. Please try again');
