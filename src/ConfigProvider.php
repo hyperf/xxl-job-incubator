@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob;
 
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use Hyperf\XxlJob\Listener\MainWorkerStartListener;
+use Hyperf\XxlJob\Listener\OnPipeMessageListener;
 use Hyperf\XxlJob\Listener\OnShutdownListener;
 use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Hyperf\XxlJob\Logger\JobExecutorFileLoggerFactory;
@@ -36,6 +37,7 @@ class ConfigProvider
                 BootAppRouteListener::class,
                 MainWorkerStartListener::class,
                 OnShutdownListener::class,
+                OnPipeMessageListener::class,
             ],
             'annotations' => [
                 'scan' => [
