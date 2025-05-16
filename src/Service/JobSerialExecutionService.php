@@ -47,27 +47,30 @@ class JobSerialExecutionService extends BaseService
         $this->mark[$jobId] = true;
 
         Coroutine::create(function () use ($jobId) {
-            while (true) {
-                if (JobRunContent::has($jobId) || $this->isRun($jobId)) {
-                    usleep(500000);
-                    continue;
+            try {
+                while (true) {
+                    if (JobRunContent::has($jobId) || $this->isRun($jobId)) {
+                        usleep(500000);
+                        continue;
+                    }
+                    $channels = $this->channels[$jobId] ?? null;
+                    $runRequest = $channels?->pop(-1);
+                    if ($runRequest instanceof RunRequest) {
+                        JobRunContent::setJobId($jobId, $runRequest);
+                        $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+                    } else {
+                        return;
+                    }
                 }
-                $runRequest = $this->channels[$jobId]?->pop(5);
-                if ($runRequest instanceof RunRequest) {
-                    JobRunContent::setJobId($jobId, $runRequest);
-                    $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
-                } else {
-                    $this->remove($jobId);
-                    return;
-                }
+            } finally {
+                $this->remove($jobId);
             }
         });
     }
 
     protected function remove($jobId): void
     {
-        $this->channels[$jobId] = null;
-        unset($this->mark[$jobId]);
+        unset($this->channels[$jobId], $this->mark[$jobId]);
     }
 
     private function sendKillMsg($jobId): void
