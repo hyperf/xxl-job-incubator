@@ -13,11 +13,13 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Service;
 
 use Hyperf\Engine\Constant;
+use Hyperf\Process\ProcessCollector;
 use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\JobPipeMessage;
+use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Swoole\Server;
@@ -29,14 +31,16 @@ class JobService extends BaseService
         $jobSerialExecutionService = $this->container->get(JobSerialExecutionService::class);
         if (Constant::ENGINE == 'Swoole') {
             $server = $this->container->get(Server::class);
-            if ($server->worker_id != 0) {
-                $server->sendMessage($jobPipeMessage, 0);
+            if ($server instanceof Server) {
+                $jobPipeMessage->fromWorkerId = $server->worker_id;
+                $process = ProcessCollector::get(JobDispatcherProcess::JOB_DISPATCHER_NAME)[0] ?? null;
+                $run = serialize($jobPipeMessage);
+                $exportSocket = $process->exportSocket();
+                $exportSocket->send($run, 10);
                 return;
             }
-            $jobSerialExecutionService->handle($jobPipeMessage);
-        } else {
-            $jobSerialExecutionService->handle($jobPipeMessage);
         }
+        $jobSerialExecutionService->handle($jobPipeMessage);
     }
 
     public function executorBlockStrategy(RunRequest $runRequest): void

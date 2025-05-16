@@ -14,11 +14,11 @@ namespace Hyperf\XxlJob;
 
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use Hyperf\XxlJob\Listener\MainWorkerStartListener;
-use Hyperf\XxlJob\Listener\OnPipeMessageListener;
 use Hyperf\XxlJob\Listener\OnShutdownListener;
 use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Hyperf\XxlJob\Logger\JobExecutorFileLoggerFactory;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Psr\Log\LogLevel;
 
 class ConfigProvider
@@ -36,7 +36,6 @@ class ConfigProvider
                 BootAppRouteListener::class,
                 MainWorkerStartListener::class,
                 OnShutdownListener::class,
-                OnPipeMessageListener::class,
             ],
             'annotations' => [
                 'scan' => [
@@ -52,6 +51,9 @@ class ConfigProvider
                     'source' => __DIR__ . '/../publish/xxl_job.php',
                     'destination' => BASE_PATH . '/config/autoload/xxl_job.php',
                 ],
+            ],
+            'processes' => [
+                JobDispatcherProcess::class,
             ],
             JobExecutorLoggerInterface::class => [
                 'log_level' => [

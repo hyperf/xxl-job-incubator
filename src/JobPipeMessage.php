@@ -16,7 +16,7 @@ use Hyperf\XxlJob\Requests\RunRequest;
 
 class JobPipeMessage
 {
-    public function __construct(public ?RunRequest $runRequest, public int $KillJobId = 0)
+    public function __construct(public ?RunRequest $runRequest, public int $KillJobId = 0, public int $fromWorkerId = -1)
     {
     }
 }
