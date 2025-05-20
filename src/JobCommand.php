@@ -14,8 +14,9 @@ namespace Hyperf\XxlJob;
 
 use Hyperf\Command\Annotation\Command;
 use Hyperf\Command\Command as HyperfCommand;
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
-use Hyperf\XxlJob\Requests\RunRequest;
+use Hyperf\XxlJob\Service\Executor\JobRun;
 use Symfony\Component\Console\Input\InputOption;
 
 #[Command]
@@ -25,6 +26,7 @@ class JobCommand extends HyperfCommand
 
     public function __construct(
         protected BeanCommandHandler $handler,
+        protected JobRun $jobRun,
     ) {
         parent::__construct(self::COMMAND_NAME);
     }
@@ -33,19 +35,18 @@ class JobCommand extends HyperfCommand
     {
         parent::configure();
         $this->setDescription('Execute xxl-job');
-        $this->addOption('runRequest', 'r', InputOption::VALUE_REQUIRED, 'xxl-job runRequest json');
+        $this->addOption('jobId', 'j', InputOption::VALUE_REQUIRED, 'the job id executed by xxl job');
+        $this->addOption('logId', 'l', InputOption::VALUE_OPTIONAL, 'the log id executed by xxl job');
     }
 
     public function handle()
     {
         $data = $this->input->getOptions();
-        if (! $data['runRequest']) {
-            var_dump('runRequest not know');
-            return;
+        if (! $data['jobId']) {
+            throw new XxlJobException('JobId cannot be empty');
         }
-
-        $runArr = json_decode($data['runRequest'], true);
-        $runRequest = RunRequest::create($runArr);
-        $this->handler->handle($runRequest);
+        $jobId = intval($data['jobId']);
+        $infoArr = $this->jobRun->getJobFileInfo($jobId);
+        $this->handler->handle($infoArr['runRequest']);
     }
 }

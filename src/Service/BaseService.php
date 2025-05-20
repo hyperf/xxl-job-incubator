@@ -12,10 +12,11 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service;
 
-use Hyperf\Engine\Constant;
 use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
 use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use Hyperf\XxlJob\Service\Executor\JobExecutorCoroutine;
 use Hyperf\XxlJob\Service\Executor\JobExecutorInterface;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
@@ -28,27 +29,30 @@ class BaseService
         protected GlueHandlerManager $glueHandlerManager,
         protected JobHandlerManager $jobHandlerManager,
         protected ApiRequest $apiRequest,
+        protected Config $config,
     ) {
     }
 
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
-        $class = $this->getKillExecutor();
+        $class = $this->getJobExecutor($jobId);
         return $class->kill($jobId, $logId, $msg);
     }
 
     public function isRun(int $jobId): bool
     {
-        $class = $this->getKillExecutor();
+        $class = $this->getJobExecutor($jobId);
         return $class->isRun($jobId);
     }
 
-    protected function getKillExecutor(): JobExecutorInterface
+    protected function getJobExecutor(int $jobId): JobExecutorInterface
     {
-        $classname = match (Constant::ENGINE) {
-            'Swow' => JobExecutorCoroutine::class,
-            default => JobExecutorProcess::class,
-        };
+        $filename = $this->config->getLogFileDir() . sprintf('jobId_%s.info', $jobId);
+        if (file_exists($filename) && BootAppRouteListener::$AppStartTime <= filectime($filename)) {
+            $classname = JobExecutorProcess::class;
+        } else {
+            $classname = JobExecutorCoroutine::class;
+        }
         return $this->container->get($classname);
     }
 }

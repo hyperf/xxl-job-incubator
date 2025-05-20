@@ -55,7 +55,7 @@ class ScriptHandler extends AbstractGlueHandler
         $executorTimeout = $request->getExecutorTimeout();
         $process = new Process([$bin, $filePath, $request->getExecutorParams(), $request->getBroadcastIndex(), $request->getBroadcastTotal()], timeout: $executorTimeout > 0 ? $executorTimeout : null);
         $process->start();
-        $filename = $this->jobRun->putProcessInfo($process->getPid(), $request);
+        $filename = $this->jobRun->putJobFileInfo($process->getPid(), $request);
         try {
             $process->wait(function ($type, $buffer): void {
                 $buffer = trim($buffer);

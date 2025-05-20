@@ -35,15 +35,11 @@ class JobExecutorProcess implements JobExecutorInterface
 
     public function isRun(int $jobId): bool
     {
-        $processFile = $this->getProcessFile($jobId);
-        if (empty($processFile)) {
+        $infoArr = $this->jobRun->getJobFileInfo($jobId);
+        if (empty($infoArr)) {
             return false;
         }
-        $strInfo = file_get_contents($processFile);
-        $infoArr = json_decode($strInfo, true);
-        // $pid = $infoArr['pid'];
         $createTime = $infoArr['createTime'] ?? 0;
-
         if (BootAppRouteListener::$AppStartTime > $createTime) {
             return false;
         }
@@ -52,19 +48,18 @@ class JobExecutorProcess implements JobExecutorInterface
 
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
-        $processFile = $this->getProcessFile($jobId);
-        if (empty($processFile)) {
+        $infoArr = $this->jobRun->getJobFileInfo($jobId);
+        if (empty($infoArr)) {
             $this->stdoutLogger->warning('xxl-job task has ended');
-            return false;
+            return true;
         }
-        $strInfo = file_get_contents($processFile);
-        $infoArr = json_decode($strInfo, true);
+        $runRequest = $infoArr['runRequest'];
         $pid = $infoArr['pid'];
-        $logId = $infoArr['logId'];
-        $logDateTime = $infoArr['logDateTime'];
+        $logId = $runRequest->getLogId();
+        $logDateTime = $runRequest->getLogDateTime();
         $bool = true;
         if (! $pid || $pid == -1) {
-            @unlink($processFile);
+            @unlink($infoArr['filePath']);
             $bool = false;
             $this->stdoutLogger->error('xxl-job kill error, the job is being started');
         }
@@ -73,12 +68,12 @@ class JobExecutorProcess implements JobExecutorInterface
             $bool = false;
             $this->stdoutLogger->error("xxl-job kill error with PID {$pid}");
         } else {
-            @unlink($processFile);
             JobRunContent::remove($jobId);
+            @unlink($infoArr['filePath']);
         }
 
-        JobContext::setJobLogId($logId);
-        if ($msg) {
+        if ($bool && $msg) {
+            JobContext::setJobLogId($logId);
             $this->jobExecutorLogger->warning($msg);
             $this->apiRequest->callback($logId, $logDateTime, 500, $msg);
         }
@@ -88,14 +83,5 @@ class JobExecutorProcess implements JobExecutorInterface
     public function run(RunRequest $request, ?callable $callback): void
     {
         $this->jobRun->executeCommand($request);
-    }
-
-    protected function getProcessFile(int $jobId): string
-    {
-        $path = $this->xxlConfig->getLogFileDir() . sprintf('jobId_%s.info', $jobId);
-        if (file_exists($path)) {
-            return $path;
-        }
-        return '';
     }
 }

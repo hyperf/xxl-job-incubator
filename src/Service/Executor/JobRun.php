@@ -53,10 +53,10 @@ class JobRun
     public function execute(RunRequest $request, callable $callback): void
     {
         try {
+            JobContext::setJobLogId($request->getLogId());
             $request->setId(Coroutine::id());
             // BeforeJobRun
             $this->eventDispatcher->dispatch(new BeforeJobRun($request));
-            JobContext::setJobLogId($request->getLogId());
             JobContext::setRunRequest($request);
             $this->jobExecutorLogger->info(sprintf('Beginning, with params: %s', $request->getExecutorParams() ?: '[NULL]'));
 
@@ -68,7 +68,6 @@ class JobRun
             $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
             $this->stdoutLogger->warning($message);
         } catch (ProcessTimedOutException) {
-            JobContext::setJobLogId($request->getLogId());
             $msg = 'scheduling center kill job. [job running, killed]';
             $this->jobExecutorLogger->warning($msg);
             $this->stdoutLogger->warning($msg . ' JobId:' . $request->getJobId());
@@ -95,43 +94,66 @@ class JobRun
     {
         $command = $this->config->getStartCommand();
         $command[] = JobCommand::COMMAND_NAME;
-        $command[] = '-r';
-        $command[] = json_encode($request);
-        $this->stdoutLogger->debug('XXL-JOB execute commands:' . implode(' ', $command));
+        $command[] = '-j';
+        $command[] = $request->getJobId();
+        $command[] = '-l';
+        $command[] = $request->getLogId();
+        $this->stdoutLogger->info('XXL-JOB execute commands:' . implode(' ', $command));
         Coroutine::create(function () use ($command, $request) {
-            $executorTimeout = $request->getExecutorTimeout();
-            $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
-            $process->start();
-            $filename = $this->putProcessInfo($process->getPid(), $request);
             try {
-                $process->wait();
+                JobContext::setJobLogId($request->getLogId());
+                $executorTimeout = $request->getExecutorTimeout();
+                $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
+                $process->start();
+                $filename = $this->putJobFileInfo($process->getPid(), $request);
+                $process->wait(
+                    /*function ($type, $buffer): void {
+                        $buffer = trim($buffer);
+                        if ($type === Process::ERR) {
+                            $this->stdoutLogger->error($buffer);
+                        } else {
+                            $this->stdoutLogger->info($buffer);
+                        }
+                    }*/
+                );
             } catch (ProcessSignaledException $e) {
                 $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
                 $this->stdoutLogger->warning($message);
             } catch (ProcessTimedOutException) {
-                JobContext::setJobLogId($request->getLogId());
                 $msg = 'scheduling center kill job. [job running, killed]';
                 $this->jobExecutorLogger->warning($msg);
                 $this->stdoutLogger->warning($msg . ' JobId:' . $request->getJobId());
                 $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $msg);
             } finally {
-                @unlink($filename);
                 JobRunContent::remove($request->getJobId());
-                // AfterJobRun
-                $this->eventDispatcher->dispatch(new AfterJobRun($request));
+                ! empty($filename) && @unlink($filename);
             }
         });
     }
 
-    public function putProcessInfo(int $pid, RunRequest $request): string
+    public function putJobFileInfo(int $pid, RunRequest $request): string
     {
         $filename = $this->config->getLogFileDir() . sprintf('jobId_%s.info', $request->getJobId());
-        $data['logId'] = $request->getLogId();
-        $data['logDateTime'] = $request->getLogDateTime();
-        $data['jobId'] = $request->getJobId();
         $data['pid'] = $pid;
         $data['createTime'] = time();
+        $data['runRequest'] = $request;
         file_put_contents($filename, json_encode($data));
         return $filename;
+    }
+
+    public function getJobFileInfo(int $jobId): array
+    {
+        $data = [];
+        $path = $this->config->getLogFileDir() . sprintf('jobId_%s.info', $jobId);
+        if (file_exists($path)) {
+            $strInfo = file_get_contents($path);
+            $infoArr = json_decode($strInfo, true);
+            $data['pid'] = $infoArr['pid'];
+            $data['createTime'] = $infoArr['createTime'];
+            $data['runRequest'] = RunRequest::create($infoArr['runRequest']);
+            $data['filePath'] = $path;
+            return $data;
+        }
+        return $data;
     }
 }

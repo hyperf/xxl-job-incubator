@@ -24,6 +24,7 @@
         "hyperf/http-server": "~3.0.0|~3.1.0",
         "hyperf/logger": "~3.0.0|~3.1.0",
         "hyperf/command": "~3.0.0|~3.1.0",
+        "hyperf/process": "~3.0.0|~3.1.0",
         "jetbrains/phpstorm-attributes": "^1.0",
         "symfony/process": "^5.4 || ^6.0 || ^7.0"
     },

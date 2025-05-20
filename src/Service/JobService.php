@@ -51,19 +51,20 @@ class JobService extends BaseService
             throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
         }
 
-        $jobKillExecutor = $this->getKillExecutor();
-        $isRun = $jobKillExecutor->isRun($runRequest->getJobId());
+        $jobKillExecutor = $this->getJobExecutor($runRequest->getJobId());
 
         switch ($runRequest->getExecutorBlockStrategy()) {
             case ExecutorBlockStrategyEnum::SERIAL_EXECUTION:
                 $this->send($runRequest);
                 return;
             case ExecutorBlockStrategyEnum::DISCARD_LATER:
+                $isRun = $jobKillExecutor->isRun($runRequest->getJobId());
                 if ($isRun) {
                     throw new XxlJobException('block strategy effect：Discard Later');
                 }
                 break;
             case ExecutorBlockStrategyEnum::COVER_EARLY:
+                $isRun = $jobKillExecutor->isRun($runRequest->getJobId());
                 if ($isRun) {
                     $this->kill($runRequest->getJobId(), 0, 'block strategy effect：Cover Early [job running, killed]');
                 }

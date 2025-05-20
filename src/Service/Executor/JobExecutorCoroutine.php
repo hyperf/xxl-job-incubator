@@ -16,6 +16,7 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Engine\Constant;
 use Hyperf\Engine\Coroutine;
 use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Swow\Coroutine as SwowCoroutine;
@@ -51,6 +52,7 @@ class JobExecutorCoroutine implements JobExecutorInterface
         SwowCoroutine::get($runRequest->getId())?->kill();
         JobRunContent::remove($jobId);
         if ($msg) {
+            JobContext::setJobLogId($logId);
             $this->jobExecutorLogger->warning($msg);
             $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $msg);
         }
