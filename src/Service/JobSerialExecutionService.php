@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob\Service;
 
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Channel;
+use Hyperf\XxlJob\Locker;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 
@@ -31,9 +32,29 @@ class JobSerialExecutionService extends BaseService
             return;
         }
         $jobId = $runRequest->getJobId();
+        if ($runRequest->isCoverEarly()) {
+            $this->coverEarlyJob($jobId, $runRequest);
+            return;
+        }
         $this->channels[$jobId] ??= new Channel(1000);
         $this->channels[$jobId]->push($runRequest, 5);
         $this->loop($jobId);
+    }
+
+    protected function coverEarlyJob(int $jobId, RunRequest $runRequest): void
+    {
+        $key = 'coverEarlyJob_' . $jobId;
+        Locker::lock($key);
+        try {
+            if (JobRunContent::has($jobId)) {
+                $this->kill($jobId, 0, 'block strategy effect：Cover Early [job running, killed]');
+                // waiting for the process to completely end
+                sleep(1);
+            }
+            $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+        } finally {
+            Locker::unlock($key);
+        }
     }
 
     protected function loop(int $jobId): void
@@ -47,15 +68,11 @@ class JobSerialExecutionService extends BaseService
         Coroutine::create(function () use ($jobId) {
             try {
                 while (true) {
-                    if (JobRunContent::has($jobId) || $this->isRun($jobId)) {
-                        usleep(500000);
-                        continue;
-                    }
                     $channels = $this->channels[$jobId] ?? null;
                     $runRequest = $channels?->pop(-1);
                     if ($runRequest instanceof RunRequest) {
-                        JobRunContent::setJobId($jobId, $runRequest);
                         $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+                        JobRunContent::yield($runRequest->getLogId());
                     } else {
                         return;
                     }

@@ -37,6 +37,7 @@ class GlueHandlerManager
 
     public function handle(string $glueType, RunRequest $request)
     {
+        JobRunContent::setJobId($request->getJobId(), $request);
         if (! GlueEnum::isExists($glueType) || ! isset($this->handlers[$glueType])) {
             JobRunContent::remove($request->getJobId());
             throw new XxlJobException('Glue type is invalid or does not support yet');

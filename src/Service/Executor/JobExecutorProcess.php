@@ -55,7 +55,7 @@ class JobExecutorProcess implements JobExecutorInterface
         }
         $runRequest = $infoArr['runRequest'];
         $pid = $infoArr['pid'];
-        $logId = $runRequest->getLogId();
+        $logId = $logId ?: $runRequest->getLogId();
         $logDateTime = $runRequest->getLogDateTime();
         $bool = true;
         if (! $pid || $pid == -1) {
@@ -68,7 +68,7 @@ class JobExecutorProcess implements JobExecutorInterface
             $bool = false;
             $this->stdoutLogger->error("xxl-job kill error with PID {$pid}");
         } else {
-            JobRunContent::remove($jobId);
+            // $this->stdoutLogger->error("xxl-job kill error with PID {$pid}, logId {$logId}");
             @unlink($infoArr['filePath']);
         }
 

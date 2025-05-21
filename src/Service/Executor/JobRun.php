@@ -37,7 +37,6 @@ class JobRun
         protected EventDispatcherInterface $eventDispatcher,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
         protected ApiRequest $apiRequest,
-        protected ChannelFactory $channelFactory,
         protected Config $config,
         protected StdoutLoggerInterface $stdoutLogger,
     ) {
@@ -83,8 +82,7 @@ class JobRun
             $this->jobExecutorLogger->error($message);
             throw $throwable;
         } finally {
-            JobRunContent::remove($request->getJobId());
-            $this->channelFactory->push($request->getLogId());
+            JobRunContent::remove($request->getJobId(), $request->getLogId());
             // AfterJobRun
             $this->eventDispatcher->dispatch(new AfterJobRun($request));
         }
@@ -98,7 +96,7 @@ class JobRun
         $command[] = $request->getJobId();
         $command[] = '-l';
         $command[] = $request->getLogId();
-        $this->stdoutLogger->info('XXL-JOB execute commands:' . implode(' ', $command));
+        $this->stdoutLogger->debug('XXL-JOB execute commands:' . implode(' ', $command));
         Coroutine::create(function () use ($command, $request) {
             try {
                 JobContext::setJobLogId($request->getLogId());
@@ -107,14 +105,14 @@ class JobRun
                 $process->start();
                 $filename = $this->putJobFileInfo($process->getPid(), $request);
                 $process->wait(
-                    /*function ($type, $buffer): void {
-                        $buffer = trim($buffer);
-                        if ($type === Process::ERR) {
-                            $this->stdoutLogger->error($buffer);
-                        } else {
-                            $this->stdoutLogger->info($buffer);
-                        }
-                    }*/
+                    // function ($type, $buffer): void {
+                    //     $buffer = trim($buffer);
+                    //     if ($type === Process::ERR) {
+                    //         $this->stdoutLogger->error($buffer);
+                    //     } else {
+                    //         $this->stdoutLogger->info($buffer);
+                    //     }
+                    // }
                 );
             } catch (ProcessSignaledException $e) {
                 $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
@@ -125,8 +123,8 @@ class JobRun
                 $this->stdoutLogger->warning($msg . ' JobId:' . $request->getJobId());
                 $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $msg);
             } finally {
-                JobRunContent::remove($request->getJobId());
                 ! empty($filename) && @unlink($filename);
+                JobRunContent::remove($request->getJobId(), $request->getLogId());
             }
         });
     }

@@ -21,7 +21,6 @@ use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
-use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Swoole\Server;
 
 class JobService extends BaseService
@@ -55,6 +54,7 @@ class JobService extends BaseService
 
         switch ($runRequest->getExecutorBlockStrategy()) {
             case ExecutorBlockStrategyEnum::SERIAL_EXECUTION:
+            case ExecutorBlockStrategyEnum::COVER_EARLY:
                 $this->send($runRequest);
                 return;
             case ExecutorBlockStrategyEnum::DISCARD_LATER:
@@ -62,15 +62,8 @@ class JobService extends BaseService
                 if ($isRun) {
                     throw new XxlJobException('block strategy effect：Discard Later');
                 }
-                break;
-            case ExecutorBlockStrategyEnum::COVER_EARLY:
-                $isRun = $jobKillExecutor->isRun($runRequest->getJobId());
-                if ($isRun) {
-                    $this->kill($runRequest->getJobId(), 0, 'block strategy effect：Cover Early [job running, killed]');
-                }
+                $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
                 break;
         }
-        JobRunContent::setJobId($runRequest->getJobId(), $runRequest);
-        $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
     }
 }

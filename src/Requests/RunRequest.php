@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Requests;
 
+use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use JsonSerializable;
 
 class RunRequest extends BaseRequest implements JsonSerializable
@@ -115,5 +116,10 @@ class RunRequest extends BaseRequest implements JsonSerializable
     public function jsonSerialize(): array
     {
         return get_object_vars($this);
+    }
+
+    public function isCoverEarly(): bool
+    {
+        return $this->getExecutorBlockStrategy() == ExecutorBlockStrategyEnum::COVER_EARLY;
     }
 }

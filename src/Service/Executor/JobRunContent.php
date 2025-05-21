@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service\Executor;
 
+use Hyperf\Coordinator\Coordinator;
 use Hyperf\XxlJob\Requests\RunRequest;
 
 class JobRunContent
@@ -21,14 +22,11 @@ class JobRunContent
      */
     protected static array $content = [];
 
+    protected static array $channels = [];
+
     public static function getId(int $jobId): ?RunRequest
     {
         return self::$content[$jobId] ?? null;
-    }
-
-    public static function getAll(): array
-    {
-        return self::$content;
     }
 
     public static function has(int $jobId): bool
@@ -41,8 +39,25 @@ class JobRunContent
         self::$content[$jobId] = $runRequest;
     }
 
-    public static function remove(int $jobId): void
+    public static function remove(int $jobId, int $logId = 0): void
     {
-        unset(self::$content[$jobId]);
+        $channel = static::getCoordinator($logId);
+        unset(self::$channels[$logId], self::$content[$jobId]);
+        $channel->resume();
+        // var_dump(date('Y-m-d H:i:s') . '  remove.........');
+    }
+
+    public static function yield(int $logId, int $timeout = -1): bool
+    {
+        return static::getCoordinator($logId)->yield($timeout);
+    }
+
+    private static function getCoordinator(int $logId): Coordinator
+    {
+        if (! isset(static::$channels[$logId])) {
+            static::$channels[$logId] = new Coordinator();
+        }
+
+        return static::$channels[$logId];
     }
 }

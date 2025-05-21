@@ -28,7 +28,6 @@ class JobExecutorCoroutine implements JobExecutorInterface
         protected ApiRequest $apiRequest,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
         protected JobRun $jobRun,
-        protected ChannelFactory $channelFactory,
     ) {
     }
 
@@ -50,7 +49,6 @@ class JobExecutorCoroutine implements JobExecutorInterface
         }
 
         SwowCoroutine::get($runRequest->getId())?->kill();
-        JobRunContent::remove($jobId);
         if ($msg) {
             JobContext::setJobLogId($logId);
             $this->jobExecutorLogger->warning($msg);
@@ -65,7 +63,7 @@ class JobExecutorCoroutine implements JobExecutorInterface
         $executorTimeout = $request->getExecutorTimeout();
         if ($executorTimeout > 0) {
             Coroutine::create(function () use ($request) {
-                $result = $this->channelFactory->pop($request->getLogId(), $request->getExecutorTimeout());
+                $result = JobRunContent::yield($request->getLogId(), $request->getExecutorTimeout());
                 if ($result === false) {
                     $this->kill($request->getJobId(), $request->getLogId(), 'scheduling center kill job. [job running, killed]');
                 }
