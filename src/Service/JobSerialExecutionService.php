@@ -46,10 +46,10 @@ class JobSerialExecutionService extends BaseService
         $key = 'coverEarlyJob_' . $jobId;
         Locker::lock($key);
         try {
-            if (JobRunContent::has($jobId)) {
+            $lod = JobRunContent::getId($jobId);
+            if ($lod) {
                 $this->kill($jobId, 0, 'block strategy effect：Cover Early [job running, killed]');
-                // waiting for the process to completely end
-                sleep(1);
+                JobRunContent::yield($lod->getLogId(), 2);
             }
             $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
         } finally {
