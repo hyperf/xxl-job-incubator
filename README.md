@@ -26,27 +26,45 @@ composer require westmoon/xxl-job-incubator
 配置文件: `config/autoload/xxl_job.php`
 
 ```php
+<?php
+
+declare(strict_types=1);
+
+use function Hyperf\Support\env;
+
 return [
-    // 是否启用
+    // 是否启动 xxl-job
     'enable' => env('XXL_JOB_ENABLE', true),
-    // XXL-JOB 服务端地址
+    // xxl-job admin 地址
     'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8080/xxl-job-admin'),
-    // 对应的 AppName
+    // xxl-job app_name
     'app_name' => env('XXL_JOB_APP_NAME', 'xxl-job-demo'),
-    // 访问凭证
+    // xxl-job access_token
     'access_token' => env('XXL_JOB_ACCESS_TOKEN', ''),
-    // 执行器心跳间隔（秒）
+    // xxl-job 心跳时间
     'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
-    // 日志文件保存天数 [选填]: 过期日志自动清理, 限制值大于等于3时生效; 否则, 如-1, 关闭自动清理功能；
+    // xxl-job 日志保留天数
     'log_retention_days' => 30,
-    // 执行器 HTTP Server 相关配置
+    // xxl-job 执行器配置
     'executor_server' => [
-        // HTTP Port 容器内外端口不一致
+        // 执行器地址
+        'host' => intval(env('XXL_JOB_EXECUTOR_HOST', '127.0.0.1')),
+        // 执行器端口
         'port' => intval(env('XXL_JOB_EXECUTOR_PORT', 9501)),
-        // HTTP Server 路由前缀
-        'prefix_url' => env('XXL_JOB_PREFIX_URL', 'php-xxl-job'),
+        // 执行器前缀
+        'prefix_url' => env('XXL_JOB_EXECUTOR_PREFIX_URL', 'php-xxl-job')
+    ],
+    'guzzle_config' => [
+        'headers' => [
+            'charset' => 'UTF-8',
+        ],
+        'timeout' => 10,
+    ],
+    'file_logger' => [
+        'dir' => BASE_PATH . '/runtime/xxl_job/logs/',
     ],
 ];
+
 ```
 
 如文件不存在可通过以下命令发布配置文件
@@ -284,3 +302,5 @@ docker run -d \
 ### 引用
 
 关于 XXL-JOB 更多的使用细节可参考 [XXL-JOB 官方文档](https://www.xuxueli.com/xxl-job/#%E3%80%8A%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E5%B9%B3%E5%8F%B0XXL-JOB%E3%80%8B)
+
+## 2025 10 22 新增解决容器内外 host ip 不一致问题
