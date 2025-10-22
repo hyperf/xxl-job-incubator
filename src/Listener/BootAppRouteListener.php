@@ -77,6 +77,7 @@ class BootAppRouteListener implements ListenerInterface
             return;
         }
         $prefixUrl = $this->xxlConfig->getExecutorServerPrefixUrl();
+        $port = $this->xxlConfig->getExecutorServerPort();
         $servers = $this->config->get('server.servers');
         $httpServerRouter = null;
         $serverConfig = null;
@@ -111,7 +112,11 @@ class BootAppRouteListener implements ListenerInterface
             }
         }
 
-        $url = sprintf('http://%s:%s/%s', $host, $serverConfig['port'], $prefixUrl);
+        if (empty($port)) {
+            $port = $serverConfig['port'];
+        }
+
+        $url = sprintf('http://%s:%s/%s', $host, $port, $prefixUrl);
         $this->xxlConfig->setClientUrl($url);
     }
 
