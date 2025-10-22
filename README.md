@@ -16,7 +16,7 @@
 ## 安装
 
 ```bash
-composer require hyperf/xxl-job-incubator
+composer require xzy/xxl-job-incubator
 ```
 
 ## 使用
