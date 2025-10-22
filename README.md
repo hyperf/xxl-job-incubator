@@ -2,12 +2,11 @@
 
 此为 xxl-job 的 PHP 版本的任务执行器(Job Executor)，特别适配于 Hyperf 框架，其余框架尚未验证适配性
 
-### 优点
+## 优点
 
 - 分布式任务调度平台
 - 任务可以随时关闭与开启
 - 日志可通过服务端查看
-
 
 ## 使用须知
 
@@ -16,7 +15,7 @@
 
 ## 安装
 
-```
+```bash
 composer require hyperf/xxl-job-incubator
 ```
 
@@ -60,7 +59,7 @@ php bin/hyperf.php vendor:publish hyperf/xxl-job-incubator
 
 Bean 模式任务，支持基于类的开发方式，每个任务对应一个 PHP 类
 
-优点：与 Hyperf 整合性好，易于管理 
+优点：与 Hyperf 整合性好，易于管理
 缺点：任务运行于单独的，协程任务代码不能存在阻塞 IO，每个 Job 需占用一个类文件，Job 逻辑简单但数量过多时过于累赘
 > swoole默认使用命令行模式执行，swow默认使用协程模式执行
 > 如需要手动指定模式，通过注解XxlJob指定运行模式
@@ -118,7 +117,7 @@ class DemoJobClass extends AbstractJobHandler
 
 基于方法的开发方式，每个任务对应一个方法
 
-优点：相对比 `Bean(类形式)` 更加灵活   
+优点：相对比 `Bean(类形式)` 更加灵活
 缺点：数量多时更难管理，代码复杂度高时多个任务间容易造成耦合度过高
 
 #### 编写 Job 方法
@@ -255,19 +254,22 @@ class DemoJob
 
 ### Glue 脚本模式
 
-该模式下，可支持任务以将源码方式维护在调度中心，支持通过 XXL-JOB 提供的 Web IDE 在线编写代码和在线更新，因此不需要指定固定的 `JobHandler`   
+该模式下，可支持任务以将源码方式维护在调度中心，支持通过 XXL-JOB 提供的 Web IDE 在线编写代码和在线更新，因此不需要指定固定的 `JobHandler`
 脚本模式支持多种脚本语言编写 Job 代码，包括 PHP、Python、NodeJs、Shell、PowerShell，在 XXL-JOB 新建任务时选择对应的模式即可，例如 `GLUE(PHP)` 即代表 PHP 语言的脚本模式，所有脚本模式的任务会以一个独立的进程来运行，故在 PHP 下也可支持编写存在 IO 阻塞的代码
 
 > 要使用 `Glue 脚本模式` 必须配置 Access Token 方可启用
 
-优点：极度灵活，可以实现不重启新增和修改 Job 代码，支持多种脚本语言，独立进程   
+优点：极度灵活，可以实现不重启新增和修改 Job 代码，支持多种脚本语言，独立进程
 缺点：大批量任务时容易造成进程数过多，脚本代码由 XXL-JOB 远程编辑发放容易导致安全问题，Job 代码可对 Executor 所在服务器环境进行与启动 Hyperf 应用的权限相同的操作
 
-
 ### 安装xxl-job-admin(3.0.0版本)
+
 #### 初始化“调度数据库”
+
 [初始化SQL脚本](https://github.com/xuxueli/xxl-job/blob/3.0.0/doc/db/tables_xxl_job.sql)
+
 #### docker安装
+
 ```bash
 docker run -d \
 -e PARAMS="--spring.datasource.url=jdbc:mysql://127.0.0.1:3306/xxl_job?Unicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
@@ -276,6 +278,7 @@ docker run -d \
 --xxl.job.accessToken=123456" \
 -p 8080:8080 --name xxl-job --restart=always xuxueli/xxl-job-admin:3.0.0
 ```
+
 > 替换:数据库地址/账号/密码和accessToken
 
 ### 引用
