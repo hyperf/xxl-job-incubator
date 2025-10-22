@@ -29,6 +29,7 @@ class ConfigFactory
         $instance->setBaseUri(sprintf('%s://%s:%s', $adminAddressArr['scheme'], $adminAddressArr['host'], $adminAddressArr['port']));
         $instance->setServerUrlPath($adminAddressArr['path'] ?? '');
         $instance->setHeartbeat($config->get('xxl_job.heartbeat') ?? 30);
+        $instance->setExecutorServerPort($config->get('xxl_job.executor_server.port') ?? 9501);
         $instance->setExecutorServerPrefixUrl($config->get('xxl_job.executor_server.prefix_url') ?? '');
         if ($config->has('xxl_job.guzzle.config') && ! empty($config->get('xxl_job.guzzle.config'))) {
             $instance->setGuzzleConfig($config->get('xxl_job.guzzle.config'));

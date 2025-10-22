@@ -42,6 +42,8 @@ return [
     'log_retention_days' => 30,
     // 执行器 HTTP Server 相关配置
     'executor_server' => [
+        // HTTP Port 容器内外端口不一致
+        'port' => intval(env('XXL_JOB_EXECUTOR_PORT', 9501)),
         // HTTP Server 路由前缀
         'prefix_url' => env('XXL_JOB_PREFIX_URL', 'php-xxl-job'),
     ],

@@ -35,6 +35,8 @@ class Config
 
     private int $heartbeat = 30;
 
+    private int $executorServerPort = 9501;
+
     private string $executorServerPrefixUrl = '';
 
     private int $logRetentionDays = -1;
@@ -139,6 +141,17 @@ class Config
     public function setExecutorServerPrefixUrl(string $executorServerPrefixUrl): Config
     {
         $this->executorServerPrefixUrl = $executorServerPrefixUrl;
+        return $this;
+    }
+
+    public function getExecutorServerPort(): int
+    {
+        return $this->executorServerPort;
+    }
+
+    public function setExecutorServerPort(int $executorServerPort): Config
+    {
+        $this->executorServerPort = $executorServerPort;
         return $this;
     }
 

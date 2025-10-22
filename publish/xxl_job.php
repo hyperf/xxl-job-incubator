@@ -17,6 +17,7 @@ return [
     'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
     'log_retention_days' => 30,
     'executor_server' => [
+        'port' => intval(env('XXL_JOB_EXECUTOR_PORT', 9501)),
         'prefix_url' => env('XXL_JOB_EXECUTOR_PREFIX_URL', 'php-xxl-job')
     ],
     'guzzle_config' => [
