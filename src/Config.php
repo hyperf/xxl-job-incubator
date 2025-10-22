@@ -35,7 +35,7 @@ class Config
 
     private int $heartbeat = 30;
 
-    private string $executorServerHost = 'http://127.0.0.1';
+    private string $executorServerHost = '127.0.0.1';
 
     private int $executorServerPort = 9501;
 
