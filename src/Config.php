@@ -35,6 +35,8 @@ class Config
 
     private int $heartbeat = 30;
 
+    private string $executorServerHost = 'http://127.0.0.1';
+
     private int $executorServerPort = 9501;
 
     private string $executorServerPrefixUrl = '';
@@ -152,6 +154,17 @@ class Config
     public function setExecutorServerPort(int $executorServerPort): Config
     {
         $this->executorServerPort = $executorServerPort;
+        return $this;
+    }
+
+    public function getExecutorServerHost(): string
+    {
+        return $this->executorServerHost;
+    }
+
+    public function setExecutorServerHost(string $executorServerHost): Config
+    {
+        $this->executorServerHost = $executorServerHost;
         return $this;
     }
 

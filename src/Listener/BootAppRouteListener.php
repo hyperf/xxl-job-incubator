@@ -14,7 +14,6 @@ namespace Hyperf\XxlJob\Listener;
 
 use Exception;
 use Hyperf\Contract\ConfigInterface;
-use Hyperf\Contract\IPReaderInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\Engine\Constant;
@@ -22,7 +21,6 @@ use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
-use Hyperf\Support\Network;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
@@ -77,15 +75,14 @@ class BootAppRouteListener implements ListenerInterface
             return;
         }
         $prefixUrl = $this->xxlConfig->getExecutorServerPrefixUrl();
+        $host = $this->xxlConfig->getExecutorServerHost();
         $port = $this->xxlConfig->getExecutorServerPort();
         $servers = $this->config->get('server.servers');
         $httpServerRouter = null;
-        $serverConfig = null;
         foreach ($servers as $server) {
             $router = $this->dispatcherFactory->getRouter($server['name']);
             if (empty($httpServerRouter) && $server['type'] == ServerInterface::SERVER_HTTP) {
                 $httpServerRouter = $router;
-                $serverConfig = $server;
             }
         }
         if (empty($httpServerRouter)) {
@@ -102,19 +99,6 @@ class BootAppRouteListener implements ListenerInterface
             $prefixUrl = '';
         }
         $this->xxlJobRoute->add($httpServerRouter, $prefixUrl);
-
-        if ($this->container->has(IPReaderInterface::class)) {
-            $host = $this->container->get(IPReaderInterface::class)->read();
-        } else {
-            $host = $serverConfig['host'];
-            if (in_array($host, ['0.0.0.0', 'localhost'])) {
-                $host = Network::ip();
-            }
-        }
-
-        if (empty($port)) {
-            $port = $serverConfig['port'];
-        }
 
         $url = sprintf('http://%s:%s/%s', $host, $port, $prefixUrl);
         $this->xxlConfig->setClientUrl($url);
