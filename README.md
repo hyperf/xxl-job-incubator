@@ -16,7 +16,7 @@
 ## 安装
 
 ```bash
-composer require xzy/xxl-job-incubator
+composer require westmoon/xxl-job-incubator
 ```
 
 ## 使用
