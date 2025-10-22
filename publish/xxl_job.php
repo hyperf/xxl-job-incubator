@@ -1,6 +1,9 @@
 <?php
 
 declare(strict_types=1);
+
+use function Hyperf\Support\env;
+
 /**
  * This file is part of Hyperf.
  *
@@ -9,6 +12,7 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
 return [
     'enable' => env('XXL_JOB_ENABLE', true),
     'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8080/xxl-job-admin'),
