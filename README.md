@@ -2,6 +2,17 @@
 
 此为 xxl-job 的 PHP 版本的任务执行器(Job Executor)，特别适配于 Hyperf 框架，其余框架尚未验证适配性
 
+## fork 自 hyperf/xxl-job-incubator
+
+## 2025 10 22 新增解决容器内外 host ip 不一致问题
+
+```ini
+自定义执行器host
+XXL_JOB_EXECUTOR_HOST=
+自定义执行器端口
+XXL_JOB_EXECUTOR_PORT=
+```
+
 ## 优点
 
 - 分布式任务调度平台
@@ -302,5 +313,3 @@ docker run -d \
 ### 引用
 
 关于 XXL-JOB 更多的使用细节可参考 [XXL-JOB 官方文档](https://www.xuxueli.com/xxl-job/#%E3%80%8A%E5%88%86%E5%B8%83%E5%BC%8F%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6%E5%B9%B3%E5%8F%B0XXL-JOB%E3%80%8B)
-
-## 2025 10 22 新增解决容器内外 host ip 不一致问题
