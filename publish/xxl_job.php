@@ -20,7 +20,7 @@ return [
     // xxl-job 执行器配置
     'executor_server' => [
         // 执行器地址
-        'host' => intval(env('XXL_JOB_EXECUTOR_HOST', '127.0.0.1')),
+        'host' => env('XXL_JOB_EXECUTOR_HOST', '127.0.0.1'),
         // 执行器端口
         'port' => intval(env('XXL_JOB_EXECUTOR_PORT', 9501)),
         // 执行器前缀
