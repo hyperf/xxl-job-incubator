@@ -26,7 +26,7 @@ class ConfigFactory
         $instance->setAppName($config->get('xxl_job.app_name') ?? '');
         $instance->setAccessToken($config->get('xxl_job.access_token') ?? '');
         $adminAddressArr = parse_url($config->get('xxl_job.admin_address') ?? 'http://127.0.0.1:8080/xxl-job-admin');
-        $instance->setBaseUri(sprintf('%s://%s:%s', $adminAddressArr['scheme'], $adminAddressArr['host'], $adminAddressArr['port']));
+        $instance->setBaseUri(sprintf('%s://%s:%s', $adminAddressArr['scheme'], $adminAddressArr['host'], $adminAddressArr['port'] ?? ($adminAddressArr['scheme'] == 'https' ? 443 : 80)));
         $instance->setServerUrlPath($adminAddressArr['path'] ?? '');
         $instance->setHeartbeat($config->get('xxl_job.heartbeat') ?? 30);
         $instance->setExecutorServerHost($config->get('xxl_job.executor_server.host') ?? '');
