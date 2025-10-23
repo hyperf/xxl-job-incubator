@@ -117,7 +117,8 @@ class BootAppRouteListener implements ListenerInterface
             $executorServerPort = $serverConfig['port'];
         }
 
-        $url = sprintf('http://%s:%s/%s', $executorServerHost, $executorServerPort, $executorServerPrefixUrl);
+        $scheme = $executorServerPort == 443 ? 'https' : 'http';
+        $url = sprintf('%s://%s:%s/%s', $scheme, $executorServerHost, $executorServerPort, $executorServerPrefixUrl);
         $this->xxlConfig->setClientUrl($url);
     }
 
