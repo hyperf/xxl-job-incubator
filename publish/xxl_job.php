@@ -14,7 +14,7 @@ return [
     // xxl-job access_token
     'access_token' => env('XXL_JOB_ACCESS_TOKEN', ''),
     // xxl-job 心跳时间
-    'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
+    'heartbeat' => intval(env('XXL_JOB_HEARTBEAT', 30)),
     // xxl-job 日志保留天数
     'log_retention_days' => 30,
     // xxl-job 执行器配置

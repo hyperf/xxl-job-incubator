@@ -7,10 +7,15 @@
 ## 2025 10 22 新增解决容器内外 host ip 不一致问题
 
 ```ini
-自定义执行器host
-XXL_JOB_EXECUTOR_HOST=
-自定义执行器端口
-XXL_JOB_EXECUTOR_PORT=
+XXL_JOB_ENABLE=true
+XXL_JOB_ADMIN_ADDRESS='http://127.0.0.1:8080/xxl-job-admin'
+XXL_JOB_APP_NAME='xxl-job-demo'
+XXL_JOB_ACCESS_TOKEN='123456'
+XXL_JOB_HEARTBEAT=30
+XXL_JOB_EXECUTOR_HOST='127.0.0.1'
+XXL_JOB_EXECUTOR_PORT=9501
+XXL_JOB_EXECUTOR_PREFIX_URL='php-xxl-job'
+
 ```
 
 ## 优点
