@@ -9,6 +9,9 @@ declare(strict_types=1);
  * @contact  group@hyperf.io
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
+
+use function Hyperf\Support\env;
+
 return [
     'enable' => env('XXL_JOB_ENABLE', true),
     'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8080/xxl-job-admin'),
@@ -17,6 +20,11 @@ return [
     'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
     'log_retention_days' => 30,
     'executor_server' => [
+        // executor host (no Settings, automatically obtained)
+        'host' => env('XXL_JOB_EXECUTOR_HOST'),
+        // executor port
+        'port' => env('XXL_JOB_EXECUTOR_PORT'),
+        // executor prefix
         'prefix_url' => env('XXL_JOB_EXECUTOR_PREFIX_URL', 'php-xxl-job')
     ],
     'guzzle_config' => [

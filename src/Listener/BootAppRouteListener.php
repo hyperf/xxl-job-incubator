@@ -76,7 +76,10 @@ class BootAppRouteListener implements ListenerInterface
         if (! $this->xxlConfig->isEnable()) {
             return;
         }
-        $prefixUrl = $this->xxlConfig->getExecutorServerPrefixUrl();
+        $executorServerPrefixUrl = $this->xxlConfig->getExecutorServerPrefixUrl();
+        $executorServerHost = $this->xxlConfig->getExecutorServerHost();
+        $executorServerPort = $this->xxlConfig->getExecutorServerPort();
+
         $servers = $this->config->get('server.servers');
         $httpServerRouter = null;
         $serverConfig = null;
@@ -95,23 +98,26 @@ class BootAppRouteListener implements ListenerInterface
 
         $this->initAnnotationRoute();
 
-        if (! empty($prefixUrl)) {
-            $prefixUrl = trim($prefixUrl, '/') . '/';
+        if (! empty($executorServerPrefixUrl)) {
+            $executorServerPrefixUrl = trim($executorServerPrefixUrl, '/') . '/';
         } else {
-            $prefixUrl = '';
+            $executorServerPrefixUrl = '';
         }
-        $this->xxlJobRoute->add($httpServerRouter, $prefixUrl);
+        $this->xxlJobRoute->add($httpServerRouter, $executorServerPrefixUrl);
 
-        if ($this->container->has(IPReaderInterface::class)) {
-            $host = $this->container->get(IPReaderInterface::class)->read();
-        } else {
-            $host = $serverConfig['host'];
-            if (in_array($host, ['0.0.0.0', 'localhost'])) {
-                $host = Network::ip();
+        if (empty($executorServerHost)) {
+            if ($this->container->has(IPReaderInterface::class)) {
+                $executorServerHost = $this->container->get(IPReaderInterface::class)->read();
+            } else {
+                $executorServerHost = $serverConfig['host'];
+                if (in_array($executorServerHost, ['0.0.0.0', 'localhost'])) {
+                    $executorServerHost = Network::ip();
+                }
             }
+            $executorServerPort = $serverConfig['port'];
         }
 
-        $url = sprintf('http://%s:%s/%s', $host, $serverConfig['port'], $prefixUrl);
+        $url = sprintf('http://%s:%s/%s', $executorServerHost, $executorServerPort, $executorServerPrefixUrl);
         $this->xxlConfig->setClientUrl($url);
     }
 
