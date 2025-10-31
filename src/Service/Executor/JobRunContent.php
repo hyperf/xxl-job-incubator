@@ -44,7 +44,6 @@ class JobRunContent
         $channel = static::getCoordinator($logId);
         unset(self::$channels[$logId], self::$content[$jobId]);
         $channel->resume();
-        // var_dump(date('Y-m-d H:i:s') . '  remove.........');
     }
 
     public static function yield(int $logId, int $timeout = -1): bool

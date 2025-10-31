@@ -49,21 +49,6 @@ class JobService extends BaseService
         if ($runRequest->getGlueType() == GlueEnum::BEAN && (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod()))) {
             throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
         }
-
-        $jobKillExecutor = $this->getJobExecutor($runRequest->getJobId());
-
-        switch ($runRequest->getExecutorBlockStrategy()) {
-            case ExecutorBlockStrategyEnum::SERIAL_EXECUTION:
-            case ExecutorBlockStrategyEnum::COVER_EARLY:
-                $this->send($runRequest);
-                return;
-            case ExecutorBlockStrategyEnum::DISCARD_LATER:
-                $isRun = $jobKillExecutor->isRun($runRequest->getJobId());
-                if ($isRun) {
-                    throw new XxlJobException('block strategy effect：Discard Later');
-                }
-                $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
-                break;
-        }
+        $this->send($runRequest);
     }
 }

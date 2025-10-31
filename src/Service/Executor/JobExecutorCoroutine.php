@@ -12,24 +12,13 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service\Executor;
 
-use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Engine\Constant;
 use Hyperf\Engine\Coroutine;
-use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\JobContext;
-use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
-use Swow\Coroutine as SwowCoroutine;
 
-class JobExecutorCoroutine implements JobExecutorInterface
+class JobExecutorCoroutine extends AbstractJobExecutor
 {
-    public function __construct(
-        protected StdoutLoggerInterface $stdoutLogger,
-        protected ApiRequest $apiRequest,
-        protected JobExecutorLoggerInterface $jobExecutorLogger,
-        protected JobRun $jobRun,
-    ) {
-    }
 
     public function isRun(int $jobId): bool
     {
@@ -50,7 +39,7 @@ class JobExecutorCoroutine implements JobExecutorInterface
             }
             \Swoole\Coroutine::cancel($runRequest->getId(), true);
         } else {
-            SwowCoroutine::get($runRequest->getId())?->kill();
+            \Swow\Coroutine::get($runRequest->getId())?->kill();
         }
 
         if ($msg) {

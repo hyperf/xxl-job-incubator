@@ -12,26 +12,13 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service\Executor;
 
-use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\XxlJob\ApiRequest;
-use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
-use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 
-class JobExecutorProcess implements JobExecutorInterface
+class JobExecutorProcess extends AbstractJobExecutor
 {
     protected static array $content = [];
-
-    public function __construct(
-        protected StdoutLoggerInterface $stdoutLogger,
-        protected ApiRequest $apiRequest,
-        protected JobExecutorLoggerInterface $jobExecutorLogger,
-        protected Config $xxlConfig,
-        protected JobRun $jobRun,
-    ) {
-    }
 
     public function isRun(int $jobId): bool
     {

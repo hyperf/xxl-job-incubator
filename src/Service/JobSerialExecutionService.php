@@ -1,14 +1,6 @@
 <?php
 
 declare(strict_types=1);
-/**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
- */
 
 namespace Hyperf\XxlJob\Service;
 
@@ -26,12 +18,23 @@ class JobSerialExecutionService extends BaseService
 
     public function handle(?RunRequest $runRequest = null, int $killJobId = 0): void
     {
+        $running = JobRunContent::getId($killJobId);
+        // kill job
         if ($killJobId > 0) {
             $this->sendKillMsg($killJobId);
             $this->remove($killJobId);
+            if ($running) {
+                $this->kill($killJobId, $running->getLogId(), 'Job toStop, stopReason:scheduling center kill job.');
+            }
             return;
         }
+
+        // run job
         $jobId = $runRequest->getJobId();
+        if ($runRequest->isCoverLater() && $running) {
+            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, 'block strategy effect：Discard Later');
+            return;
+        }
         if ($runRequest->isCoverEarly()) {
             $this->coverEarlyJob($jobId, $runRequest);
             return;
@@ -46,10 +49,10 @@ class JobSerialExecutionService extends BaseService
         $key = 'coverEarlyJob_' . $jobId;
         Locker::lock($key);
         try {
-            $lod = JobRunContent::getId($jobId);
-            if ($lod) {
-                $this->kill($jobId, 0, 'block strategy effect：Cover Early [job running, killed]');
-                JobRunContent::yield($lod->getLogId(), 2);
+            $running = JobRunContent::getId($jobId);
+            if ($running) {
+                $this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]');
+                JobRunContent::yield($running->getLogId(), 2);
             }
             $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
         } finally {

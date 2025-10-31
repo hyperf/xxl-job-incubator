@@ -122,4 +122,9 @@ class RunRequest extends BaseRequest implements JsonSerializable
     {
         return $this->getExecutorBlockStrategy() == ExecutorBlockStrategyEnum::COVER_EARLY;
     }
+
+    public function isCoverLater(): bool
+    {
+        return $this->getExecutorBlockStrategy() == ExecutorBlockStrategyEnum::DISCARD_LATER;
+    }
 }
