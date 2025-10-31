@@ -25,8 +25,10 @@ return [
         // executor port
         'port' => env('XXL_JOB_EXECUTOR_PORT'),
         // executor prefix
-        'prefix_url' => env('XXL_JOB_EXECUTOR_PREFIX_URL', 'php-xxl-job')
+        'prefix_url' => env('XXL_JOB_EXECUTOR_PREFIX_URL', 'php-xxl-job'),
     ],
+    // execution mode: process or coroutine
+    'execution_mode' => '',
     'guzzle_config' => [
         'headers' => [
             'charset' => 'UTF-8',

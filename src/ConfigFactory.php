@@ -32,6 +32,7 @@ class ConfigFactory
         $instance->setExecutorServerHost($config->get('xxl_job.executor_server.host') ?? '');
         $instance->setExecutorServerPort(intval($config->get('xxl_job.executor_server.port') ?? 9501));
         $instance->setExecutorServerPrefixUrl($config->get('xxl_job.executor_server.prefix_url') ?? '');
+        $instance->setExecutionMode($config->get('xxl_job.execution_mode') ?? '');
         if ($config->has('xxl_job.guzzle.config') && ! empty($config->get('xxl_job.guzzle.config'))) {
             $instance->setGuzzleConfig($config->get('xxl_job.guzzle.config'));
         }

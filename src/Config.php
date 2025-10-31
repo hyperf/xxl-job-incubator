@@ -47,6 +47,18 @@ class Config
 
     private string $logFileDir = '';
 
+    private string $executionMode = '';
+
+    public function getExecutionMode(): string
+    {
+        return $this->executionMode;
+    }
+
+    public function setExecutionMode(string $executionMode): void
+    {
+        $this->executionMode = $executionMode;
+    }
+
     public function isEnable(): bool
     {
         return $this->enable;

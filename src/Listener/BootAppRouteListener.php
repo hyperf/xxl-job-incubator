@@ -150,10 +150,11 @@ class BootAppRouteListener implements ListenerInterface
 
     protected function getExecutionMode(XxlJob $xxlJob): string
     {
-        if ($xxlJob->executionMode == XxlJob::PROCESS) {
+        $executionMode = $xxlJob->executionMode ?: $this->xxlConfig->getExecutionMode();
+        if ($executionMode == XxlJob::PROCESS) {
             return XxlJob::PROCESS;
         }
-        if ($xxlJob->executionMode == XxlJob::COROUTINE) {
+        if ($executionMode == XxlJob::COROUTINE) {
             return XxlJob::COROUTINE;
         }
         if (Constant::ENGINE == 'Swoole') {
