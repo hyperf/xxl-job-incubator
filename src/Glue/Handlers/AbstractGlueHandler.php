@@ -18,7 +18,6 @@ use Hyperf\XxlJob\JobHandlerManager;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Service\Executor\JobExecutorCoroutine;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
-use Hyperf\XxlJob\Service\Executor\JobRun;
 use Psr\Container\ContainerInterface;
 
 abstract class AbstractGlueHandler implements GlueHandlerInterface
@@ -29,7 +28,6 @@ abstract class AbstractGlueHandler implements GlueHandlerInterface
         protected ContainerInterface $container,
         protected JobHandlerManager $jobHandlerManager,
         protected JobExecutorLoggerInterface $jobExecutorLogger,
-        protected JobRun $jobRun,
         protected StdoutLoggerInterface $stdoutLogger,
         protected JobExecutorProcess $jobExecutorProcess,
         protected JobExecutorCoroutine $jobExecutorCoroutine,

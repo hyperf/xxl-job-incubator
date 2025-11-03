@@ -19,7 +19,6 @@ use Hyperf\XxlJob\Requests\RunRequest;
 
 class JobExecutorCoroutine extends AbstractJobExecutor
 {
-
     public function isRun(int $jobId): bool
     {
         return JobRunContent::has($jobId);
@@ -31,15 +30,25 @@ class JobExecutorCoroutine extends AbstractJobExecutor
         if (empty($runRequest)) {
             return true;
         }
-
+        $cid = $runRequest->getExtension('cid');
         if (Constant::ENGINE == 'Swoole') {
             if (swoole_version() < '6.1.0') {
                 $this->stdoutLogger->warning('Swoole coroutine mode does not support kill tasks');
                 return false;
             }
-            \Swoole\Coroutine::cancel($runRequest->getId(), true);
+            $time = time();
+            while (\Swoole\Coroutine::exists($cid)) {
+                \Swoole\Coroutine::cancel($cid, true);
+                \Swoole\Coroutine::sleep(0.3);
+                if (time() - $time > 5) {
+                    break;
+                }
+            }
+        } elseif (Constant::ENGINE == 'Swow') {
+            \Swow\Coroutine::get($cid)?->kill();
         } else {
-            \Swow\Coroutine::get($runRequest->getId())?->kill();
+            $this->stdoutLogger->warning('coroutine mode does not support kill tasks');
+            return false;
         }
 
         if ($msg) {
@@ -63,6 +72,13 @@ class JobExecutorCoroutine extends AbstractJobExecutor
             });
         }
 
-        $this->jobRun->executeCoroutine($request, $callback);
+        $this->executeCoroutine($request, $callback);
+    }
+
+    public function executeCoroutine(RunRequest $request, callable $callback): int
+    {
+        return \Hyperf\Coroutine\Coroutine::create(function () use ($request, $callback) {
+            $this->execute($request, $callback);
+        });
     }
 }

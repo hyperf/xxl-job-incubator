@@ -35,7 +35,7 @@ class ScriptHandler extends AbstractGlueHandler
         if (! $this->config->getAccessToken()) {
             throw new GlueHandlerExecutionException('No configuration value of AccessToken, cannot handle ALL Script Glue Type');
         }
-        $this->jobRun->executeCoroutine($request, function (RunRequest $request) {
+        $this->jobExecutorCoroutine->executeCoroutine($request, function (RunRequest $request) {
             $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime());
             if (! is_file($filePath)) {
                 file_put_contents($filePath, $request->getGlueSource());
@@ -55,7 +55,7 @@ class ScriptHandler extends AbstractGlueHandler
         $executorTimeout = $request->getExecutorTimeout();
         $process = new Process([$bin, $filePath, $request->getExecutorParams(), $request->getBroadcastIndex(), $request->getBroadcastTotal()], timeout: $executorTimeout > 0 ? $executorTimeout : null);
         $process->start();
-        $filename = $this->jobRun->putJobFileInfo($process->getPid(), $request);
+        $filename = $this->jobExecutorProcess->putJobFileInfo($process->getPid(), $request);
         try {
             $process->wait(function ($type, $buffer): void {
                 $buffer = trim($buffer);

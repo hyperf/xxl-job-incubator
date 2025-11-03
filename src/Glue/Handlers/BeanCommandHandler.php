@@ -20,6 +20,6 @@ class BeanCommandHandler extends BeanHandler implements GlueHandlerInterface
     {
         $executorHandler = $request->getExecutorHandler();
         $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
-        $this->jobRun->execute($request, $this->executeCallable($jobDefinition));
+        $this->jobExecutorProcess->execute($request, $this->executeCallable($jobDefinition));
     }
 }

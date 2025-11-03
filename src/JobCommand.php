@@ -16,6 +16,7 @@ use Hyperf\Command\Annotation\Command;
 use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
+use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
 use Hyperf\XxlJob\Service\Executor\JobRun;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -26,7 +27,7 @@ class JobCommand extends HyperfCommand
 
     public function __construct(
         protected BeanCommandHandler $handler,
-        protected JobRun $jobRun,
+        protected JobExecutorProcess $jobExecutorProcess,
     ) {
         parent::__construct(self::COMMAND_NAME);
     }
@@ -46,7 +47,7 @@ class JobCommand extends HyperfCommand
             throw new XxlJobException('JobId cannot be empty');
         }
         $jobId = intval($data['jobId']);
-        $infoArr = $this->jobRun->getJobFileInfo($jobId);
+        $infoArr = $this->jobExecutorProcess->getJobFileInfo($jobId);
         $this->handler->handle($infoArr['runRequest']);
     }
 }

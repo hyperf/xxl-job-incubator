@@ -41,7 +41,10 @@ class RunRequest extends BaseRequest implements JsonSerializable
 
     protected int $broadcastTotal; // 分片参数：总分片
 
-    protected int $_id; // 运行的id
+    /**
+     * @var array ["cid" => "value","pid" => "value"]
+     */
+    protected array $_extension; // 扩展信息
 
     public function getJobId(): int
     {
@@ -103,16 +106,6 @@ class RunRequest extends BaseRequest implements JsonSerializable
         return $this->broadcastTotal;
     }
 
-    public function getId(): int
-    {
-        return $this->_id;
-    }
-
-    public function setId(int $id): void
-    {
-        $this->_id = $id;
-    }
-
     public function jsonSerialize(): array
     {
         return get_object_vars($this);
@@ -126,5 +119,18 @@ class RunRequest extends BaseRequest implements JsonSerializable
     public function isCoverLater(): bool
     {
         return $this->getExecutorBlockStrategy() == ExecutorBlockStrategyEnum::DISCARD_LATER;
+    }
+
+    /**
+     * @param string $key cid or pid
+     */
+    public function getExtension(string $key)
+    {
+        return $this->_extension[$key] ?? null;
+    }
+
+    public function setExtension(string $key, $value): void
+    {
+        $this->_extension[$key] = $value;
     }
 }

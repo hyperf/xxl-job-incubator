@@ -18,12 +18,11 @@ class JobSerialExecutionService extends BaseService
 
     public function handle(?RunRequest $runRequest = null, int $killJobId = 0): void
     {
-        $running = JobRunContent::getId($killJobId);
         // kill job
         if ($killJobId > 0) {
             $this->sendKillMsg($killJobId);
             $this->remove($killJobId);
-            if ($running) {
+            if ($running = JobRunContent::getId($killJobId)) {
                 $this->kill($killJobId, $running->getLogId(), 'Job toStop, stopReason:scheduling center kill job.');
             }
             return;
@@ -31,6 +30,7 @@ class JobSerialExecutionService extends BaseService
 
         // run job
         $jobId = $runRequest->getJobId();
+        $running = JobRunContent::getId($jobId);
         if ($runRequest->isCoverLater() && $running) {
             $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, 'block strategy effect：Discard Later');
             return;
