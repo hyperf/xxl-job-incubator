@@ -34,10 +34,14 @@ class JobExecutorCoroutine extends AbstractJobExecutor
         if (Constant::ENGINE == 'Swoole' && swoole_version() >= '6.1.0') {
             $time = time();
             while (\Swoole\Coroutine::exists($cid)) {
-                \Swoole\Coroutine::cancel($cid, true);
-                \Swoole\Coroutine::sleep(0.3);
-                if (time() - $time > 5) {
-                    break;
+                try {
+                    \Swoole\Coroutine::cancel($cid, true);
+                    \Swoole\Coroutine::sleep(0.3);
+                    if (time() - $time > 5) {
+                        break;
+                    }
+                }catch (\Throwable $throwable){
+                    $this->stdoutLogger->error($throwable->getMessage());
                 }
             }
         } elseif (Constant::ENGINE == 'Swow') {

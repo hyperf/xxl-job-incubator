@@ -6,7 +6,6 @@ namespace Hyperf\XxlJob\Service;
 
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Channel;
-use Hyperf\XxlJob\Locker;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 
@@ -32,32 +31,51 @@ class JobSerialExecutionService extends BaseService
         $jobId = $runRequest->getJobId();
         $running = JobRunContent::getId($jobId);
         if ($runRequest->isCoverLater() && $running) {
-            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, 'block strategy effect：Discard Later');
+            $this->callback($runRequest, 500, 'block strategy effect：Discard Later');
             return;
         }
         if ($runRequest->isCoverEarly()) {
-            $this->coverEarlyJob($jobId, $runRequest);
+            $key = 'coverEarlyJob_' . $jobId;
+            $this->channels[$key] ??= new Channel(500);
+            $this->channels[$key]->push($runRequest, 5);
+            $this->coverEarlyJobLoop($key);
             return;
         }
-        $this->channels[$jobId] ??= new Channel(1000);
-        $this->channels[$jobId]->push($runRequest, 5);
-        $this->loop($jobId);
+        $this->pushJob($jobId, $runRequest);
     }
 
-    protected function coverEarlyJob(int $jobId, RunRequest $runRequest): void
+    protected function coverEarlyJobLoop(string $key): void
     {
-        $key = 'coverEarlyJob_' . $jobId;
-        Locker::lock($key);
-        try {
-            $running = JobRunContent::getId($jobId);
-            if ($running) {
-                $this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]');
-                JobRunContent::yield($running->getLogId(), 2);
-            }
-            $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
-        } finally {
-            Locker::unlock($key);
+        $mark = $this->mark[$key] ?? false;
+        if ($mark) {
+            return;
         }
+        $this->mark[$key] = true;
+
+        Coroutine::create(function () use ($key) {
+            try {
+                while (true) {
+                    $channels = $this->channels[$key] ?? null;
+                    $runRequest = $channels?->pop(600);
+                    if (! $runRequest instanceof RunRequest) {
+                        return;
+                    }
+                    $jobId = $runRequest->getJobId();
+                    $running = JobRunContent::getId($jobId);
+                    if ($running) {
+                        $this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]');
+                        JobRunContent::yield($running->getLogId(), 6);
+                    }
+                    if ($channels->length() > 1) {
+                        $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
+                        continue;
+                    }
+                    $this->pushJob($jobId, $runRequest);
+                }
+            } finally {
+                $this->removeCoverEarlyJob($key);
+            }
+        });
     }
 
     protected function loop(int $jobId): void
@@ -72,13 +90,12 @@ class JobSerialExecutionService extends BaseService
             try {
                 while (true) {
                     $channels = $this->channels[$jobId] ?? null;
-                    $runRequest = $channels?->pop(-1);
-                    if ($runRequest instanceof RunRequest) {
-                        $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
-                        JobRunContent::yield($runRequest->getLogId());
-                    } else {
+                    $runRequest = $channels?->pop(600);
+                    if (! $runRequest instanceof RunRequest) {
                         return;
                     }
+                    $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+                    JobRunContent::yield($runRequest->getLogId());
                 }
             } finally {
                 $this->remove($jobId);
@@ -91,7 +108,17 @@ class JobSerialExecutionService extends BaseService
         unset($this->channels[$jobId], $this->mark[$jobId]);
     }
 
-    private function sendKillMsg(int $jobId): void
+    protected function removeCoverEarlyJob(string $key): void
+    {
+        unset($this->channels[$key], $this->mark[$key]);
+    }
+
+    protected function callback(RunRequest $runRequest, int $handleCode = 200, $handleMsg = null)
+    {
+        $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), $handleCode, $handleMsg);
+    }
+
+    protected function sendKillMsg(int $jobId): void
     {
         $data = [];
         $channel = $this->channels[$jobId] ?? null;
@@ -103,5 +130,15 @@ class JobSerialExecutionService extends BaseService
             $data[] = $tmp;
         }
         $this->apiRequest->multipleCallback($data, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
+    }
+
+    /**
+     * push job.
+     */
+    protected function pushJob(int $jobId, ?RunRequest $runRequest): void
+    {
+        $this->channels[$jobId] ??= new Channel(1000);
+        $this->channels[$jobId]->push($runRequest, 5);
+        $this->loop($jobId);
     }
 }
