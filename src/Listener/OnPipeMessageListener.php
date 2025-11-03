@@ -14,6 +14,7 @@ namespace Hyperf\XxlJob\Listener;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Coroutine\Coroutine;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Process\Event\PipeMessage as UserProcessPipeMessage;
 use Hyperf\XxlJob\JobPipeMessage;
@@ -46,7 +47,9 @@ class OnPipeMessageListener implements ListenerInterface
     {
         if ($event instanceof UserProcessPipeMessage) {
             if ($event->data instanceof JobPipeMessage) {
-                $this->jobSerialExecutionService->handle($event->data->runRequest, $event->data->killJobId);
+                Coroutine::create(function () use ($event) {
+                    $this->jobSerialExecutionService->handle($event->data->runRequest, $event->data->killJobId);
+                });
             }
         }
     }
