@@ -31,11 +31,7 @@ class JobExecutorCoroutine extends AbstractJobExecutor
             return true;
         }
         $cid = $runRequest->getExtension('cid');
-        if (Constant::ENGINE == 'Swoole') {
-            if (swoole_version() < '6.1.0') {
-                $this->stdoutLogger->warning('Swoole coroutine mode does not support kill tasks');
-                return false;
-            }
+        if (Constant::ENGINE == 'Swoole' && swoole_version() >= '6.1.0') {
             $time = time();
             while (\Swoole\Coroutine::exists($cid)) {
                 \Swoole\Coroutine::cancel($cid, true);
@@ -47,7 +43,7 @@ class JobExecutorCoroutine extends AbstractJobExecutor
         } elseif (Constant::ENGINE == 'Swow') {
             \Swow\Coroutine::get($cid)?->kill();
         } else {
-            $this->stdoutLogger->warning('coroutine mode does not support kill tasks');
+            $this->stdoutLogger->error('the current mode does not support killing jobs');
             return false;
         }
 
