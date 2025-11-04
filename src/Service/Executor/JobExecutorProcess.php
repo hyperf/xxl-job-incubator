@@ -21,6 +21,8 @@ use Symfony\Component\Process\Exception\ProcessSignaledException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\Process;
 
+use const DIRECTORY_SEPARATOR;
+
 class JobExecutorProcess extends AbstractJobExecutor
 {
     protected static array $content = [];
@@ -40,36 +42,28 @@ class JobExecutorProcess extends AbstractJobExecutor
 
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
-        $infoArr = $this->getJobFileInfo($jobId);
-        if (empty($infoArr)) {
-            $this->stdoutLogger->warning('xxl-job task has ended');
+        $runRequest = JobRunContent::getId($jobId);
+        if (empty($runRequest)) {
             return true;
         }
-        $runRequest = $infoArr['runRequest'];
-        $pid = $infoArr['pid'];
-        $logId = $logId ?: $runRequest->getLogId();
-        $logDateTime = $runRequest->getLogDateTime();
-        $bool = true;
-        if (! $pid || $pid == -1) {
-            @unlink($infoArr['filePath']);
-            $bool = false;
-            $this->stdoutLogger->error('xxl-job kill error, the job is being started');
-        }
-        $result = shell_exec("kill -9 {$pid}");
-        if ($result) {
-            $bool = false;
-            $this->stdoutLogger->error("xxl-job kill error with PID {$pid}");
+
+        /** @var Process $runProcess */
+        $runProcess = $runRequest->getExtension('process');
+        // windows
+        if ('\\' === DIRECTORY_SEPARATOR) {
+            $runProcess->stop();
         } else {
-            // $this->stdoutLogger->error("xxl-job kill error with PID {$pid}, logId {$logId}");
-            @unlink($infoArr['filePath']);
+            $pid = $runProcess->getPid();
+            $process = new Process(['kill', '-9', (string) $pid]);
+            $process->run();
         }
 
-        if ($bool && $msg) {
+        if ($msg) {
             JobContext::setJobLogId($logId);
             $this->jobExecutorLogger->warning($msg);
-            $this->apiRequest->callback($logId, $logDateTime, 500, $msg);
+            $this->apiRequest->callback($logId, $runRequest->getLogDateTime(), 500, $msg);
         }
-        return $bool;
+        return true;
     }
 
     public function run(RunRequest $request, ?callable $callback): void
@@ -118,6 +112,7 @@ class JobExecutorProcess extends AbstractJobExecutor
                 $executorTimeout = $request->getExecutorTimeout();
                 $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
                 $process->start();
+                $request->setExtension('process', $process);
                 $filename = $this->putJobFileInfo($process->getPid(), $request);
                 $process->wait(
                     // function ($type, $buffer): void {
@@ -138,8 +133,11 @@ class JobExecutorProcess extends AbstractJobExecutor
                 $this->stdoutLogger->warning($msg . ' JobId:' . $request->getJobId());
                 $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $msg);
             } finally {
-                ! empty($filename) && @unlink($filename);
-                JobRunContent::remove($request->getJobId(), $request->getLogId());
+                try {
+                    ! empty($filename) && @unlink($filename);
+                } finally {
+                    JobRunContent::remove($request->getJobId(), $request->getLogId());
+                }
             }
         });
     }

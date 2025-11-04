@@ -122,7 +122,7 @@ class RunRequest extends BaseRequest implements JsonSerializable
     }
 
     /**
-     * @param string $key cid or pid
+     * @param string $key cid or process
      */
     public function getExtension(string $key)
     {
