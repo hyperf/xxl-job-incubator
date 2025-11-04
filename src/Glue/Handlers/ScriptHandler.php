@@ -19,14 +19,12 @@ use Symfony\Component\Process\Process;
 
 class ScriptHandler extends AbstractGlueHandler
 {
-    protected string $scriptDir = BASE_PATH . '/runtime/xxl_job/glue_scripts/';
-
     protected string $glueType;
 
     public function handle(RunRequest $request)
     {
-        if (! is_dir($this->scriptDir)) {
-            mkdir($this->scriptDir, 0777, true);
+        if (! is_dir($this->getScriptDir())) {
+            mkdir($this->getScriptDir(), 0777, true);
         }
         $this->glueType = $request->getGlueType();
         if (! GlueEnum::isScript($this->glueType)) {
@@ -46,7 +44,12 @@ class ScriptHandler extends AbstractGlueHandler
 
     protected function generateFilePath(int $logId, int $glueUpdateTime): string
     {
-        return $this->scriptDir . $logId . '-' . $glueUpdateTime . $this->getFileSuffix($this->glueType);
+        return $this->getScriptDir() . $logId . '-' . $glueUpdateTime . $this->getFileSuffix($this->glueType);
+    }
+
+    protected function getScriptDir(): string
+    {
+        return dirname($this->config->getLogFileDir(), 1) . '/glue_scripts/';
     }
 
     protected function executeCmd(string $filePath, RunRequest $request): void
