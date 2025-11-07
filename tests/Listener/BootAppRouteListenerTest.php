@@ -42,7 +42,7 @@ class BootAppRouteListenerTest extends TestCase
     public function testInitAnnotationRouteWithMethodBean()
     {
         $container = m::mock(ContainerInterface::class);
-        $container->shouldReceive('get')->with(Config::class)->andReturn(m::mock(Config::class));
+        $container->shouldReceive('get')->with(Config::class)->andReturn(new Config());
         $container->shouldReceive('get')->with(XxlJobRoute::class)->andReturn(m::mock(XxlJobRoute::class));
         $container->shouldReceive('get')->with(DispatcherFactory::class)->andReturn(m::mock(DispatcherFactory::class));
         $container->shouldReceive('get')->with(ConfigInterface::class)->andReturn(m::mock(ConfigInterface::class));
