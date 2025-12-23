@@ -108,13 +108,11 @@ class JobSerialExecutionService extends BaseService
 
     protected function remove(int $jobId): void
     {
-        $this->channels[$jobId]?->close();
         unset($this->channels[$jobId], $this->mark[$jobId]);
     }
 
     protected function removeCoverEarlyJob(string $key): void
     {
-        $this->channels[$key]?->close();
         unset($this->channels[$key], $this->mark[$key]);
     }
 
