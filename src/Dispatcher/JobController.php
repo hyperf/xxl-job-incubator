@@ -49,7 +49,7 @@ class JobController extends BaseController
             $data = [
                 'code' => 500,
                 'msg' => 'Failed to read the log, the file does not exists',
-                'content' => [
+                'data' => [
                     'fromLineNum' => $logRequest->getFromLineNum(),
                     'toLineNum' => $logContent->getEndLine(),
                     'logContent' => '',
@@ -62,7 +62,7 @@ class JobController extends BaseController
         $data = [
             'code' => 200,
             'msg' => null,
-            'content' => [
+            'data' => [
                 'fromLineNum' => $logRequest->getFromLineNum(),
                 'toLineNum' => $logContent->getEndLine(),
                 'logContent' => $logContent->getContent(),
@@ -71,6 +71,8 @@ class JobController extends BaseController
             ],
         ];
 
+        // 兼容适配老版本
+        $data['content'] = $data['data'];
         return $this->response($data);
     }
 

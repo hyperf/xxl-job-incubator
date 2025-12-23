@@ -11,6 +11,9 @@ use Hyperf\XxlJob\Service\Executor\JobRunContent;
 
 class JobSerialExecutionService extends BaseService
 {
+    /**
+     * @var Channel[]
+     */
     protected array $channels = [];
 
     protected array $mark = [];
@@ -56,7 +59,7 @@ class JobSerialExecutionService extends BaseService
             try {
                 while (true) {
                     $channels = $this->channels[$key] ?? null;
-                    $runRequest = $channels?->pop(600);
+                    $runRequest = $channels?->pop(60);
                     if (! $runRequest instanceof RunRequest) {
                         return;
                     }
@@ -90,7 +93,7 @@ class JobSerialExecutionService extends BaseService
             try {
                 while (true) {
                     $channels = $this->channels[$jobId] ?? null;
-                    $runRequest = $channels?->pop(600);
+                    $runRequest = $channels?->pop(60);
                     if (! $runRequest instanceof RunRequest) {
                         return;
                     }
@@ -105,11 +108,13 @@ class JobSerialExecutionService extends BaseService
 
     protected function remove(int $jobId): void
     {
+        $this->channels[$jobId]?->close();
         unset($this->channels[$jobId], $this->mark[$jobId]);
     }
 
     protected function removeCoverEarlyJob(string $key): void
     {
+        $this->channels[$key]?->close();
         unset($this->channels[$key], $this->mark[$key]);
     }
 
