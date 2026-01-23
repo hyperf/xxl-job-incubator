@@ -21,9 +21,9 @@ class JobDispatcherProcess extends AbstractProcess
 {
     public const JOB_DISPATCHER_NAME = 'xxj-job-dispatcher';
 
-    public string $name = self::JOB_DISPATCHER_NAME;
+    public $name = self::JOB_DISPATCHER_NAME;
 
-    public int $nums = 1;
+    public $nums = 1;
 
     protected Config $xxlConfig;
 

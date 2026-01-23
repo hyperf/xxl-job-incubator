@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service;
 
-use Hyperf\Coroutine\Coroutine;
+use Hyperf\Engine\Coroutine;
 use Hyperf\Engine\Channel;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;

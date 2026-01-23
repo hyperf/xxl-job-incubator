@@ -14,7 +14,6 @@ namespace Hyperf\XxlJob\Listener;
 
 use Exception;
 use Hyperf\Contract\ConfigInterface;
-use Hyperf\Contract\IPReaderInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Di\Annotation\AnnotationCollector;
 use Hyperf\Engine\Constant;
@@ -22,7 +21,8 @@ use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
-use Hyperf\Support\Network;
+use Hyperf\ServiceGovernance\IPReaderInterface;
+use Hyperf\Utils\Network;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\Coroutine\Coroutine;
+use Hyperf\Engine\Coroutine;
 use Hyperf\ExceptionHandler\Formatter\FormatterInterface;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;

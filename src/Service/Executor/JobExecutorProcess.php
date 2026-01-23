@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service\Executor;
 
-use Hyperf\Coroutine\Coroutine;
+use Hyperf\Engine\Coroutine;
 use Hyperf\XxlJob\JobCommand;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Listener\BootAppRouteListener;

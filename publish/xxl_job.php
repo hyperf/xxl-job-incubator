@@ -10,8 +10,6 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 
-use function Hyperf\Support\env;
-
 return [
     'enable' => env('XXL_JOB_ENABLE', true),
     'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8080/xxl-job-admin'),

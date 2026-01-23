@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service\Executor;
 
-use Hyperf\Coordinator\Coordinator;
+use Hyperf\Utils\Coordinator\Coordinator;
 use Hyperf\XxlJob\Requests\RunRequest;
 
 class JobRunContent

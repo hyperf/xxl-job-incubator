@@ -19,7 +19,7 @@
 ## 安装
 
 ```
-composer require hyperf/xxl-job-incubator
+composer require tangwei/xxl-job
 ```
 
 ## 使用
@@ -68,7 +68,7 @@ return [
 如文件不存在可通过以下命令发布配置文件
 
 ```bash
-php bin/hyperf.php vendor:publish hyperf/xxl-job-incubator
+php bin/hyperf.php vendor:publish tangwei/xxl-job
 ```
 
 ### Bean 模式(类形式)

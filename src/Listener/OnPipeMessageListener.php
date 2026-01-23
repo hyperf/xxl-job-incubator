@@ -14,7 +14,7 @@ namespace Hyperf\XxlJob\Listener;
 
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\Coroutine\Coroutine;
+use Hyperf\Engine\Coroutine;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Process\Event\PipeMessage as UserProcessPipeMessage;
 use Hyperf\XxlJob\JobPipeMessage;

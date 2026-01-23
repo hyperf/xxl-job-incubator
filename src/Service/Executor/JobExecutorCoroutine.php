@@ -77,7 +77,7 @@ class JobExecutorCoroutine extends AbstractJobExecutor
 
     public function executeCoroutine(RunRequest $request, callable $callback): int
     {
-        return \Hyperf\Coroutine\Coroutine::create(function () use ($request, $callback) {
+        return \Hyperf\Engine\Coroutine::create(function () use ($request, $callback) {
             $this->execute($request, $callback);
         });
     }

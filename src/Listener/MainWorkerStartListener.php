@@ -12,21 +12,20 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Listener;
 
-use Hyperf\Codec\Json;
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\Coordinator\Constants;
-use Hyperf\Coordinator\CoordinatorManager;
-use Hyperf\Coroutine\Coroutine;
+use Hyperf\Engine\Coroutine;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\MainWorkerStart;
 use Hyperf\Server\Event\MainCoroutineServerStart;
+use Hyperf\Utils\Codec\Json;
+use Hyperf\Utils\Coordinator\Constants;
+use Hyperf\Utils\Coordinator\CoordinatorManager;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Logger\JobExecutorFileLogger;
 use Throwable;
 
-use function Hyperf\Support\retry;
 
 class MainWorkerStartListener implements ListenerInterface
 {
