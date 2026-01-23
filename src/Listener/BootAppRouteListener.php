@@ -21,7 +21,6 @@ use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Server\ServerInterface;
-use Hyperf\ServiceGovernance\IPReaderInterface;
 use Hyperf\Utils\Network;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
@@ -106,13 +105,9 @@ class BootAppRouteListener implements ListenerInterface
         $this->xxlJobRoute->add($httpServerRouter, $executorServerPrefixUrl);
 
         if (empty($executorServerHost)) {
-            if ($this->container->has(IPReaderInterface::class)) {
-                $executorServerHost = $this->container->get(IPReaderInterface::class)->read();
-            } else {
-                $executorServerHost = $serverConfig['host'];
-                if (in_array($executorServerHost, ['0.0.0.0', 'localhost'])) {
-                    $executorServerHost = Network::ip();
-                }
+            $executorServerHost = $serverConfig['host'];
+            if (in_array($executorServerHost, ['0.0.0.0', 'localhost'])) {
+                $executorServerHost = Network::ip();
             }
             $executorServerPort = $serverConfig['port'];
         }
