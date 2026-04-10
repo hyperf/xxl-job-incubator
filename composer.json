@@ -1,5 +1,5 @@
 {
-    "name": "tangwei/xxl-job",
+    "name": "hyperf/xxl-job-incubator",
     "description": "php hyperf xxljob",
     "license": "MIT",
     "keywords": [
