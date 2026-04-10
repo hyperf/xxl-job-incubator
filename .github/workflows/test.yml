@@ -3,43 +3,37 @@ name: PHPUnit
 on: [ push, pull_request ]
 
 jobs:
-  tests:
-    name: Test PHP ${{ matrix.php-version }} ${{ matrix.sw-version }}
-    runs-on: "${{ matrix.os }}"
-    timeout-minutes: 20
+  ci:
+    runs-on: ubuntu-latest
+    container: hyperf/hyperf:${{ matrix.hyperf-version }}
     strategy:
       matrix:
-        os: [ ubuntu-latest ]
-        php-version: [ '8.1', '8.2', '8.3' ]
-        sw-version: [ 'v5.1.7', 'master' ]
-      max-parallel: 3
+        hyperf-version:
+          - "8.1-alpine-v3.19-swoole"
+          - "8.2-alpine-v3.22-swoole"
+          - "8.3-alpine-v3.23-swoole"
+      fail-fast: false
+      max-parallel: 15
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          tools: phpize
-          ini-values: opcache.enable_cli=0
-          coverage: none
-      - name: Setup Swoole
+      - name: Setup Environment
         run: |
-          sudo apt-get update
-          sudo apt-get install libcurl4-openssl-dev
-          wget https://github.com/swoole/swoole-src/archive/${{ matrix.sw-version }}.tar.gz -O swoole.tar.gz
-          mkdir -p swoole
-          tar -xf swoole.tar.gz -C swoole --strip-components=1
-          rm swoole.tar.gz
-          cd swoole
-          phpize
-          ./configure --enable-openssl --enable-http2 --enable-swoole-curl --enable-swoole-json
-          make -j$(nproc)
-          sudo make install
-          sudo sh -c "echo extension=swoole > /etc/php/${{ matrix.php-version }}/cli/conf.d/swoole.ini"
-          sudo sh -c "echo swoole.use_shortname='Off' >> /etc/php/${{ matrix.php-version }}/cli/conf.d/swoole.ini"
+          pwd
+          ls -al
+          php -v
+          php -m
           php --ri swoole
-      - name: Setup Packages
-        run: composer update -o --no-scripts
-      - name: Run Test Cases
+          composer -V
+
+      - name: Install Dependencies
+        run: |
+          composer update -o --no-scripts
+          composer info
+
+      - name: Static Analysis
+        run: composer analyse
+
+      - name: Run Tests
         run: composer test
