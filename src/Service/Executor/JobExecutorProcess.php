@@ -1,14 +1,6 @@
 <?php
 
 declare(strict_types=1);
-/**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
- */
 
 namespace Hyperf\XxlJob\Service\Executor;
 
@@ -52,12 +44,13 @@ class JobExecutorProcess extends AbstractJobExecutor
         if (! $runProcess) {
             return true;
         }
+        $pid = $runProcess->getPid();
         // windows
         if ('\\' === DIRECTORY_SEPARATOR) {
             $runProcess->stop();
-        } else {
-            $pid = $runProcess->getPid();
-            $process = new Process(['kill', '-9', (string) $pid]);
+        } elseif ($pid) {
+            $realPids = $this->getPidByPpid($pid);
+            $process = new Process(['kill', '-9', ...$realPids, (string) $pid]);
             $process->run();
         }
 
@@ -67,6 +60,13 @@ class JobExecutorProcess extends AbstractJobExecutor
             $this->apiRequest->callback($logId, $runRequest->getLogDateTime(), 500, $msg);
         }
         return true;
+    }
+
+    public function getPidByPpid(int $ppid): array
+    {
+        $pids = shell_exec("pgrep -P {$ppid}");
+        $pids = trim($pids);
+        return $pids ? explode(' ', $pids) : [];
     }
 
     public function run(RunRequest $request, ?callable $callback): void
