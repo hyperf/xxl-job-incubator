@@ -49,6 +49,9 @@ class JobExecutorProcess extends AbstractJobExecutor
 
         /** @var Process $runProcess */
         $runProcess = $runRequest->getExtension('process');
+        if (! $runProcess) {
+            return true;
+        }
         // windows
         if ('\\' === DIRECTORY_SEPARATOR) {
             $runProcess->stop();

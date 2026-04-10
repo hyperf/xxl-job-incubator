@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service;
 
-use Hyperf\Engine\Coroutine;
 use Hyperf\Engine\Channel;
+use Hyperf\Engine\Coroutine;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 
@@ -33,10 +33,12 @@ class JobSerialExecutionService extends BaseService
         // run job
         $jobId = $runRequest->getJobId();
         $running = JobRunContent::getId($jobId);
+        // 丢弃后续调度
         if ($runRequest->isCoverLater() && $running) {
             $this->callback($runRequest, 500, 'block strategy effect：Discard Later');
             return;
         }
+        // 覆盖之前调度
         if ($runRequest->isCoverEarly()) {
             $key = 'coverEarlyJob_' . $jobId;
             $this->channels[$key] ??= new Channel(500);
@@ -56,6 +58,26 @@ class JobSerialExecutionService extends BaseService
         $this->mark[$key] = true;
 
         Coroutine::create(function () use ($key) {
+            while (true) {
+                $channels = $this->channels[$key] ?? null;
+                if (! $channels) {
+                    return;
+                }
+                if ($channels->length() > 1) {
+                    $runRequest = $channels->pop(60);
+                    if (! $runRequest instanceof RunRequest) {
+                        return;
+                    }
+                    Coroutine::create(function () use ($runRequest) {
+                        $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
+                    });
+                } else {
+                    sleep(1);
+                }
+            }
+        });
+
+        Coroutine::create(function () use ($key) {
             try {
                 while (true) {
                     $channels = $this->channels[$key] ?? null;
@@ -69,7 +91,7 @@ class JobSerialExecutionService extends BaseService
                         $this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]');
                         JobRunContent::yield($running->getLogId(), 6);
                     }
-                    if ($channels->length() > 1) {
+                    if ($channels->length() > 0) {
                         $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
                         continue;
                     }

@@ -15,6 +15,7 @@ namespace Hyperf\XxlJob\Glue\Handlers;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Symfony\Component\Process\Process;
 
 class ScriptHandler extends AbstractGlueHandler
@@ -58,6 +59,7 @@ class ScriptHandler extends AbstractGlueHandler
         $executorTimeout = $request->getExecutorTimeout();
         $process = new Process([$bin, $filePath, $request->getExecutorParams(), $request->getBroadcastIndex(), $request->getBroadcastTotal()], timeout: $executorTimeout > 0 ? $executorTimeout : null);
         $process->start();
+        $request->setExtension('process', $process);
         $filename = $this->jobExecutorProcess->putJobFileInfo($process->getPid(), $request);
         try {
             $process->wait(function ($type, $buffer): void {
@@ -69,7 +71,11 @@ class ScriptHandler extends AbstractGlueHandler
                 }
             });
         } finally {
-            @unlink($filename);
+            try {
+                ! empty($filename) && @unlink($filename);
+            } finally {
+                JobRunContent::remove($request->getJobId(), $request->getLogId());
+            }
         }
     }
 
