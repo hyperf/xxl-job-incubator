@@ -71,8 +71,6 @@ class JobController extends BaseController
             ],
         ];
 
-        // 兼容适配老版本
-        $data['content'] = $data['data'];
         return $this->response($data);
     }
 
