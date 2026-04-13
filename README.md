@@ -19,7 +19,7 @@
 ## 安装
 
 ```
-composer require tangwei/xxl-job
+composer require hyperf/xxl-job-incubator
 ```
 
 ## 使用
