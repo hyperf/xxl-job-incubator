@@ -50,7 +50,8 @@ class JobExecutorProcess extends AbstractJobExecutor
             $runProcess->stop();
         } elseif ($pid) {
             $realPids = $this->getPidByPpid($pid);
-            $process = new Process(['kill', '-9', ...$realPids, (string) $pid]);
+            $realPids[] = (string) $pid;
+            $process = new Process(['kill', '-9', ...$realPids]);
             $process->run();
         }
 
@@ -65,8 +66,8 @@ class JobExecutorProcess extends AbstractJobExecutor
     public function getPidByPpid(int $ppid): array
     {
         $pids = shell_exec("pgrep -P {$ppid}");
-        $pids = trim($pids);
-        return $pids ? explode(' ', $pids) : [];
+        $pids = trim((string) $pids);
+        return $pids ? explode(PHP_EOL, $pids) : [];
     }
 
     public function run(RunRequest $request, ?callable $callback): void
