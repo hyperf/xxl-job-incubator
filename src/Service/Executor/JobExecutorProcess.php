@@ -112,6 +112,7 @@ class JobExecutorProcess extends AbstractJobExecutor
         $this->stdoutLogger->debug('XXL-JOB execute commands:' . implode(' ', $command));
         Coroutine::create(function () use ($command, $request) {
             try {
+                $message = '';
                 JobContext::setJobLogId($request->getLogId());
                 $executorTimeout = $request->getExecutorTimeout();
                 $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
@@ -129,16 +130,21 @@ class JobExecutorProcess extends AbstractJobExecutor
                     // }
                 );
             } catch (ProcessSignaledException $e) {
-                $message = sprintf('XXL-JOB: JobId:%s LogId:%s warning:%s', $request->getJobId(), $request->getLogId(), $e->getMessage());
+                $message = sprintf('XXL-JOB: JobId:%s LogId:%s %s', $request->getJobId(), $request->getLogId(), $e->getMessage());
                 $this->stdoutLogger->warning($message);
             } catch (ProcessTimedOutException) {
-                $msg = 'scheduling center kill job. [job running, killed]';
-                $this->jobExecutorLogger->warning($msg);
-                $this->stdoutLogger->warning($msg . ' JobId:' . $request->getJobId());
-                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $msg);
+                $message = 'scheduling center kill job. [job running, killed]';
+                $this->jobExecutorLogger->warning($message);
+                $this->stdoutLogger->warning($message . ' JobId:' . $request->getJobId());
+                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
             } finally {
                 try {
                     ! empty($filename) && @unlink($filename);
+                    if (empty($message) && ! empty($process) && ! $process->isSuccessful()) {
+                        $message = $process->getErrorOutput();
+                        $warningMsg = sprintf('XXL-JOB: JobId:%s LogId:%s %s', $request->getJobId(), $request->getLogId(), $message);
+                        $this->stdoutLogger->warning($warningMsg);
+                    }
                 } finally {
                     JobRunContent::remove($request->getJobId(), $request->getLogId());
                 }
