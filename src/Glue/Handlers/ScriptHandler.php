@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
@@ -73,6 +74,9 @@ class ScriptHandler extends AbstractGlueHandler
         } finally {
             try {
                 ! empty($filename) && @unlink($filename);
+                if (! $process->isSuccessful()) {
+                    throw new XxlJobException($process->getErrorOutput());
+                }
             } finally {
                 JobRunContent::remove($request->getJobId(), $request->getLogId());
             }

@@ -69,8 +69,8 @@ abstract class AbstractJobExecutor implements JobExecutorInterface
                 $message = $formatter->format($throwable);
                 // $message = str_replace(PHP_EOL, '<br>', $message);
             }
-            $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
             $this->jobExecutorLogger->error($message);
+            $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
             throw $throwable;
         } finally {
             JobRunContent::remove($request->getJobId(), $request->getLogId());
