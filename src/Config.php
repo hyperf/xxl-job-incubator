@@ -49,6 +49,9 @@ class Config
 
     private string $executionMode = '';
 
+    /** Max lifetime of the dispatcher process in seconds, 0 = never restart */
+    private int $maxProcessLifetime = 0;
+
     public function getExecutionMode(): string
     {
         return $this->executionMode;
@@ -208,5 +211,16 @@ class Config
     public function setLogFileDir(string $logFileDir): void
     {
         $this->logFileDir = $logFileDir;
+    }
+
+    public function getMaxProcessLifetime(): int
+    {
+        return $this->maxProcessLifetime;
+    }
+
+    public function setMaxProcessLifetime(int $maxProcessLifetime): Config
+    {
+        $this->maxProcessLifetime = $maxProcessLifetime;
+        return $this;
     }
 }

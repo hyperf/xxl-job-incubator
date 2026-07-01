@@ -34,6 +34,14 @@ class JobRunContent
         return isset(self::$content[$jobId]);
     }
 
+    /**
+     * Get all currently running job IDs.
+     */
+    public static function getRunningJobIds(): array
+    {
+        return array_keys(self::$content);
+    }
+
     public static function setJobId(int $jobId, RunRequest $runRequest): void
     {
         self::$content[$jobId] = $runRequest;

@@ -17,6 +17,7 @@ return [
     'access_token' => env('XXL_JOB_ACCESS_TOKEN', ''),
     'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
     'log_retention_days' => 30,
+    'max_process_lifetime' => env('XXL_JOB_MAX_PROCESS_LIFETIME', -1),
     'executor_server' => [
         // executor host (no Settings, automatically obtained)
         'host' => env('XXL_JOB_EXECUTOR_HOST'),
