@@ -42,7 +42,11 @@ class JobSerialExecutionService extends BaseService
         if ($runRequest->isCoverEarly()) {
             $key = 'coverEarlyJob_' . $jobId;
             $this->channels[$key] ??= new Channel(500);
-            $this->channels[$key]->push($runRequest, 5);
+            $result = $this->channels[$key]->push($runRequest, 5);
+            if (! $result) {
+                $this->callback($runRequest, 500, 'CoverEarly job queue is full, please try again later.');
+                return;
+            }
             $this->coverEarlyJobLoop($key);
             return;
         }
@@ -163,7 +167,12 @@ class JobSerialExecutionService extends BaseService
     protected function pushJob(int $jobId, ?RunRequest $runRequest): void
     {
         $this->channels[$jobId] ??= new Channel(1000);
-        $this->channels[$jobId]->push($runRequest, 5);
+        $result = $this->channels[$jobId]->push($runRequest, 5);
+        if (! $result) {
+            // Channel 满且超时，回调失败通知 Admin，防止任务静默丢失
+            $this->callback($runRequest, 500, 'Job queue is full, please try again later.');
+            return;
+        }
         $this->loop($jobId);
     }
 }
