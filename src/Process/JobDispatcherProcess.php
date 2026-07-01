@@ -19,7 +19,7 @@ use Psr\Container\ContainerInterface;
 
 class JobDispatcherProcess extends AbstractProcess
 {
-    public const JOB_DISPATCHER_NAME = 'xxj-job-dispatcher';
+    public const JOB_DISPATCHER_NAME = 'xxl-job-dispatcher';
 
     public string $name = self::JOB_DISPATCHER_NAME;
 
