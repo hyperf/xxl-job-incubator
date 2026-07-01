@@ -37,6 +37,7 @@ class ConfigFactory
             $instance->setGuzzleConfig($config->get('xxl_job.guzzle.config'));
         }
         $instance->setLogRetentionDays($config->get('xxl_job.log_retention_days') ?? -1);
+        $instance->setMaxProcessLifetime((int) ($config->get('xxl_job.max_process_lifetime') ?? -1));
 
         $phpBinaryFinder = new PhpExecutableFinder();
         $phpBinaryPath = $phpBinaryFinder->find();
