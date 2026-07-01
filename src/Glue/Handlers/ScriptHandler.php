@@ -26,7 +26,7 @@ class ScriptHandler extends AbstractGlueHandler
     public function handle(RunRequest $request)
     {
         if (! is_dir($this->getScriptDir())) {
-            mkdir($this->getScriptDir(), 0777, true);
+            mkdir($this->getScriptDir(), 0755, true);
         }
         $this->glueType = $request->getGlueType();
         if (! GlueEnum::isScript($this->glueType)) {

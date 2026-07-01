@@ -48,7 +48,7 @@ class ConfigFactory
             $logFileDir = BASE_PATH . '/runtime/xxl_job/logs/';
         }
         if (! is_dir($logFileDir)) {
-            mkdir($logFileDir, 0777, true);
+            mkdir($logFileDir, 0755, true);
         }
         $instance->setLogFileDir($logFileDir);
 
