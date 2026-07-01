@@ -23,55 +23,63 @@ class JobController extends BaseController
 {
     public function run(): ResponseInterface
     {
-        $runRequest = RunRequest::create($this->input());
-        $message = sprintf('Received a XXL-JOB, JobId:%s LogId:%s GlueType:%s', $runRequest->getJobId(), $runRequest->getLogId(), $runRequest->getGlueType());
-        if ($runRequest->getGlueType() === GlueEnum::BEAN) {
-            $message .= sprintf(' ExecutorHandler:%s', $runRequest->getExecutorHandler());
-        }
-        $this->stdoutLogger->debug($message);
-
         try {
+            $runRequest = RunRequest::create($this->input());
+            $message = sprintf('Received a XXL-JOB, JobId:%s LogId:%s GlueType:%s', $runRequest->getJobId(), $runRequest->getLogId(), $runRequest->getGlueType());
+            if ($runRequest->getGlueType() === GlueEnum::BEAN) {
+                $message .= sprintf(' ExecutorHandler:%s', $runRequest->getExecutorHandler());
+            }
+            $this->stdoutLogger->debug($message);
+
             $this->jobService->executorBlockStrategy($runRequest);
+            return $this->responseSuccess();
         } catch (XxlJobException $exception) {
             $this->stdoutLogger->warning($exception->getMessage());
             return $this->responseFail($exception->getMessage());
+        } catch (Throwable $throwable) {
+            $this->stdoutLogger->error((string) $throwable);
+            return $this->responseFail('Internal server error: ' . $throwable->getMessage());
         }
-        return $this->responseSuccess();
     }
 
     public function log(): ResponseInterface
     {
-        $logRequest = LogRequest::create($this->input());
+        try {
+            $logRequest = LogRequest::create($this->input());
 
-        $logContent = $this->jobExecutorLogger->retrieveLog($logRequest->getLogId(), $logRequest->getLogDateTim(), $logRequest->getFromLineNum(), -1);
+            $logContent = $this->jobExecutorLogger->retrieveLog($logRequest->getLogId(), $logRequest->getLogDateTim(), $logRequest->getFromLineNum(), -1);
 
-        if ($logContent->getEndLine() <= 0) {
+            if ($logContent->getEndLine() <= 0) {
+                $data = [
+                    'code' => 500,
+                    'msg' => 'Failed to read the log, the file does not exists',
+                    'data' => [
+                        'fromLineNum' => $logRequest->getFromLineNum(),
+                        'toLineNum' => $logContent->getEndLine(),
+                        'logContent' => '',
+                        'isEnd' => true,
+                    ],
+                ];
+                return $this->response($data);
+            }
+
             $data = [
-                'code' => 500,
-                'msg' => 'Failed to read the log, the file does not exists',
+                'code' => 200,
+                'msg' => null,
                 'data' => [
                     'fromLineNum' => $logRequest->getFromLineNum(),
                     'toLineNum' => $logContent->getEndLine(),
-                    'logContent' => '',
+                    'logContent' => $logContent->getContent(),
+                    // The XXL-JOB Server will not rolling load the log content even isEnd returns false, so make sure all log content has been retrieved.
                     'isEnd' => true,
                 ],
             ];
+
             return $this->response($data);
+        } catch (Throwable $throwable) {
+            $this->stdoutLogger->error((string) $throwable);
+            return $this->responseFail($throwable->getMessage());
         }
-
-        $data = [
-            'code' => 200,
-            'msg' => null,
-            'data' => [
-                'fromLineNum' => $logRequest->getFromLineNum(),
-                'toLineNum' => $logContent->getEndLine(),
-                'logContent' => $logContent->getContent(),
-                // The XXL-JOB Server will not rolling load the log content even isEnd returns false, so make sure all log content has been retrieved.
-                'isEnd' => true,
-            ],
-        ];
-
-        return $this->response($data);
     }
 
     public function beat(): ResponseInterface
@@ -81,17 +89,22 @@ class JobController extends BaseController
 
     public function idleBeat(): ResponseInterface
     {
-        $jobId = $this->input()['jobId'];
-        $isRun = $this->jobService->isRun($jobId);
-        if ($isRun) {
-            return $this->responseFail('job thread is running or has trigger queue.');
+        try {
+            $jobId = $this->input()['jobId'] ?? 0;
+            $isRun = $this->jobService->isRun($jobId);
+            if ($isRun) {
+                return $this->responseFail('job thread is running or has trigger queue.');
+            }
+            return $this->responseSuccess();
+        } catch (Throwable $throwable) {
+            $this->stdoutLogger->error((string) $throwable);
+            return $this->responseFail($throwable->getMessage());
         }
-        return $this->responseSuccess();
     }
 
     public function kill(): ResponseInterface
     {
-        $jobId = $this->input()['jobId'];
+        $jobId = $this->input()['jobId'] ?? 0;
         try {
             $this->jobService->send(killJobId: $jobId);
             $this->stdoutLogger->info("XXL-JOB, kill the jobId:{$jobId} successfully");
