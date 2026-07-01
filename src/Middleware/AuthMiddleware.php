@@ -47,7 +47,7 @@ class AuthMiddleware implements MiddlewareInterface
         }
 
         $token = $request->getHeaderLine('xxl-job-access-token') ?? '';
-        if ($token !== $configToken) {
+        if (! hash_equals($configToken, $token)) {
             $response = $this->container->get(HttpResponse::class);
             return $response->json([
                 'code' => 401,
