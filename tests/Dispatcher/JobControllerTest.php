@@ -116,7 +116,7 @@ class JobControllerTest extends TestCase
 
     public function testRunCatchesGenericThrowable(): void
     {
-        $this->mockInput(['jobId' => 1, 'logId' => 100, 'glueType' => 'BEAN']);
+        $this->mockInput(['jobId' => 1, 'logId' => 100, 'glueType' => 'BEAN', 'executorHandler' => 'demoHandler']);
         $this->mockResponse();
 
         $this->stdoutLogger->shouldReceive('debug')->once();
