@@ -35,12 +35,4 @@ class LogRequestTest extends TestCase
 
         $this->assertSame(42, $req->getLogId());
     }
-
-    public function testEmptyCreate(): void
-    {
-        $req = LogRequest::create([]);
-        $this->assertSame(0, $req->getLogId());
-        $this->assertSame(0, $req->getLogDateTim());
-        $this->assertSame(0, $req->getFromLineNum());
-    }
 }

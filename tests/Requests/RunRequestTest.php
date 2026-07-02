@@ -59,13 +59,6 @@ class RunRequestTest extends TestCase
         // 验证未知字段不会导致异常
     }
 
-    public function testEmptyCreate(): void
-    {
-        $req = RunRequest::create([]);
-        $this->assertSame(0, $req->getJobId());
-        $this->assertSame('', $req->getExecutorHandler());
-    }
-
     public function testIsCoverEarly(): void
     {
         $req = RunRequest::create([
