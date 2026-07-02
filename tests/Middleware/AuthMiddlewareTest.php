@@ -34,8 +34,8 @@ class AuthMiddlewareTest extends TestCase
         $config->setAccessToken('');
 
         $container = m::mock(ContainerInterface::class);
-        $request  = m::mock(ServerRequestInterface::class);
-        $handler  = m::mock(RequestHandlerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
 
         $handler->shouldReceive('handle')->with($request)->once()->andReturn(
             m::mock(ResponseInterface::class)
@@ -48,7 +48,7 @@ class AuthMiddlewareTest extends TestCase
     }
 
     /**
-     * Token 匹配时应放行并注入 logId 到 JobContext
+     * Token 匹配时应放行并注入 logId 到 JobContext.
      */
     public function testPassesWhenTokenMatches(): void
     {
@@ -56,8 +56,8 @@ class AuthMiddlewareTest extends TestCase
         $config->setAccessToken('secret-token');
 
         $container = m::mock(ContainerInterface::class);
-        $request  = m::mock(ServerRequestInterface::class);
-        $handler  = m::mock(RequestHandlerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
             ->with('xxl-job-access-token')
@@ -79,7 +79,7 @@ class AuthMiddlewareTest extends TestCase
     }
 
     /**
-     * Token 不匹配时应返回 401
+     * Token 不匹配时应返回 401.
      */
     public function testReturns401WhenTokenMismatch(): void
     {
@@ -90,8 +90,8 @@ class AuthMiddlewareTest extends TestCase
         $httpResponse = m::mock(HttpResponse::class);
 
         $container = m::mock(ContainerInterface::class);
-        $request  = m::mock(ServerRequestInterface::class);
-        $handler  = m::mock(RequestHandlerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
             ->with('xxl-job-access-token')
@@ -123,7 +123,7 @@ class AuthMiddlewareTest extends TestCase
     }
 
     /**
-     * 请求头中缺少 token 时返回 401
+     * 请求头中缺少 token 时返回 401.
      */
     public function testReturns401WhenTokenMissing(): void
     {
@@ -134,8 +134,8 @@ class AuthMiddlewareTest extends TestCase
         $httpResponse = m::mock(HttpResponse::class);
 
         $container = m::mock(ContainerInterface::class);
-        $request  = m::mock(ServerRequestInterface::class);
-        $handler  = m::mock(RequestHandlerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
             ->with('xxl-job-access-token')
@@ -166,7 +166,7 @@ class AuthMiddlewareTest extends TestCase
     }
 
     /**
-     * 请求体缺少 logId 时，应安全处理（传入 null）
+     * 请求体缺少 logId 时，应安全处理（传入 null）.
      */
     public function testHandlesMissingLogIdGracefully(): void
     {
@@ -174,8 +174,8 @@ class AuthMiddlewareTest extends TestCase
         $config->setAccessToken('secret-token');
 
         $container = m::mock(ContainerInterface::class);
-        $request  = m::mock(ServerRequestInterface::class);
-        $handler  = m::mock(RequestHandlerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
             ->with('xxl-job-access-token')

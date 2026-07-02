@@ -16,8 +16,8 @@ class LogRequestTest extends TestCase
     public function testCreateFromArray(): void
     {
         $req = LogRequest::create([
-            'logDateTim'  => 20240101120000,
-            'logId'       => 999,
+            'logDateTim' => 20240101120000,
+            'logId' => 999,
             'fromLineNum' => 1,
         ]);
 
@@ -29,7 +29,7 @@ class LogRequestTest extends TestCase
     public function testCreateFiltersUnknownKeys(): void
     {
         $req = LogRequest::create([
-            'logId'    => 42,
+            'logId' => 42,
             'extraKey' => 'should-not-exist',
         ]);
 

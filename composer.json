@@ -29,6 +29,7 @@
         "symfony/process": "^5.4 || ^6.0 || ^7.0"
     },
     "require-dev": {
+        "hyperf/testing": "~3.1.0|~3.2.0",
         "friendsofphp/php-cs-fixer": "^3.0",
         "mockery/mockery": "^1.0",
         "phpstan/phpstan": "^1.0",
@@ -59,7 +60,7 @@
         "sort-packages": true
     },
     "scripts": {
-        "test": "phpunit -c phpunit.xml --colors=always",
+        "test": "co-phpunit -c phpunit.xml --colors=always",
         "analyse": "phpstan analyse --memory-limit 1024M -l 0 ./src",
         "cs-fix": "php-cs-fixer fix src && php-cs-fixer fix tests"
     }

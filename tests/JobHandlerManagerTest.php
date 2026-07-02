@@ -40,7 +40,7 @@ class JobHandlerManagerTest extends TestCase
         $manager->registerJobHandler('myHandler', $definition1);
 
         $this->expectException(RegisterJobHandlerException::class);
-        $this->expectExceptionMessage("xxl-job jobHandler myHandler naming conflicts.");
+        $this->expectExceptionMessage('xxl-job jobHandler myHandler naming conflicts.');
 
         $manager->registerJobHandler('myHandler', $definition2);
     }

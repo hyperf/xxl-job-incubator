@@ -16,6 +16,7 @@ use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use RuntimeException;
 
 /**
  * @internal
@@ -23,26 +24,25 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class JobControllerTest extends TestCase
 {
-    /** @var JobController */
     protected JobController $controller;
 
     protected ContainerInterface&m\MockInterface $container;
 
-    protected StdoutLoggerInterface&m\MockInterface $stdoutLogger;
+    protected m\MockInterface&StdoutLoggerInterface $stdoutLogger;
 
     protected JobExecutorLoggerInterface&m\MockInterface $jobExecutorLogger;
 
     protected JobService&m\MockInterface $jobService;
 
-    protected ServerRequestInterface&m\MockInterface $request;
+    protected m\MockInterface&ServerRequestInterface $request;
 
     protected function setUp(): void
     {
-        $this->container        = m::mock(ContainerInterface::class);
-        $this->stdoutLogger     = m::mock(StdoutLoggerInterface::class);
+        $this->container = m::mock(ContainerInterface::class);
+        $this->stdoutLogger = m::mock(StdoutLoggerInterface::class);
         $this->jobExecutorLogger = m::mock(JobExecutorLoggerInterface::class);
-        $this->jobService       = m::mock(JobService::class);
-        $this->request          = m::mock(ServerRequestInterface::class);
+        $this->jobService = m::mock(JobService::class);
+        $this->request = m::mock(ServerRequestInterface::class);
 
         $this->controller = new JobController(
             $this->container,
@@ -57,35 +57,14 @@ class JobControllerTest extends TestCase
         m::close();
     }
 
-    protected function mockInput(array $data): void
-    {
-        $this->request->shouldReceive('getParsedBody')->andReturn($data);
-        $this->container->shouldReceive('get')
-            ->with(ServerRequestInterface::class)
-            ->andReturn($this->request);
-    }
-
-    protected function mockResponse(): void
-    {
-        $response = m::mock(HttpResponseContract::class);
-        $response->shouldReceive('withAddedHeader')
-            ->with('content-type', 'application/json')
-            ->andReturnSelf();
-        $response->shouldReceive('withBody')
-            ->andReturnSelf();
-        $this->container->shouldReceive('get')
-            ->with(HttpResponseContract::class)
-            ->andReturn($response);
-    }
-
     // ─── run() ────────────────────────────────────────────────
 
     public function testRunSuccess(): void
     {
         $this->mockInput([
-            'jobId'           => 1,
-            'logId'           => 100,
-            'glueType'        => 'BEAN',
+            'jobId' => 1,
+            'logId' => 100,
+            'glueType' => 'BEAN',
             'executorHandler' => 'demoHandler',
         ]);
         $this->mockResponse();
@@ -123,7 +102,7 @@ class JobControllerTest extends TestCase
         $this->stdoutLogger->shouldReceive('error')->once();
         $this->jobService->shouldReceive('executorBlockStrategy')
             ->once()
-            ->andThrow(new \RuntimeException('unexpected error'));
+            ->andThrow(new RuntimeException('unexpected error'));
 
         $response = $this->controller->run();
         $this->assertInstanceOf(HttpResponseContract::class, $response);
@@ -179,7 +158,7 @@ class JobControllerTest extends TestCase
         $this->mockResponse();
 
         $this->stdoutLogger->shouldReceive('error')->once();
-        $this->jobService->shouldReceive('isRun')->once()->andThrow(new \RuntimeException('boom'));
+        $this->jobService->shouldReceive('isRun')->once()->andThrow(new RuntimeException('boom'));
 
         $response = $this->controller->idleBeat();
         $this->assertInstanceOf(HttpResponseContract::class, $response);
@@ -205,7 +184,7 @@ class JobControllerTest extends TestCase
         $this->mockResponse();
 
         $this->stdoutLogger->shouldReceive('error')->once();
-        $this->jobService->shouldReceive('send')->once()->andThrow(new \RuntimeException('kill failed'));
+        $this->jobService->shouldReceive('send')->once()->andThrow(new RuntimeException('kill failed'));
 
         $response = $this->controller->kill();
         $this->assertInstanceOf(HttpResponseContract::class, $response);
@@ -216,8 +195,8 @@ class JobControllerTest extends TestCase
     public function testLogReturnsSuccessWhenFileExists(): void
     {
         $this->mockInput([
-            'logDateTim'  => 20240101120000,
-            'logId'       => 500,
+            'logDateTim' => 20240101120000,
+            'logId' => 500,
             'fromLineNum' => 0,
         ]);
         $this->mockResponse();
@@ -235,8 +214,8 @@ class JobControllerTest extends TestCase
     public function testLogReturnsErrorWhenFileNotFound(): void
     {
         $this->mockInput([
-            'logDateTim'  => 20240101120000,
-            'logId'       => 999,
+            'logDateTim' => 20240101120000,
+            'logId' => 999,
             'fromLineNum' => 0,
         ]);
         $this->mockResponse();
@@ -258,9 +237,30 @@ class JobControllerTest extends TestCase
         $this->stdoutLogger->shouldReceive('error')->once();
         $this->jobExecutorLogger->shouldReceive('retrieveLog')
             ->once()
-            ->andThrow(new \RuntimeException('disk full'));
+            ->andThrow(new RuntimeException('disk full'));
 
         $response = $this->controller->log();
         $this->assertInstanceOf(HttpResponseContract::class, $response);
+    }
+
+    protected function mockInput(array $data): void
+    {
+        $this->request->shouldReceive('getParsedBody')->andReturn($data);
+        $this->container->shouldReceive('get')
+            ->with(ServerRequestInterface::class)
+            ->andReturn($this->request);
+    }
+
+    protected function mockResponse(): void
+    {
+        $response = m::mock(HttpResponseContract::class);
+        $response->shouldReceive('withAddedHeader')
+            ->with('content-type', 'application/json')
+            ->andReturnSelf();
+        $response->shouldReceive('withBody')
+            ->andReturnSelf();
+        $this->container->shouldReceive('get')
+            ->with(HttpResponseContract::class)
+            ->andReturn($response);
     }
 }

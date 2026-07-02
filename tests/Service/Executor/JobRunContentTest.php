@@ -24,26 +24,6 @@ class JobRunContentTest extends TestCase
         $this->resetStaticState();
     }
 
-    private function resetStaticState(): void
-    {
-        $ref = new ReflectionClass(JobRunContent::class);
-        $contentProp = $ref->getProperty('content');
-        $contentProp->setAccessible(true);
-        $contentProp->setValue(null, []);
-
-        $channelsProp = $ref->getProperty('channels');
-        $channelsProp->setAccessible(true);
-        $channelsProp->setValue(null, []);
-    }
-
-    private function createRunRequest(int $jobId = 1, int $logId = 100): RunRequest
-    {
-        return RunRequest::create([
-            'jobId' => $jobId,
-            'logId' => $logId,
-        ]);
-    }
-
     public function testSetAndGetJobId(): void
     {
         $req = $this->createRunRequest(42, 999);
@@ -125,7 +105,7 @@ class JobRunContentTest extends TestCase
     }
 
     /**
-     * remove() 应通过 Coordinator 的 resume() 唤醒 yield() 等待者
+     * remove() 应通过 Coordinator 的 resume() 唤醒 yield() 等待者.
      */
     public function testRemoveResumesYieldingCoroutine(): void
     {
@@ -138,5 +118,25 @@ class JobRunContentTest extends TestCase
         JobRunContent::remove(1, 500);
 
         $this->assertFalse(JobRunContent::has(1));
+    }
+
+    private function resetStaticState(): void
+    {
+        $ref = new ReflectionClass(JobRunContent::class);
+        $contentProp = $ref->getProperty('content');
+        $contentProp->setAccessible(true);
+        $contentProp->setValue(null, []);
+
+        $channelsProp = $ref->getProperty('channels');
+        $channelsProp->setAccessible(true);
+        $channelsProp->setValue(null, []);
+    }
+
+    private function createRunRequest(int $jobId = 1, int $logId = 100): RunRequest
+    {
+        return RunRequest::create([
+            'jobId' => $jobId,
+            'logId' => $logId,
+        ]);
     }
 }

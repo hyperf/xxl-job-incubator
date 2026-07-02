@@ -10,26 +10,26 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\Requests\RunRequest
  * @covers \Hyperf\XxlJob\Requests\BaseRequest
+ * @covers \Hyperf\XxlJob\Requests\RunRequest
  */
 class RunRequestTest extends TestCase
 {
     public function testCreateFromArray(): void
     {
         $data = [
-            'jobId'                => 1,
-            'executorHandler'      => 'demoJobHandler',
-            'executorParams'       => '--foo=bar',
+            'jobId' => 1,
+            'executorHandler' => 'demoJobHandler',
+            'executorParams' => '--foo=bar',
             'executorBlockStrategy' => ExecutorBlockStrategyEnum::SERIAL_EXECUTION,
-            'executorTimeout'      => 60,
-            'logId'                => 12345,
-            'logDateTime'          => 20240101120000,
-            'glueType'             => 'BEAN',
-            'glueSource'           => 'echo hello',
-            'glueUpdatetime'       => 20240101000000,
-            'broadcastIndex'       => 0,
-            'broadcastTotal'       => 1,
+            'executorTimeout' => 60,
+            'logId' => 12345,
+            'logDateTime' => 20240101120000,
+            'glueType' => 'BEAN',
+            'glueSource' => 'echo hello',
+            'glueUpdatetime' => 20240101000000,
+            'broadcastIndex' => 0,
+            'broadcastTotal' => 1,
         ];
 
         $req = RunRequest::create($data);

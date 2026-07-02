@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace HyperfTest\XxlJob;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\RequestOptions;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\RequestOptions;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;

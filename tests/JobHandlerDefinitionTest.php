@@ -53,10 +53,10 @@ class JobHandlerDefinitionTest extends TestCase
         $def = new JobHandlerDefinition('', '', '', '', '');
 
         $result = $def->setClass('Foo')
-                      ->setMethod('bar')
-                      ->setInit('init')
-                      ->setDestroy('cleanup')
-                      ->setExecutionMode('process');
+            ->setMethod('bar')
+            ->setInit('init')
+            ->setDestroy('cleanup')
+            ->setExecutionMode('process');
 
         $this->assertSame($def, $result);
         $this->assertSame('Foo', $def->getClass());
