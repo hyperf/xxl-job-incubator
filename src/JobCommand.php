@@ -17,7 +17,6 @@ use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
-use Hyperf\XxlJob\Service\Executor\JobRun;
 use Symfony\Component\Console\Input\InputOption;
 
 #[Command]

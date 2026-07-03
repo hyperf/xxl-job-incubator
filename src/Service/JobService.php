@@ -14,9 +14,7 @@ namespace Hyperf\XxlJob\Service;
 
 use Hyperf\Engine\Constant;
 use Hyperf\Process\ProcessCollector;
-use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
-use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Process\JobDispatcherProcess;

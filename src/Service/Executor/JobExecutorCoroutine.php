@@ -16,6 +16,7 @@ use Hyperf\Engine\Constant;
 use Hyperf\Engine\Coroutine;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Throwable;
 
 class JobExecutorCoroutine extends AbstractJobExecutor
 {
@@ -40,7 +41,7 @@ class JobExecutorCoroutine extends AbstractJobExecutor
                     if (time() - $time > 5) {
                         break;
                     }
-                }catch (\Throwable $throwable){
+                } catch (Throwable $throwable) {
                     $this->stdoutLogger->error($throwable->getMessage());
                 }
             }

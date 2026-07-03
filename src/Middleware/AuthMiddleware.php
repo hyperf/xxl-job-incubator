@@ -43,7 +43,11 @@ class AuthMiddleware implements MiddlewareInterface
     {
         $configToken = $this->xxlConfig->getAccessToken();
         if (! $configToken) {
-            return $handler->handle($request);
+            $response = $this->container->get(HttpResponse::class);
+            return $response->json([
+                'code' => 500,
+                'msg' => 'The access token is not configured. Please configure xxl_job.access_token.',
+            ])->withStatus(500);
         }
 
         $token = $request->getHeaderLine('xxl-job-access-token') ?? '';

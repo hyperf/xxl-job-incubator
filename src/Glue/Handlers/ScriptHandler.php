@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Glue\Handlers;
 
-use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -31,9 +30,6 @@ class ScriptHandler extends AbstractGlueHandler
         $this->glueType = $request->getGlueType();
         if (! GlueEnum::isScript($this->glueType)) {
             return;
-        }
-        if (! $this->config->getAccessToken()) {
-            throw new GlueHandlerExecutionException('No configuration value of AccessToken, cannot handle ALL Script Glue Type');
         }
         $this->jobExecutorCoroutine->executeCoroutine($request, function (RunRequest $request) {
             $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime());

@@ -1,10 +1,19 @@
 <?php
 
 declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 
 namespace HyperfTest\XxlJob;
 
 use Hyperf\Contract\ConfigInterface;
+use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\ConfigFactory;
 use Mockery as m;
@@ -40,8 +49,14 @@ class ConfigFactoryTest extends TestCase
         $hyperfConfig->shouldReceive('get')->with('xxl_job.start_command')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.file_logger.dir')->andReturn(null);
 
+        $stdoutLogger = m::mock(StdoutLoggerInterface::class);
+        $stdoutLogger->shouldReceive('warning')
+            ->once()
+            ->with('xxl_job.access_token is not configured. All executor requests will be rejected.');
+
         $container = m::mock(ContainerInterface::class);
         $container->shouldReceive('get')->with(ConfigInterface::class)->andReturn($hyperfConfig);
+        $container->shouldReceive('get')->with(StdoutLoggerInterface::class)->andReturn($stdoutLogger);
 
         $factory = new ConfigFactory();
         /** @var Config $config */
@@ -115,8 +130,14 @@ class ConfigFactoryTest extends TestCase
         $hyperfConfig->shouldReceive('get')->with('xxl_job.start_command')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.file_logger.dir')->andReturn(null);
 
+        $stdoutLogger = m::mock(StdoutLoggerInterface::class);
+        $stdoutLogger->shouldReceive('warning')
+            ->once()
+            ->with('xxl_job.access_token is not configured. All executor requests will be rejected.');
+
         $container = m::mock(ContainerInterface::class);
         $container->shouldReceive('get')->with(ConfigInterface::class)->andReturn($hyperfConfig);
+        $container->shouldReceive('get')->with(StdoutLoggerInterface::class)->andReturn($stdoutLogger);
 
         $factory = new ConfigFactory();
         /** @var Config $config */

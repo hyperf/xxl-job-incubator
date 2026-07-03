@@ -26,25 +26,42 @@ class AuthMiddlewareTest extends TestCase
     }
 
     /**
-     * 当未配置 access_token 时，应直接放行请求
+     * 当未配置 access_token 时，应返回 500 拒绝请求（而非直接放行）.
      */
-    public function testBypassWhenTokenNotConfigured(): void
+    public function testRejectsWhenTokenNotConfigured(): void
     {
         $config = new Config();
         $config->setAccessToken('');
+
+        $jsonResponse = m::mock(ResponseInterface::class);
+        $httpResponse = m::mock(HttpResponse::class);
 
         $container = m::mock(ContainerInterface::class);
         $request = m::mock(ServerRequestInterface::class);
         $handler = m::mock(RequestHandlerInterface::class);
 
-        $handler->shouldReceive('handle')->with($request)->once()->andReturn(
-            m::mock(ResponseInterface::class)
-        );
+        $httpResponse->shouldReceive('json')
+            ->with(['code' => 500, 'msg' => 'The access token is not configured. Please configure xxl_job.access_token.'])
+            ->once()
+            ->andReturn($jsonResponse);
+
+        $jsonResponse->shouldReceive('withStatus')
+            ->with(500)
+            ->once()
+            ->andReturnSelf();
+
+        $container->shouldReceive('get')
+            ->with(HttpResponse::class)
+            ->once()
+            ->andReturn($httpResponse);
+
+        // handler 不应被调用
+        $handler->shouldNotReceive('handle');
 
         $middleware = new AuthMiddleware($container, $config);
         $result = $middleware->process($request, $handler);
 
-        $this->assertInstanceOf(ResponseInterface::class, $result);
+        $this->assertSame($jsonResponse, $result);
     }
 
     /**
