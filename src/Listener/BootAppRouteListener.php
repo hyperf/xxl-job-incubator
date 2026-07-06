@@ -119,6 +119,7 @@ class BootAppRouteListener implements ListenerInterface
 
         $scheme = $executorServerPort == 443 ? 'https' : 'http';
         $url = sprintf('%s://%s:%s/%s', $scheme, $executorServerHost, $executorServerPort, $executorServerPrefixUrl);
+        $this->logger->debug(sprintf('XXL-JOB Executor client URL: %s', $url));
         $this->xxlConfig->setClientUrl($url);
     }
 
