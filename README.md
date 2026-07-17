@@ -268,6 +268,28 @@ class DemoJob
 }
 ```
 
+### 命令行直接调用
+
+支持不依赖 XXL-JOB Admin 调度中心，直接在命令行调用已注册的 Job Handler，方便开发调试和手动触发任务。
+
+```bash
+# 直接调用已注册的 Handler
+php bin/hyperf.php execute:xxl-job --handler=demoJobHandler
+
+# 带参数调用
+php bin/hyperf.php execute:xxl-job --handler=demoJobHandler --params='{"key":"value"}'
+
+# 带参数字符串调用
+php bin/hyperf.php execute:xxl-job --handler=paramJobHandler --params='url: http://www.baidu.com\nmethod: get'
+```
+
+| 参数 | 说明 |
+|------|------|
+| `--handler` | (必填) 任务 Handler 名称，对应 `#[XxlJob]` 注解中的 value 值 |
+| `--params` | (可选) 任务参数，传入后可通过 `RunRequest::getExecutorParams()` 获取 |
+
+> 该方式通过构造一个模拟的 `RunRequest` 直接执行任务，`jobId` 和 `logId` 均为 0，不会向 XXL-JOB Admin 回调执行结果。
+
 ### Glue 脚本模式
 
 该模式下，可支持任务以将源码方式维护在调度中心，支持通过 XXL-JOB 提供的 Web IDE 在线编写代码和在线更新，因此不需要指定固定的 `JobHandler`   

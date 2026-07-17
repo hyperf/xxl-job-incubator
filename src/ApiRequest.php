@@ -79,8 +79,11 @@ class ApiRequest
      * @param null|mixed $handleMsg
      * @throws GuzzleException
      */
-    public function callback(int $logId, int $logDateTim, int $handleCode = 200, $handleMsg = null): ResponseInterface
+    public function callback(int $logId, int $logDateTim, int $handleCode = 200, $handleMsg = null): ?ResponseInterface
     {
+        if ($logId <= 0) {
+            return null;
+        }
         $body = [[
             'logId' => $logId,
             'logDateTim' => $logDateTim,

@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Glue\Handlers;
 
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Requests\RunRequest;
 
 class BeanCommandHandler extends BeanHandler implements GlueHandlerInterface
@@ -20,6 +21,9 @@ class BeanCommandHandler extends BeanHandler implements GlueHandlerInterface
     {
         $executorHandler = $request->getExecutorHandler();
         $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
+        if (! $jobDefinition) {
+            throw new XxlJobException(sprintf('Job handler [%s] not found', $executorHandler));
+        }
         $this->jobExecutorProcess->execute($request, $this->executeCallable($jobDefinition));
     }
 }
