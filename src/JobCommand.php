@@ -41,7 +41,7 @@ class JobCommand extends HyperfCommand
 
         // Direct invocation from command line without XXL-JOB admin
         $this->addOption('handler', null, InputOption::VALUE_OPTIONAL, 'The executor handler name for direct CLI invocation');
-        $this->addOption('params', null, InputOption::VALUE_OPTIONAL, 'The executor params passed to the handler (JSON string)');
+        $this->addOption('params', null, InputOption::VALUE_OPTIONAL, 'The executor params passed to the handler');
     }
     public function handle()
     {
