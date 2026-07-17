@@ -16,6 +16,7 @@ use Hyperf\Command\Annotation\Command;
 use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
+use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -34,19 +35,37 @@ class JobCommand extends HyperfCommand
     public function configure()
     {
         parent::configure();
-        $this->setDescription('Execute xxl-job');
-        $this->addOption('jobId', 'j', InputOption::VALUE_REQUIRED, 'the job id executed by xxl job');
-        $this->addOption('logId', 'l', InputOption::VALUE_OPTIONAL, 'the log id executed by xxl job');
-    }
+        $this->setDescription('Execute XXL-JOB task by jobId (via admin scheduler) or by handler name (direct CLI invocation)');
+        $this->addOption('jobId', 'j', InputOption::VALUE_OPTIONAL, 'The job ID scheduled by XXL-JOB admin');
+        $this->addOption('logId', 'l', InputOption::VALUE_OPTIONAL, 'The log ID associated with this execution');
 
+        // Direct invocation from command line without XXL-JOB admin
+        $this->addOption('handler', null, InputOption::VALUE_OPTIONAL, 'The executor handler name for direct CLI invocation');
+        $this->addOption('params', null, InputOption::VALUE_OPTIONAL, 'The executor params passed to the handler (JSON string)');
+    }
     public function handle()
     {
         $data = $this->input->getOptions();
-        if (! $data['jobId']) {
-            throw new XxlJobException('JobId cannot be empty');
+        if (empty($data['jobId']) && empty($data['handler'])) {
+            throw new XxlJobException('JobId or handler cannot be empty');
         }
-        $jobId = intval($data['jobId']);
-        $infoArr = $this->jobExecutorProcess->getJobFileInfo($jobId);
-        $this->handler->handle($infoArr['runRequest']);
+        if (!empty($data['jobId'])) {
+            $jobId = intval($data['jobId']);
+            $infoArr = $this->jobExecutorProcess->getJobFileInfo($jobId);
+            $this->handler->handle($infoArr['runRequest']);
+        } elseif (!empty($data['handler'])) {
+            $runRequestArr = [
+                'executorHandler' => $data['handler'],
+                'jobId'           => 0,
+                'logId'           => intval($data['logId'] ?? 0),
+                'logDateTime'     => intval(microtime(true) * 1000),
+                'executorParams'  => $data['params'] ?? '',
+                'executorBlockStrategy' => 'SERIAL_EXECUTION',
+            ];
+            $runRequest = RunRequest::create($runRequestArr);
+            $this->handler->handle($runRequest);
+        } else {
+            throw new XxlJobException('logId is required when using jobId, or use --handler for direct call');
+        }
     }
 }
