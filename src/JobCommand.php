@@ -14,8 +14,11 @@ namespace Hyperf\XxlJob;
 
 use Hyperf\Command\Annotation\Command;
 use Hyperf\Command\Command as HyperfCommand;
+use Hyperf\Di\Container;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
+use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
+use Hyperf\XxlJob\Logger\JobExecutorStdoutLogger;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
 use Symfony\Component\Console\Input\InputOption;
@@ -28,6 +31,7 @@ class JobCommand extends HyperfCommand
     public function __construct(
         protected BeanCommandHandler $handler,
         protected JobExecutorProcess $jobExecutorProcess,
+        protected Container $container,
     ) {
         parent::__construct(self::COMMAND_NAME);
     }
@@ -54,6 +58,7 @@ class JobCommand extends HyperfCommand
             $infoArr = $this->jobExecutorProcess->getJobFileInfo($jobId);
             $this->handler->handle($infoArr['runRequest']);
         } elseif (!empty($data['handler'])) {
+            $this->container->define(JobExecutorLoggerInterface::class, JobExecutorStdoutLogger::class);
             $runRequestArr = [
                 'executorHandler' => $data['handler'],
                 'jobId'           => 0,
