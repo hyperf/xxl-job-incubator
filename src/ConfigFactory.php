@@ -28,7 +28,7 @@ class ConfigFactory
         $instance->setAccessToken($config->get('xxl_job.access_token') ?? '');
         if (! $instance->getAccessToken()) {
             $container->get(StdoutLoggerInterface::class)
-                ->warning('xxl_job.access_token is not configured. All executor requests will be rejected.');
+                ->debug('xxl_job.access_token is not configured. All executor requests will be rejected.');
         }
         $adminAddressArr = parse_url($config->get('xxl_job.admin_address') ?? 'http://127.0.0.1:8080/xxl-job-admin');
         $instance->setBaseUri(sprintf('%s://%s:%s', $adminAddressArr['scheme'], $adminAddressArr['host'], $adminAddressArr['port'] ?? ($adminAddressArr['scheme'] == 'https' ? 443 : 80)));
