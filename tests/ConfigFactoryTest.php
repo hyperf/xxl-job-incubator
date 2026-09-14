@@ -50,7 +50,7 @@ class ConfigFactoryTest extends TestCase
         $hyperfConfig->shouldReceive('get')->with('xxl_job.file_logger.dir')->andReturn(null);
 
         $stdoutLogger = m::mock(StdoutLoggerInterface::class);
-        $stdoutLogger->shouldReceive('warning')
+        $stdoutLogger->shouldReceive('debug')
             ->once()
             ->with('xxl_job.access_token is not configured. All executor requests will be rejected.');
 
@@ -131,7 +131,7 @@ class ConfigFactoryTest extends TestCase
         $hyperfConfig->shouldReceive('get')->with('xxl_job.file_logger.dir')->andReturn(null);
 
         $stdoutLogger = m::mock(StdoutLoggerInterface::class);
-        $stdoutLogger->shouldReceive('warning')
+        $stdoutLogger->shouldReceive('debug')
             ->once()
             ->with('xxl_job.access_token is not configured. All executor requests will be rejected.');
 

@@ -19,7 +19,7 @@ use Symfony\Component\Process\PhpExecutableFinder;
 
 class ConfigFactory
 {
-    public function __invoke(ContainerInterface $container)
+    public function __invoke(ContainerInterface $container): Config
     {
         $config = $container->get(ConfigInterface::class);
         $instance = new Config();
