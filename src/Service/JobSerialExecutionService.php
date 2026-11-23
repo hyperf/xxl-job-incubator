@@ -12,10 +12,12 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service;
 
+use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Channel;
-use Hyperf\Engine\Coroutine;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
+use Throwable;
 
 class JobSerialExecutionService extends BaseService
 {
@@ -131,13 +133,44 @@ class JobSerialExecutionService extends BaseService
                     if (! $runRequest instanceof RunRequest) {
                         return;
                     }
-                    $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+                    try {
+                        $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+                    } catch (Throwable $throwable) {
+                        // 分发异常必须就地消化：这里是 dispatcher 里的协程根，逃出去会直接杀掉整个进程
+                        $this->handleDispatchFailure($runRequest, $throwable);
+                        continue;
+                    }
                     JobRunContent::yield($runRequest->getLogId());
                 }
             } finally {
                 $this->remove($jobId);
             }
         });
+    }
+
+    /**
+     * 分发失败时兜底：清运行登记并补发 500，避免整个 dispatcher 陪葬、admin 日志永久停在 running。
+     */
+    protected function handleDispatchFailure(RunRequest $runRequest, Throwable $throwable): void
+    {
+        $message = sprintf(
+            'XXL-JOB JobId:%s LogId:%s dispatch failed: %s',
+            $runRequest->getJobId(),
+            $runRequest->getLogId(),
+            $throwable->getMessage()
+        );
+        $logger = $this->container->has(StdoutLoggerInterface::class)
+            ? $this->container->get(StdoutLoggerInterface::class)
+            : null;
+        $logger?->error($message);
+
+        JobRunContent::remove($runRequest->getJobId(), $runRequest->getLogId());
+        try {
+            $this->callback($runRequest, 500, $message);
+        } catch (Throwable $callbackError) {
+            // admin 不可达时只记录：回调失败不能反过来打断该 jobId 的串行队列
+            $logger?->error((string) $callbackError);
+        }
     }
 
     protected function remove(int $jobId): void

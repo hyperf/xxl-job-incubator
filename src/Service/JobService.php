@@ -41,11 +41,18 @@ class JobService extends BaseService
 
     public function executorBlockStrategy(RunRequest $runRequest): void
     {
-        $executorHandler = $runRequest->getExecutorHandler();
-        $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
+        $glueType = $runRequest->getGlueType();
+        // 不支持的 glueType 在这里就拒绝：否则 /run 已回 200，dispatcher 里才抛异常且 admin 收不到回调
+        if (! $this->glueHandlerManager->supports($glueType)) {
+            throw new GlueHandlerExecutionException(sprintf('The glue type %s is invalid or does not support yet.', $glueType));
+        }
 
-        if ($runRequest->getGlueType() == GlueEnum::BEAN && (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod()))) {
-            throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
+        if ($glueType == GlueEnum::BEAN) {
+            $executorHandler = $runRequest->getExecutorHandler();
+            $jobDefinition = $this->jobHandlerManager->getJobHandlers($executorHandler);
+            if (empty($jobDefinition) || ! method_exists($jobDefinition->getClass(), $jobDefinition->getMethod())) {
+                throw new GlueHandlerExecutionException(sprintf('The definition of executor handler %s is invalid.', $executorHandler));
+            }
         }
         $this->send($runRequest);
     }
