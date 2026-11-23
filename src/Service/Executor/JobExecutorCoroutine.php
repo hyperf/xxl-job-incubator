@@ -12,10 +12,11 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service\Executor;
 
+use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Constant;
-use Hyperf\Engine\Coroutine;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
+use RuntimeException;
 use Throwable;
 
 class JobExecutorCoroutine extends AbstractJobExecutor
@@ -32,6 +33,11 @@ class JobExecutorCoroutine extends AbstractJobExecutor
             return true;
         }
         $cid = $runRequest->getExtension('cid');
+        if (! is_int($cid) || $cid <= 0) {
+            // 没有本进程协程 ID 时不能声称已终止，尤其不能对 exists(null) 继续调用
+            $this->stdoutLogger->error(sprintf('XXL-JOB JobId:%s LogId:%s cannot be killed without a local coroutine id.', $jobId, $logId));
+            return false;
+        }
         if (Constant::ENGINE == 'Swoole' && swoole_version() >= '6.1.0') {
             $time = time();
             while (\Swoole\Coroutine::exists($cid)) {
@@ -55,7 +61,7 @@ class JobExecutorCoroutine extends AbstractJobExecutor
         if ($msg) {
             JobContext::setJobLogId($logId);
             $this->jobExecutorLogger->warning($msg);
-            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), 500, $msg);
+            $this->callbackSafely($runRequest, 500, $msg);
         }
         return true;
     }
@@ -66,10 +72,7 @@ class JobExecutorCoroutine extends AbstractJobExecutor
         $executorTimeout = $request->getExecutorTimeout();
         if ($executorTimeout > 0) {
             Coroutine::create(function () use ($request) {
-                $result = JobRunContent::yield($request->getLogId(), $request->getExecutorTimeout());
-                if ($result === false) {
-                    $this->kill($request->getJobId(), $request->getLogId(), 'scheduling center kill job. [job running, killed]');
-                }
+                $this->watchTimeout($request);
             });
         }
 
@@ -78,8 +81,38 @@ class JobExecutorCoroutine extends AbstractJobExecutor
 
     public function executeCoroutine(RunRequest $request, callable $callback): int
     {
-        return \Hyperf\Coroutine\Coroutine::create(function () use ($request, $callback) {
+        return Coroutine::create(function () use ($request, $callback) {
             $this->execute($request, $callback);
         });
+    }
+
+    protected function watchTimeout(RunRequest $request): void
+    {
+        try {
+            $result = JobRunContent::yield($request->getLogId(), $request->getExecutorTimeout());
+            if ($result === false && ! $this->kill($request->getJobId(), $request->getLogId(), 'scheduling center kill job. [job running, killed]')) {
+                throw new RuntimeException('the running job could not be killed');
+            }
+        } catch (Throwable $throwable) {
+            // watcher 在独立协程运行：终止失败必须回调，但异常不能逃出协程根打死 dispatcher
+            $message = sprintf(
+                'XXL-JOB JobId:%s LogId:%s timeout watcher failed: %s',
+                $request->getJobId(),
+                $request->getLogId(),
+                $throwable->getMessage()
+            );
+            $this->stdoutLogger->error($message);
+            $this->callbackSafely($request, 500, $message);
+        }
+    }
+
+    protected function callbackSafely(RunRequest $runRequest, int $handleCode, string $message): void
+    {
+        try {
+            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), $handleCode, $message);
+        } catch (Throwable $throwable) {
+            // admin 不可达只影响回调本身，不能把超时 watcher 或 kill 调用协程一起带崩
+            $this->stdoutLogger->error($throwable->getMessage());
+        }
     }
 }
