@@ -23,9 +23,13 @@ class JobDispatcherProcess extends AbstractProcess
 {
     public const JOB_DISPATCHER_NAME = 'xxl-job-dispatcher';
 
+    public const RECV_LENGTH = 65535;
+
     public string $name = self::JOB_DISPATCHER_NAME;
 
     public int $nums = 1;
+
+    protected int $recvLength = self::RECV_LENGTH;
 
     protected Config $xxlConfig;
 

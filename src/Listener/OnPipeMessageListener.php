@@ -48,6 +48,8 @@ class OnPipeMessageListener implements ListenerInterface
         if ($event instanceof UserProcessPipeMessage) {
             if ($event->data instanceof JobPipeMessage) {
                 Coroutine::create(function () use ($event) {
+                    // 大消息在发送端落盘，这里恢复原始请求并立即清理临时文件
+                    $event->data->resolve();
                     $this->jobSerialExecutionService->handle($event->data->runRequest, $event->data->killJobId);
                 });
             }
