@@ -12,7 +12,6 @@ jobs:
           - "8.1-alpine-v3.19-swoole"
           - "8.2-alpine-v3.22-swoole"
           - "8.3-alpine-v3.23-swoole"
-          - "8.4-alpine-v3.23-swoole"
       fail-fast: false
       max-parallel: 15
 
@@ -21,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Environment
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           pwd
           ls -al
           php -v
@@ -57,6 +57,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Setup Environment
         run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           pwd
           ls -al
           php -v
