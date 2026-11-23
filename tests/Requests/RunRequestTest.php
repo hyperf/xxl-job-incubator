@@ -94,6 +94,44 @@ class RunRequestTest extends TestCase
         $this->assertFalse($req->isCoverLater());
     }
 
+    public function testMissingFieldsUseSafeDefaults(): void
+    {
+        $req = RunRequest::create(['jobId' => 1]);
+
+        self::assertSame('', $req->getExecutorHandler());
+        self::assertSame('', $req->getExecutorParams());
+        self::assertSame(ExecutorBlockStrategyEnum::SERIAL_EXECUTION, $req->getExecutorBlockStrategy());
+        self::assertSame(0, $req->getExecutorTimeout());
+        self::assertSame('BEAN', $req->getGlueType());
+        self::assertSame('', $req->getGlueSource());
+        self::assertSame(0, $req->getGlueUpdatetime());
+        self::assertSame(0, $req->getBroadcastIndex());
+        self::assertSame(0, $req->getBroadcastTotal());
+    }
+
+    public function testNullFieldsUseDeclaredDefaults(): void
+    {
+        $req = RunRequest::create([
+            'executorParams' => null,
+            'executorBlockStrategy' => null,
+            'executorTimeout' => null,
+            'glueType' => null,
+            'glueSource' => null,
+            'glueUpdatetime' => null,
+            'broadcastIndex' => null,
+            'broadcastTotal' => null,
+        ]);
+
+        self::assertSame('', $req->getExecutorParams());
+        self::assertSame(ExecutorBlockStrategyEnum::SERIAL_EXECUTION, $req->getExecutorBlockStrategy());
+        self::assertSame(0, $req->getExecutorTimeout());
+        self::assertSame('BEAN', $req->getGlueType());
+        self::assertSame('', $req->getGlueSource());
+        self::assertSame(0, $req->getGlueUpdatetime());
+        self::assertSame(0, $req->getBroadcastIndex());
+        self::assertSame(0, $req->getBroadcastTotal());
+    }
+
     public function testExtension(): void
     {
         $req = RunRequest::create(['jobId' => 1]);
