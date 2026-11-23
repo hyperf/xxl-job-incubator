@@ -165,6 +165,46 @@ class ConfigFactoryTest extends TestCase
         $this->assertSame(7, $config->getLogRetentionDays());
     }
 
+    public function testInvokeNormalizesAdminAddressTrailingSlash(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => 'http://10.0.0.5:8080/',
+        ]);
+
+        $config = (new ConfigFactory())($container);
+
+        $this->assertSame('http://10.0.0.5:8080', $config->getBaseUri());
+        $this->assertSame('', $config->getServerUrlPath());
+    }
+
+    public function testInvokeRejectsAdminAddressWithoutSchemeWhenEnabled(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.enable' => true,
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => '192.168.1.197:8083/xxl-job-admin',
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new ConfigFactory())($container);
+    }
+
+    public function testInvokeToleratesInvalidAdminAddressWhenDisabled(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.enable' => false,
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => '192.168.1.197:8083/xxl-job-admin',
+        ]);
+
+        $config = (new ConfigFactory())($container);
+
+        $this->assertFalse($config->isEnable());
+        $this->assertSame('http://127.0.0.1:8080', $config->getBaseUri());
+        $this->assertSame('/xxl-job-admin', $config->getServerUrlPath());
+    }
+
     /**
      * 按 key 返回配置值，避免每条用例重复声明十几个 get 期望。
      */
