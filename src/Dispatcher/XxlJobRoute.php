@@ -21,7 +21,8 @@ class XxlJobRoute
     {
         $route->addGroup('/' . $prefixUrl, function ($route) {
             $route->post('beat', [JobController::class, 'beat']);
-            $route->post('run', [JobController::class, 'run']);
+            // 3.5.0 起调度中心使用 /trigger
+            $route->post('trigger', [JobController::class, 'trigger']);
             $route->post('idleBeat', [JobController::class, 'idleBeat']);
             $route->post('kill', [JobController::class, 'kill']);
             $route->post('log', [JobController::class, 'log']);

@@ -16,9 +16,11 @@ use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
+use Hyperf\XxlJob\JobHandlerDefinition;
 use Hyperf\XxlJob\JobHandlerManager;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\JobService;
+use HyperfTest\XxlJob\BarJobClass;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
@@ -78,13 +80,73 @@ class JobServiceTest extends TestCase
         $this->assertSame([$runRequest], $service->sent);
     }
 
+    public function testRejectsScriptGlueWhenGlueDisabled(): void
+    {
+        $glueHandlerManager = m::mock(GlueHandlerManager::class);
+        $glueHandlerManager->shouldReceive('supports')->with('GLUE_SHELL')->andReturnTrue();
+
+        $config = new Config();
+        $config->setGlueEnabled(false);
+        $service = $this->createService($glueHandlerManager, $config);
+
+        try {
+            $service->executorBlockStrategy(RunRequest::create([
+                'jobId' => 3,
+                'logId' => 102,
+                'logDateTime' => 20240101120000,
+                'executorBlockStrategy' => 'SERIAL_EXECUTION',
+                'glueType' => 'GLUE_SHELL',
+            ]));
+            $this->fail('expected GlueHandlerExecutionException');
+        } catch (GlueHandlerExecutionException $exception) {
+            $this->assertStringContainsString('glue_enabled', $exception->getMessage());
+        }
+
+        $this->assertSame([], $service->sent);
+    }
+
+    public function testBeanJobIsAllowedWhenGlueDisabled(): void
+    {
+        $glueHandlerManager = m::mock(GlueHandlerManager::class);
+        $glueHandlerManager->shouldReceive('supports')->with('BEAN')->andReturnTrue();
+
+        $jobHandlerManager = new JobHandlerManager();
+        $jobHandlerManager->registerJobHandler('testHandler', new JobHandlerDefinition(
+            BarJobClass::class,
+            'execute',
+            '',
+            '',
+            'process'
+        ));
+
+        $config = new Config();
+        $config->setGlueEnabled(false);
+        $service = $this->createService($glueHandlerManager, $config, $jobHandlerManager);
+
+        $runRequest = RunRequest::create([
+            'jobId' => 4,
+            'logId' => 103,
+            'logDateTime' => 20240101120000,
+            'executorBlockStrategy' => 'SERIAL_EXECUTION',
+            'glueType' => 'BEAN',
+            'executorHandler' => 'testHandler',
+        ]);
+
+        $service->executorBlockStrategy($runRequest);
+
+        $this->assertSame([$runRequest], $service->sent);
+    }
+
     /**
      * @param GlueHandlerManager&m\MockInterface $glueHandlerManager
      * @return JobService&object{sent: array}
      */
-    private function createService(m\MockInterface $glueHandlerManager): JobService
-    {
-        return new class(m::mock(ContainerInterface::class), $glueHandlerManager, m::mock(JobHandlerManager::class), m::mock(ApiRequest::class), new Config()) extends JobService {
+    private function createService(
+        m\MockInterface $glueHandlerManager,
+        ?Config $config = null,
+        ?JobHandlerManager $jobHandlerManager = null
+    ): JobService {
+        return new class(m::mock(ContainerInterface::class), $glueHandlerManager, $jobHandlerManager ?? m::mock(JobHandlerManager::class), m::mock(ApiRequest::class), $config ?? new Config()) extends JobService {
             public array $sent = [];
 
             public function send(?RunRequest $runRequest = null, int $killJobId = 0): void

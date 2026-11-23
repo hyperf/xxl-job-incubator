@@ -75,12 +75,12 @@ class ApiRequestTest extends TestCase
         $apiRequest->shouldReceive('request')
             ->with('POST', '/api/callback', m::on(function ($options) {
                 $body = $options[RequestOptions::JSON];
-                $item = $body[0];
+                $item = $body['callbackList'][0];
                 return $item['logId'] === 999
-                    && $item['logDateTim'] === 20240101120000
+                    && $item['logDateTime'] === 20240101120000
                     && $item['handleCode'] === 500
                     && $item['handleMsg'] === 'Something went wrong'
-                    && $item['executeResult']['code'] === 500;
+                    && ! isset($item['executeResult']);
             }))
             ->once()
             ->andReturn(m::mock(ResponseInterface::class));
@@ -99,7 +99,7 @@ class ApiRequestTest extends TestCase
         $apiRequest->shouldReceive('request')
             ->with('POST', '/api/callback', m::on(function ($options) {
                 $body = $options[RequestOptions::JSON];
-                return $body[0]['handleCode'] === 200;
+                return $body['callbackList'][0]['handleCode'] === 200;
             }))
             ->once()
             ->andReturn(m::mock(ResponseInterface::class));
@@ -127,16 +127,18 @@ class ApiRequestTest extends TestCase
         $apiRequest->shouldReceive('request')
             ->with('POST', '/api/callback', m::on(function ($options) {
                 $body = $options[RequestOptions::JSON];
-                return count($body) === 2
-                    && $body[0]['logId'] === 1
-                    && $body[1]['logId'] === 2;
+                return count($body['callbackList']) === 2
+                    && $body['callbackList'][0]['logId'] === 1
+                    && $body['callbackList'][0]['logDateTime'] === 100
+                    && $body['callbackList'][1]['logId'] === 2
+                    && $body['callbackList'][1]['logDateTime'] === 200;
             }))
             ->once()
             ->andReturn(m::mock(ResponseInterface::class));
 
         $apiRequest->multipleCallback([
-            ['logId' => 1, 'logDateTim' => 100],
-            ['logId' => 2, 'logDateTim' => 200],
+            ['logId' => 1, 'logDateTime' => 100],
+            ['logId' => 2, 'logDateTime' => 200],
         ], 500, 'killed');
         $this->addToAssertionCount(1);
     }
@@ -145,6 +147,7 @@ class ApiRequestTest extends TestCase
     {
         $config = new Config();
         $config->setAccessToken('secret');
+        $config->setAppName('my-app');
         $config->setBaseUri('http://admin.test:8080');
         $config->setServerUrlPath('');
         $config->setGuzzleConfig(['timeout' => 10]);
@@ -155,7 +158,9 @@ class ApiRequestTest extends TestCase
         $guzzleClient->shouldReceive('request')
             ->with('POST', '/api/test', m::on(function ($options) {
                 return isset($options[RequestOptions::HEADERS]['XXL-JOB-ACCESS-TOKEN'])
-                    && $options[RequestOptions::HEADERS]['XXL-JOB-ACCESS-TOKEN'] === 'secret';
+                    && $options[RequestOptions::HEADERS]['XXL-JOB-ACCESS-TOKEN'] === 'secret'
+                    && isset($options[RequestOptions::HEADERS]['XXL-JOB-APPNAME'])
+                    && $options[RequestOptions::HEADERS]['XXL-JOB-APPNAME'] === 'my-app';
             }))
             ->once()
             ->andReturn($response);
@@ -181,7 +186,8 @@ class ApiRequestTest extends TestCase
         $guzzleClient = m::mock(Client::class);
         $guzzleClient->shouldReceive('request')
             ->with('POST', '/api/test', m::on(function ($options) {
-                return ! isset($options[RequestOptions::HEADERS]['XXL-JOB-ACCESS-TOKEN']);
+                return ! isset($options[RequestOptions::HEADERS]['XXL-JOB-ACCESS-TOKEN'])
+                    && ! isset($options[RequestOptions::HEADERS]['XXL-JOB-APPNAME']);
             }))
             ->once()
             ->andReturn($response);

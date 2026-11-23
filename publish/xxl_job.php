@@ -19,6 +19,8 @@ return [
     // access_token is required for secure communication between the scheduling center and the executor.
     // leaving it blank will result in all requests being rejected
     'access_token' => env('XXL_JOB_ACCESS_TOKEN', ''),
+    // 是否允许 GLUE（Shell/Python/PHP/NodeJS/PowerShell）任务，关闭后仅允许 BEAN
+    'glue_enabled' => env('XXL_JOB_GLUE_ENABLED', true),
     'heartbeat' => env('XXL_JOB_HEARTBEAT', 30),
     'log_retention_days' => 30,
     'max_process_lifetime' => env('XXL_JOB_MAX_PROCESS_LIFETIME', -1),

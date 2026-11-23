@@ -342,9 +342,9 @@ class JobSerialExecutionServiceTest extends TestCase
         $this->apiRequest->shouldReceive('multipleCallback')
             ->once()
             ->with([
-                ['logId' => 101, 'logDateTim' => 20240101120000],
-                ['logId' => 201, 'logDateTim' => 20240101120000],
-                ['logId' => 202, 'logDateTim' => 20240101120000],
+                ['logId' => 101, 'logDateTime' => 20240101120000],
+                ['logId' => 201, 'logDateTime' => 20240101120000],
+                ['logId' => 202, 'logDateTime' => 20240101120000],
             ], 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]')
             ->andReturnNull();
 
@@ -406,10 +406,10 @@ class JobSerialExecutionServiceTest extends TestCase
         $this->apiRequest->shouldReceive('multipleCallback')
             ->once()
             ->with([
-                ['logId' => 301, 'logDateTim' => 20240101120000],
-                ['logId' => 100, 'logDateTim' => 20240101120000],
-                ['logId' => 101, 'logDateTim' => 20240101120000],
-                ['logId' => 201, 'logDateTim' => 20240101120000],
+                ['logId' => 301, 'logDateTime' => 20240101120000],
+                ['logId' => 100, 'logDateTime' => 20240101120000],
+                ['logId' => 101, 'logDateTime' => 20240101120000],
+                ['logId' => 201, 'logDateTime' => 20240101120000],
             ], 500, 'dispatcher shutdown')
             ->andReturnNull();
         self::assertTrue($service->hasPendingJobs());

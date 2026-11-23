@@ -71,15 +71,21 @@ class AuthMiddlewareTest extends TestCase
     {
         $config = new Config();
         $config->setAccessToken('secret-token');
+        $config->setAppName('my-app');
 
         $container = m::mock(ContainerInterface::class);
         $request = m::mock(ServerRequestInterface::class);
         $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
-            ->with('xxl-job-access-token')
+            ->with('XXL-JOB-ACCESS-TOKEN')
             ->once()
             ->andReturn('secret-token');
+
+        $request->shouldReceive('getHeaderLine')
+            ->with('XXL-JOB-APPNAME')
+            ->once()
+            ->andReturn('my-app');
 
         $request->shouldReceive('getParsedBody')
             ->once()
@@ -111,7 +117,7 @@ class AuthMiddlewareTest extends TestCase
         $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
-            ->with('xxl-job-access-token')
+            ->with('XXL-JOB-ACCESS-TOKEN')
             ->once()
             ->andReturn('wrong-token');
 
@@ -155,7 +161,7 @@ class AuthMiddlewareTest extends TestCase
         $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
-            ->with('xxl-job-access-token')
+            ->with('XXL-JOB-ACCESS-TOKEN')
             ->once()
             ->andReturn('');
 
@@ -189,15 +195,21 @@ class AuthMiddlewareTest extends TestCase
     {
         $config = new Config();
         $config->setAccessToken('secret-token');
+        $config->setAppName('my-app');
 
         $container = m::mock(ContainerInterface::class);
         $request = m::mock(ServerRequestInterface::class);
         $handler = m::mock(RequestHandlerInterface::class);
 
         $request->shouldReceive('getHeaderLine')
-            ->with('xxl-job-access-token')
+            ->with('XXL-JOB-ACCESS-TOKEN')
             ->once()
             ->andReturn('secret-token');
+
+        $request->shouldReceive('getHeaderLine')
+            ->with('XXL-JOB-APPNAME')
+            ->once()
+            ->andReturn('my-app');
 
         $request->shouldReceive('getParsedBody')
             ->once()
@@ -211,5 +223,93 @@ class AuthMiddlewareTest extends TestCase
         $result = $middleware->process($request, $handler);
 
         $this->assertInstanceOf(ResponseInterface::class, $result);
+    }
+
+    /**
+     * 3.5.0 调度中心必带 appname，缺失应拒绝.
+     */
+    public function testReturns401WhenAppNameMissing(): void
+    {
+        $config = new Config();
+        $config->setAccessToken('secret-token');
+
+        $jsonResponse = m::mock(ResponseInterface::class);
+        $httpResponse = m::mock(HttpResponse::class);
+        $container = m::mock(ContainerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
+
+        $request->shouldReceive('getHeaderLine')->with('XXL-JOB-ACCESS-TOKEN')->once()->andReturn('secret-token');
+        $request->shouldReceive('getHeaderLine')->with('XXL-JOB-APPNAME')->once()->andReturn('');
+
+        $httpResponse->shouldReceive('json')
+            ->with(['code' => 401, 'msg' => 'Missing XXL-JOB-APPNAME header'])
+            ->once()
+            ->andReturn($jsonResponse);
+        $jsonResponse->shouldReceive('withStatus')->with(401)->once()->andReturnSelf();
+        $container->shouldReceive('get')->with(HttpResponse::class)->once()->andReturn($httpResponse);
+        $handler->shouldNotReceive('handle');
+
+        $middleware = new AuthMiddleware($container, $config);
+        $result = $middleware->process($request, $handler);
+
+        $this->assertSame($jsonResponse, $result);
+    }
+
+    public function testReturns401WhenAppNameMismatch(): void
+    {
+        $config = new Config();
+        $config->setAccessToken('secret-token');
+        $config->setAppName('my-app');
+
+        $jsonResponse = m::mock(ResponseInterface::class);
+        $httpResponse = m::mock(HttpResponse::class);
+        $container = m::mock(ContainerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
+
+        $request->shouldReceive('getHeaderLine')->with('XXL-JOB-ACCESS-TOKEN')->once()->andReturn('secret-token');
+        $request->shouldReceive('getHeaderLine')->with('XXL-JOB-APPNAME')->once()->andReturn('other-app');
+
+        $httpResponse->shouldReceive('json')
+            ->with(['code' => 401, 'msg' => 'Invalid App Name'])
+            ->once()
+            ->andReturn($jsonResponse);
+        $jsonResponse->shouldReceive('withStatus')->with(401)->once()->andReturnSelf();
+        $container->shouldReceive('get')->with(HttpResponse::class)->once()->andReturn($httpResponse);
+        $handler->shouldNotReceive('handle');
+
+        $middleware = new AuthMiddleware($container, $config);
+        $result = $middleware->process($request, $handler);
+
+        $this->assertSame($jsonResponse, $result);
+    }
+
+    public function testReturns500WhenAppNameNotConfiguredButHeaderProvided(): void
+    {
+        $config = new Config();
+        $config->setAccessToken('secret-token');
+
+        $jsonResponse = m::mock(ResponseInterface::class);
+        $httpResponse = m::mock(HttpResponse::class);
+        $container = m::mock(ContainerInterface::class);
+        $request = m::mock(ServerRequestInterface::class);
+        $handler = m::mock(RequestHandlerInterface::class);
+
+        $request->shouldReceive('getHeaderLine')->with('XXL-JOB-ACCESS-TOKEN')->once()->andReturn('secret-token');
+        $request->shouldReceive('getHeaderLine')->with('XXL-JOB-APPNAME')->once()->andReturn('my-app');
+
+        $httpResponse->shouldReceive('json')
+            ->with(['code' => 500, 'msg' => 'The app name is not configured. Please configure xxl_job.app_name.'])
+            ->once()
+            ->andReturn($jsonResponse);
+        $jsonResponse->shouldReceive('withStatus')->with(500)->once()->andReturnSelf();
+        $container->shouldReceive('get')->with(HttpResponse::class)->once()->andReturn($httpResponse);
+        $handler->shouldNotReceive('handle');
+
+        $middleware = new AuthMiddleware($container, $config);
+        $result = $middleware->process($request, $handler);
+
+        $this->assertSame($jsonResponse, $result);
     }
 }

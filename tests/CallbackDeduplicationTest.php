@@ -113,7 +113,7 @@ class CallbackDeduplicationTest extends TestCase
         $api->shouldReceive('request')->once()->andReturn(m::mock(ResponseInterface::class));
 
         $api->multipleCallback([
-            ['logId' => 100, 'logDateTim' => 123456],
+            ['logId' => 100, 'logDateTime' => 123456],
         ], 500, 'dispatcher shutdown');
         $lateResult = $api->callback(100, 123456, 200, 'late success');
 
@@ -126,7 +126,7 @@ class CallbackDeduplicationTest extends TestCase
         $api->shouldReceive('request')
             ->once()
             ->with('POST', '/api/callback', m::on(static function (array $options): bool {
-                return $options['json'][0]['handleMsg'] === 'scheduling center kill job. [job running, killed]';
+                return $options['json']['callbackList'][0]['handleMsg'] === 'scheduling center kill job. [job running, killed]';
             }))
             ->andReturn(m::mock(ResponseInterface::class));
         $executor = new JobExecutorCoroutine(

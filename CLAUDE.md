@@ -32,7 +32,7 @@ php bin/hyperf.php vendor:publish hyperf/xxl-job-incubator
 ```
 XXL-JOB Admin 调度中心
   → HTTP 请求抵达 Executor（通过 BootAppRouteListener 注册的路由）
-  → JobController（run/log/beat/idleBeat/kill）
+  → JobController（trigger/log/beat/idleBeat/kill）
   → JobService.executorBlockStrategy() 验证 handler 有效性
   → JobService.send() 发送任务
      ├─ Swoole 引擎：通过 PipeMessage 发送到 JobDispatcherProcess
@@ -94,6 +94,8 @@ XXL-JOB Admin 调度中心
 - `Config` — 值对象，存储所有配置项（通过 getter/setter 访问）
 - `ConfigFactory` — 实现 `Config::class`，从 Hyperf 配置中读取并构建 `Config` 实例
 - 宿主项目的配置文件：`config/autoload/xxl_job.php`
+- 仅适配 xxl-job >= 3.5.0（执行器组 AccessToken、`/trigger`、`callbackList` 回调）；2.2.x ~ 3.4.x 请使用本包 `0.10.*`
+- `glue_enabled`：是否允许 GLUE（非 BEAN）任务，默认 true
 
 ### PipeMessage 机制（Swoole 专用）
 
@@ -106,7 +108,7 @@ XXL-JOB Admin 调度中心
 | `ConfigProvider` | Hyperf 组件入口：注册依赖、监听器、注解扫描、进程 |
 | `BootAppRouteListener` | 启动时注册 HTTP 路由、扫描 #[XxlJob] 注解、配置执行器 URL |
 | `MainWorkerStartListener` | 启动心跳注册和过期日志清理 |
-| `JobController` | HTTP 端点：/run、/log、/beat、/idleBeat、/kill |
+| `JobController` | HTTP 端点：/trigger、/log、/beat、/idleBeat、/kill |
 | `JobService` | 任务调度入口：验证 handler → 发送 PipeMessage 或直接调用执行 |
 | `JobSerialExecutionService` | 阻塞策略实现：Channel 队列管理、Cover Early/Discard Later 逻辑 |
 | `GlueHandlerManager` | 按 GlueType 分发到对应的 Handler（BeanHandler/ScriptHandler） |

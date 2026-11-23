@@ -37,6 +37,7 @@ class ConfigFactoryTest extends TestCase
         $hyperfConfig->shouldReceive('get')->with('xxl_job.enable')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.app_name')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.access_token')->andReturn(null);
+        $hyperfConfig->shouldReceive('get')->with('xxl_job.glue_enabled')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.admin_address')->andReturn('http://127.0.0.1:8080/xxl-job-admin');
         $hyperfConfig->shouldReceive('get')->with('xxl_job.heartbeat')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.executor_server.host')->andReturn(null);
@@ -70,6 +71,7 @@ class ConfigFactoryTest extends TestCase
         $this->assertSame(30, $config->getHeartbeat());
         $this->assertSame(9501, $config->getExecutorServerPort());
         $this->assertSame(-1, $config->getLogRetentionDays());
+        $this->assertTrue($config->isGlueEnabled());
     }
 
     public function testInvokeWithCustomValues(): void
@@ -78,6 +80,7 @@ class ConfigFactoryTest extends TestCase
         $hyperfConfig->shouldReceive('get')->with('xxl_job.enable')->andReturn(true);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.app_name')->andReturn('my-app');
         $hyperfConfig->shouldReceive('get')->with('xxl_job.access_token')->andReturn('tok123');
+        $hyperfConfig->shouldReceive('get')->with('xxl_job.glue_enabled')->andReturn('false');
         $hyperfConfig->shouldReceive('get')->with('xxl_job.admin_address')->andReturn('http://admin.example.com:9090/admin-path');
         $hyperfConfig->shouldReceive('get')->with('xxl_job.heartbeat')->andReturn(60);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.executor_server.host')->andReturn('10.0.0.1');
@@ -109,6 +112,7 @@ class ConfigFactoryTest extends TestCase
         $this->assertSame('process', $config->getExecutionMode());
         $this->assertSame(7, $config->getLogRetentionDays());
         $this->assertSame(86400, $config->getMaxProcessLifetime());
+        $this->assertFalse($config->isGlueEnabled());
     }
 
     public function testInvokeWithGuzzleConfig(): void
@@ -117,6 +121,7 @@ class ConfigFactoryTest extends TestCase
         $hyperfConfig->shouldReceive('get')->with('xxl_job.enable')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.app_name')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.access_token')->andReturn(null);
+        $hyperfConfig->shouldReceive('get')->with('xxl_job.glue_enabled')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.admin_address')->andReturn('http://127.0.0.1:8080/xxl-job-admin');
         $hyperfConfig->shouldReceive('get')->with('xxl_job.heartbeat')->andReturn(null);
         $hyperfConfig->shouldReceive('get')->with('xxl_job.executor_server.host')->andReturn(null);

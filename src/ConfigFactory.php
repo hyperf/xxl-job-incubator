@@ -33,6 +33,8 @@ class ConfigFactory
             $container->get(StdoutLoggerInterface::class)
                 ->debug('xxl_job.access_token is not configured. All executor requests will be rejected.');
         }
+        // env() 返回字符串，'false'/'0' 需要按布尔归一化
+        $instance->setGlueEnabled(filter_var($config->get('xxl_job.glue_enabled') ?? true, FILTER_VALIDATE_BOOLEAN));
         $adminAddress = trim((string) ($config->get('xxl_job.admin_address') ?? ''));
         if ($adminAddress === '') {
             $adminAddress = 'http://127.0.0.1:8080/xxl-job-admin';

@@ -52,6 +52,9 @@ class Config
     /** Max lifetime of the dispatcher process in seconds, 0 = never restart */
     private int $maxProcessLifetime = 0;
 
+    /** 是否允许 GLUE（非 BEAN）任务，关闭后仅允许 BEAN */
+    private bool $glueEnabled = true;
+
     public function getExecutionMode(): string
     {
         return $this->executionMode;
@@ -221,6 +224,17 @@ class Config
     public function setMaxProcessLifetime(int $maxProcessLifetime): Config
     {
         $this->maxProcessLifetime = $maxProcessLifetime;
+        return $this;
+    }
+
+    public function isGlueEnabled(): bool
+    {
+        return $this->glueEnabled;
+    }
+
+    public function setGlueEnabled(bool $glueEnabled): Config
+    {
+        $this->glueEnabled = $glueEnabled;
         return $this;
     }
 }

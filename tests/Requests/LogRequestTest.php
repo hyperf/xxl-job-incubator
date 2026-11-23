@@ -24,12 +24,12 @@ class LogRequestTest extends TestCase
     public function testCreateFromArray(): void
     {
         $req = LogRequest::create([
-            'logDateTim' => 20240101120000,
+            'logDateTime' => 20240101120000,
             'logId' => 999,
             'fromLineNum' => 1,
         ]);
 
-        $this->assertSame(20240101120000, $req->getLogDateTim());
+        $this->assertSame(20240101120000, $req->getLogDateTime());
         $this->assertSame(999, $req->getLogId());
         $this->assertSame(1, $req->getFromLineNum());
     }
@@ -37,16 +37,16 @@ class LogRequestTest extends TestCase
     public function testMissingAndNullFieldsUseDefaults(): void
     {
         $missing = LogRequest::create();
-        self::assertSame(0, $missing->getLogDateTim());
+        self::assertSame(0, $missing->getLogDateTime());
         self::assertSame(0, $missing->getLogId());
         self::assertSame(1, $missing->getFromLineNum());
 
         $null = LogRequest::create([
-            'logDateTim' => null,
+            'logDateTime' => null,
             'logId' => null,
             'fromLineNum' => null,
         ]);
-        self::assertSame(0, $null->getLogDateTim());
+        self::assertSame(0, $null->getLogDateTime());
         self::assertSame(0, $null->getLogId());
         self::assertSame(1, $null->getFromLineNum());
     }
