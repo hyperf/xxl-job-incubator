@@ -83,6 +83,7 @@ return (new PhpCsFixer\Config())
         'ordered_class_elements' => true,
         'php_unit_strict' => false,
         'phpdoc_separation' => false,
+        'phpdoc_summary' => false,
         'single_quote' => true,
         'standardize_not_equals' => true,
         'multiline_comment_opening_closing' => true,
