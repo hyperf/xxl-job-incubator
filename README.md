@@ -307,6 +307,77 @@ php bin/hyperf.php execute:xxl-job --jobId=100 --logId=10001
 - 只提供 `--jobId`、缺少 `--logId`，或二者与运行信息不匹配时，命令会抛出异常并返回非零状态。
 - 该模式主要用于执行器内部调度；手工调试请优先使用上文的 `--handler` 方式，不依赖运行信息文件。
 
+### 任务管理 API（调度中心 3.5.0 OpenAPI）
+
+xxl-job 3.5.0 起，调度中心提供了一组任务管理 OpenAPI（`/api/addJob`、`/api/updateJob`、`/api/removeJob`、`/api/startJob`、`/api/stopJob`、`/api/triggerJob`），用于三方集成系统管理任务生命周期。**官方执行器本身不调用这组接口**；本组件将其封装为 `JobAdminService` 与 `xxl-job:job` 命令，供业务系统/运维脚本使用。
+
+> 仅支持 xxl-job >= 3.5.0；旧版调度中心请使用本包 `0.10.*`。
+
+鉴权复用执行器配置：`admin_address`、`app_name`、`access_token`（`ApiRequest` 自动注入 `XXL-JOB-ACCESS-TOKEN`、`XXL-JOB-APPNAME`）。`jobGroup` 是执行器组主键（`xxl_job_group.id`），需从调度中心「执行器管理」或数据库获取，与请求头 `app_name` 不是同一个概念。
+
+#### PHP 调用
+
+```php
+use Hyperf\Di\Annotation\Inject;
+use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
+use Hyperf\XxlJob\Glue\GlueEnum;
+use Hyperf\XxlJob\Service\JobAdminService;
+
+#[Inject]
+protected JobAdminService $jobAdminService;
+
+// 新增任务，返回新任务 ID
+$jobId = $this->jobAdminService->addJob([
+    'jobGroup' => 1,
+    'name' => 'demo job',
+    'author' => 'admin',
+    'scheduleType' => 'CRON',
+    'scheduleConf' => '0 0/1 * * * ?',
+    'misfireStrategy' => 'DO_NOTHING',
+    'executorRouteStrategy' => 'FIRST',
+    'executorHandler' => 'demoJobHandler',
+    'executorBlockStrategy' => ExecutorBlockStrategyEnum::SERIAL_EXECUTION,
+    'executorTimeout' => 0,
+    'executorFailRetryCount' => 0,
+    'glueType' => GlueEnum::BEAN,
+]);
+
+$this->jobAdminService->updateJob(['id' => $jobId /*, 其余完整字段 */]);
+$this->jobAdminService->startJob($jobId);
+$this->jobAdminService->triggerJob($jobId, '{"k":"v"}');
+$this->jobAdminService->stopJob($jobId);
+$this->jobAdminService->removeJob($jobId);
+```
+
+#### 命令行
+
+```bash
+# 新增（内联 JSON 或文件）
+php bin/hyperf.php xxl-job:job add --json='{"jobGroup":1,"name":"demo","author":"admin","scheduleType":"CRON","scheduleConf":"0 0/1 * * * ?","executorRouteStrategy":"FIRST","executorHandler":"demoJobHandler","executorBlockStrategy":"SERIAL_EXECUTION","glueType":"BEAN"}'
+php bin/hyperf.php xxl-job:job add --file=/tmp/job.json
+
+# 更新（--id 会覆盖 payload 中的 id）
+php bin/hyperf.php xxl-job:job update --id=12 --file=/tmp/job.json
+
+# 启动 / 停止 / 手动触发 / 删除
+php bin/hyperf.php xxl-job:job start --id=12
+php bin/hyperf.php xxl-job:job stop --id=12
+php bin/hyperf.php xxl-job:job trigger --id=12 --executor-param='{"k":"v"}'
+php bin/hyperf.php xxl-job:job remove --id=12
+```
+
+#### 注意事项
+
+- 响应统一 `{code,msg,data}`；admin 业务失败也返回 HTTP 200，客户端会把 `code != 200` 转成 `XxlJobException`；`code=502` 表示触发限流（100 次/30 秒）。
+- `executorHandler`：admin 会无条件 `trim()`，GLUE 任务也必须传空串 `''`；BEAN 任务须与 `#[XxlJob]` 的值一致。
+- `updateJob` 是**整体覆盖**而非 patch：`name`/`author` 必填，未传字段会被置空/0；不支持修改 `jobGroup`；3.5.0 不更新 `glueType/glueSource/glueRemark`，且会清空 `childJobId`。
+- `scheduleConf`：`NONE` 传空串、`CRON` 传合法 cron、`FIX_RATE` 传 >= 1 的秒数。
+- 可选值：`scheduleType` = NONE/CRON/FIX_RATE；`misfireStrategy` = DO_NOTHING/FIRE_ONCE_NOW；`executorRouteStrategy` = FIRST/LAST/ROUND/RANDOM/CONSISTENT_HASH/LEAST_FREQUENTLY_USED/LEAST_RECENTLY_USED/FAILOVER/BUSYOVER/SHARDING_BROADCAST；`executorBlockStrategy` = SERIAL_EXECUTION/DISCARD_LATER/COVER_EARLY；`glueType` = BEAN/GLUE_GROOVY/GLUE_SHELL/GLUE_PYTHON/GLUE_NODEJS/GLUE_POWERSHELL/GLUE_PHP。
+- `triggerJob` 只提交一次调度（异步执行）；`addressList` 为空时由调度中心从注册中心取地址。
+- OpenAPI 请求字段是 `executorParam`（单数），执行器触发体里是 `executorParams`（复数），注意区分。
+- `addJob` 成功返回的 ID 在响应的 `data` 字段（官方文档写成 `content`，以源码为准）。
+- `removeJob` 对不存在的任务 ID 也返回成功。
+
 ### Glue 脚本模式
 
 该模式下，可支持任务以将源码方式维护在调度中心，支持通过 XXL-JOB 提供的 Web IDE 在线编写代码和在线更新，因此不需要指定固定的 `JobHandler`   

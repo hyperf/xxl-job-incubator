@@ -116,6 +116,8 @@ XXL-JOB Admin 调度中心
 | `AbstractJobExecutor` | 执行器基类：生命周期管理（BeforeJobRun → callback → AfterJobRun）、异常处理、回调 |
 | `JobHandlerManager` | 存储所有已注册的 JobHandler 定义 |
 | `ApiRequest` | 与 XXL-JOB Admin 的 HTTP 通信：注册、回调、多回调 |
+| `JobAdminService` | 调度中心任务管理 OpenAPI 客户端（3.5.0+）：add/update/remove/start/stop/trigger |
+| `JobAdminCommand` | CLI `xxl-job:job`：通过 action 调用任务管理 API |
 | `JobContext` | 协程上下文：存储当前 logId、RunRequest（基于 Hyperf Context） |
 | `JobRunContent` | 运行时任务追踪：记录正在运行的 jobId → 对应 RunRequest 映射 |
 
