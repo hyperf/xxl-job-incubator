@@ -147,4 +147,39 @@ class ConfigFactoryTest extends TestCase
         $this->assertSame(99, $guzzle['timeout']);
         $this->assertSame('Val', $guzzle['headers']['X-Custom']);
     }
+
+    public function testInvokeNormalizesEnvStringValues(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.enable' => '1',
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => 'http://127.0.0.1:8080/xxl-job-admin',
+            'xxl_job.heartbeat' => '60',
+            'xxl_job.log_retention_days' => '7',
+        ]);
+
+        $config = (new ConfigFactory())($container);
+
+        $this->assertTrue($config->isEnable());
+        $this->assertSame(60, $config->getHeartbeat());
+        $this->assertSame(7, $config->getLogRetentionDays());
+    }
+
+    /**
+     * 按 key 返回配置值，避免每条用例重复声明十几个 get 期望。
+     */
+    private function createContainer(array $values): ContainerInterface
+    {
+        $hyperfConfig = m::mock(ConfigInterface::class);
+        $hyperfConfig->shouldReceive('get')->andReturnUsing(
+            static fn (string $key, $default = null) => $values[$key] ?? $default
+        );
+        $hyperfConfig->shouldReceive('has')->andReturn(false);
+
+        $container = m::mock(ContainerInterface::class);
+        $container->shouldReceive('get')->with(ConfigInterface::class)->andReturn($hyperfConfig);
+        $container->shouldReceive('get')->with(StdoutLoggerInterface::class)->andReturn(m::mock(StdoutLoggerInterface::class));
+
+        return $container;
+    }
 }
