@@ -123,13 +123,17 @@ class JobSerialExecutionService extends BaseService
         if ($mark) {
             return;
         }
+        $channel = $this->channels[$jobId] ?? null;
+        if (! $channel) {
+            return;
+        }
         $this->mark[$jobId] = true;
 
-        Coroutine::create(function () use ($jobId) {
+        // loop 只消费启动时的 Channel；kill 后重建的同 jobId Channel 属于新一代，不能混用
+        Coroutine::create(function () use ($jobId, $channel) {
             try {
                 while (true) {
-                    $channels = $this->channels[$jobId] ?? null;
-                    $runRequest = $channels?->pop(60);
+                    $runRequest = $channel->pop(60);
                     if (! $runRequest instanceof RunRequest) {
                         return;
                     }
@@ -143,7 +147,7 @@ class JobSerialExecutionService extends BaseService
                     JobRunContent::yield($runRequest->getLogId());
                 }
             } finally {
-                $this->remove($jobId);
+                $this->remove($jobId, $channel);
             }
         });
     }
@@ -173,8 +177,12 @@ class JobSerialExecutionService extends BaseService
         }
     }
 
-    protected function remove(int $jobId): void
+    protected function remove(int $jobId, ?Channel $channel = null): void
     {
+        // loop 收尾会带上本代 Channel；身份不一致说明 kill 后已重建，旧 loop 不能删新状态
+        if ($channel !== null && ($this->channels[$jobId] ?? null) !== $channel) {
+            return;
+        }
         unset($this->channels[$jobId], $this->mark[$jobId]);
     }
 

@@ -25,6 +25,7 @@ use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
+use Swoole\Coroutine;
 
 /**
  * @internal
@@ -258,6 +259,58 @@ class JobSerialExecutionServiceTest extends TestCase
 
         $service->handle($runRequest);
         $this->addToAssertionCount(1);
+    }
+
+    /**
+     * 旧 loop 在 kill 后退出时，不能删除新一代的 Channel 和 mark。
+     */
+    public function testOldLoopDoesNotRemoveNewGenerationAfterKill(): void
+    {
+        $service = new JobSerialExecutionService(
+            $this->container,
+            $this->glueHandlerManager,
+            $this->jobHandlerManager,
+            $this->apiRequest,
+            $this->config
+        );
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([], 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]')
+            ->andReturnNull();
+
+        $ref = new ReflectionClass(JobSerialExecutionService::class);
+        $loop = $ref->getMethod('loop');
+        $loop->setAccessible(true);
+        $channels = $ref->getProperty('channels');
+        $channels->setAccessible(true);
+        $mark = $ref->getProperty('mark');
+        $mark->setAccessible(true);
+
+        $oldChannel = new Channel(10);
+        $newChannel = new Channel(10);
+        try {
+            $this->injectChannel($service, '1', $oldChannel);
+            $loop->invoke($service, 1);
+            Coroutine::sleep(0.05);
+
+            // 旧 loop 仍阻塞在旧 Channel 上，kill 只清理数组里的当前代状态
+            $service->handle(killJobId: 1);
+            $this->injectChannel($service, '1', $newChannel);
+            $loop->invoke($service, 1);
+            Coroutine::sleep(0.05);
+
+            // 直接唤醒旧 loop，避免测试等待 pop(60) 自然超时
+            $oldChannel->push('stop-old-loop');
+            Coroutine::sleep(0.05);
+
+            self::assertSame($newChannel, $channels->getValue($service)[1] ?? null);
+            self::assertTrue($mark->getValue($service)[1] ?? false);
+        } finally {
+            // 无论断言成败都唤醒存活 loop，避免遗留协程阻塞测试进程退出
+            $oldChannel->close();
+            $newChannel->close();
+            Coroutine::sleep(0.05);
+        }
     }
 
     // ──────────────────────────────────────────────
