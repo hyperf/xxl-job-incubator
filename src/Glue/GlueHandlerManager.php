@@ -44,12 +44,12 @@ class GlueHandlerManager
     {
         JobRunContent::setJobId($request->getJobId(), $request);
         if (! $this->supports($glueType)) {
-            JobRunContent::remove($request->getJobId());
+            JobRunContent::remove($request->getJobId(), $request->getLogId());
             throw new XxlJobException('Glue type is invalid or does not support yet');
         }
         $instance = $this->container->get($this->handlers[$glueType]);
         if (! $instance instanceof GlueHandlerInterface) {
-            JobRunContent::remove($request->getJobId());
+            JobRunContent::remove($request->getJobId(), $request->getLogId());
             throw new XxlJobException(sprintf('The glue handler %s is invalid handler, should be implement %s', $this->handlers[$glueType], GlueHandlerInterface::class));
         }
         $instance->handle($request);

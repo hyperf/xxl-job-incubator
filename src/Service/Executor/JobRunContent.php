@@ -50,7 +50,12 @@ class JobRunContent
     public static function remove(int $jobId, int $logId = 0): void
     {
         $channel = static::getCoordinator($logId);
-        unset(self::$channels[$logId], self::$content[$jobId]);
+        unset(self::$channels[$logId]);
+        // 旧运行收尾只清理同 logId 的登记，避免删掉同 jobId 已开始的新一代运行
+        if ((self::$content[$jobId]?->getLogId() ?? null) === $logId) {
+            unset(self::$content[$jobId]);
+        }
+        // 即使登记已换代，也要唤醒仍在等待当前 logId 的协程
         $channel->resume();
     }
 
