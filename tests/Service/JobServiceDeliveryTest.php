@@ -97,6 +97,8 @@ class JobServiceDeliveryTest extends TestCase
 
         self::assertInstanceOf(JobPipeMessage::class, $envelope);
         self::assertNotNull($envelope->payloadFile);
+        self::assertSame(100, $envelope->logId);
+        self::assertSame(123456, $envelope->logDateTime);
         self::assertFileExists($envelope->payloadFile);
         $payloadFile = $envelope->payloadFile;
         $envelope->resolve();

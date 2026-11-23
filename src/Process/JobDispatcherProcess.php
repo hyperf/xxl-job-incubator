@@ -16,6 +16,7 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Process\AbstractProcess;
 use Hyperf\Process\ProcessManager;
 use Hyperf\XxlJob\Config;
+use Hyperf\XxlJob\JobPipeFileStore;
 use Hyperf\XxlJob\Service\JobSerialExecutionService;
 use Psr\Container\ContainerInterface;
 use Throwable;
@@ -44,6 +45,8 @@ class JobDispatcherProcess extends AbstractProcess
 
     private static bool $acceptingJobs = true;
 
+    private ?JobPipeFileStore $pipeFileStore = null;
+
     public function __construct(ContainerInterface $container)
     {
         parent::__construct($container);
@@ -69,6 +72,12 @@ class JobDispatcherProcess extends AbstractProcess
 
     public function handle(): void
     {
+        try {
+            // dispatcher 异常退出可能留下未消费的大消息，重启只清理超过宽限期的本应用文件
+            $this->pipeFileStore()->cleanup();
+        } catch (Throwable $throwable) {
+            $this->stdoutLogger->error($throwable->getMessage());
+        }
         self::$acceptingJobs = true;
         $this->startedAt = time();
         $maxLifetime = $this->xxlConfig->getMaxProcessLifetime();
@@ -122,6 +131,11 @@ class JobDispatcherProcess extends AbstractProcess
 
             return;
         }
+    }
+
+    protected function pipeFileStore(): JobPipeFileStore
+    {
+        return $this->pipeFileStore ??= new JobPipeFileStore($this->xxlConfig);
     }
 
     private function formatDuration(int $seconds): string

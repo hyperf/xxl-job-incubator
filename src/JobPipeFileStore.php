@@ -92,7 +92,11 @@ class JobPipeFileStore
             return;
         }
         $deadline = time() - $maxAgeSeconds;
-        foreach (array_merge(glob($directory . '/payload_*') ?: [], glob($directory . '/reply_*') ?: []) as $path) {
+        foreach (array_merge(
+            glob($directory . '/payload_*') ?: [],
+            glob($directory . '/reply_*') ?: [],
+            glob(sys_get_temp_dir() . '/xxl_job_pipe_*') ?: [],
+        ) as $path) {
             // 只清理超过宽限期的文件，避免 dispatcher 重启时误删正在投递的新消息
             if (is_file($path) && filemtime($path) < $deadline) {
                 @unlink($path);

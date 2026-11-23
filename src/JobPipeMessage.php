@@ -44,7 +44,7 @@ class JobPipeMessage
             if ($payload === false) {
                 throw new Exception\XxlJobException('Failed to read XXL-JOB pipe payload file.');
             }
-            $message = unserialize($payload);
+            $message = @unserialize($payload, ['allowed_classes' => [self::class, RunRequest::class]]);
             // 只允许一层文件转发，避免异常消息形成不可控的间接读取链
             if (! $message instanceof self || $message->payloadFile !== null) {
                 throw new Exception\XxlJobException('Invalid XXL-JOB pipe payload file.');
