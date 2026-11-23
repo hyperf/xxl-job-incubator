@@ -69,7 +69,7 @@ class ScriptHandler extends AbstractGlueHandler
             });
         } finally {
             try {
-                ! empty($filename) && @unlink($filename);
+                ! empty($filename) && $this->jobExecutorProcess->removeJobFileInfo($request->getJobId(), $request->getLogId());
                 if (! $process->isSuccessful()) {
                     throw new XxlJobException($process->getErrorOutput());
                 }

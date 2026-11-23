@@ -23,14 +23,36 @@ class JobExecutorCoroutine extends AbstractJobExecutor
 {
     public function isRun(int $jobId): bool
     {
-        return JobRunContent::has($jobId);
+        if (JobRunContent::has($jobId)) {
+            return true;
+        }
+        $info = $this->jobRunInfoStore()->get($jobId);
+        if ($info === [] || $info['executorType'] !== JobRunInfoStore::TYPE_COROUTINE) {
+            return false;
+        }
+        if ($this->jobRunInfoStore()->isRun($info)) {
+            return true;
+        }
+        // 属主进程已消失时清理残留，避免 dispatcher 重启后永久判忙
+        $this->jobRunInfoStore()->remove($jobId, $info['logId']);
+        return false;
     }
 
     public function kill(int $jobId, int $logId = 0, string $msg = ''): bool
     {
         $runRequest = JobRunContent::getId($jobId);
         if (empty($runRequest)) {
-            return true;
+            $info = $this->jobRunInfoStore()->get($jobId);
+            if ($info === []) {
+                return true;
+            }
+            if ($info['executorType'] === JobRunInfoStore::TYPE_COROUTINE && ! $this->jobRunInfoStore()->isRun($info)) {
+                $this->jobRunInfoStore()->remove($jobId, $info['logId']);
+                return true;
+            }
+            // 其他 worker 不能使用文件里的 cid 取消本进程协程，必须明确报告终止失败
+            $this->stdoutLogger->error(sprintf('XXL-JOB JobId:%s LogId:%s is not running in the current process.', $jobId, $logId));
+            return false;
         }
         $cid = $runRequest->getExtension('cid');
         if (! is_int($cid) || $cid <= 0) {
@@ -68,21 +90,40 @@ class JobExecutorCoroutine extends AbstractJobExecutor
 
     public function run(RunRequest $request, ?callable $callback): void
     {
-        // executorTimeout
-        $executorTimeout = $request->getExecutorTimeout();
-        if ($executorTimeout > 0) {
-            Coroutine::create(function () use ($request) {
-                $this->watchTimeout($request);
-            });
-        }
+        $published = false;
+        try {
+            // 仅 Bean 协程任务在这里登记；脚本虽复用 executeCoroutine，但实际由进程执行器管理
+            $this->jobRunInfoStore()->put($request, JobRunInfoStore::TYPE_COROUTINE);
+            $published = true;
+            $executorTimeout = $request->getExecutorTimeout();
+            if ($executorTimeout > 0) {
+                Coroutine::create(function () use ($request) {
+                    $this->watchTimeout($request);
+                });
+            }
 
-        $this->executeCoroutine($request, $callback);
+            if ($this->executeCoroutine($request, $callback, true) < 0) {
+                throw new RuntimeException('failed to create XXL-JOB execution coroutine');
+            }
+        } catch (Throwable $throwable) {
+            if ($published) {
+                $this->jobRunInfoStore()->remove($request->getJobId(), $request->getLogId());
+            }
+            throw $throwable;
+        }
     }
 
-    public function executeCoroutine(RunRequest $request, callable $callback): int
+    public function executeCoroutine(RunRequest $request, callable $callback, bool $clearRunInfo = false): int
     {
-        return Coroutine::create(function () use ($request, $callback) {
-            $this->execute($request, $callback);
+        return Coroutine::create(function () use ($request, $callback, $clearRunInfo) {
+            try {
+                $this->execute($request, $callback);
+            } finally {
+                if ($clearRunInfo) {
+                    // 只清理本 logId；旧任务收尾可能晚于新一代信息发布
+                    $this->jobRunInfoStore()->remove($request->getJobId(), $request->getLogId());
+                }
+            }
         });
     }
 

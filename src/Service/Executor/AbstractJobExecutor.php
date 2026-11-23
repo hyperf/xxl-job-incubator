@@ -1,6 +1,14 @@
 <?php
 
 declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 
 namespace Hyperf\XxlJob\Service\Executor;
 
@@ -22,6 +30,8 @@ use Throwable;
 
 abstract class AbstractJobExecutor implements JobExecutorInterface
 {
+    private ?JobRunInfoStore $runInfoStore = null;
+
     public function __construct(
         protected ContainerInterface $container,
         protected StdoutLoggerInterface $stdoutLogger,
@@ -77,5 +87,11 @@ abstract class AbstractJobExecutor implements JobExecutorInterface
             // AfterJobRun
             $this->eventDispatcher->dispatch(new AfterJobRun($request));
         }
+    }
+
+    protected function jobRunInfoStore(): JobRunInfoStore
+    {
+        // Store 无进程内状态，按同一 Config 延迟创建即可让各 worker 使用同一套文件协议
+        return $this->runInfoStore ??= new JobRunInfoStore($this->config);
     }
 }

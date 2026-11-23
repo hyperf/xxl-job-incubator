@@ -16,6 +16,7 @@ use Hyperf\Engine\Channel;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
 use Hyperf\XxlJob\JobHandlerManager;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -77,7 +78,7 @@ class JobSerialExecutionServiceTest extends TestCase
         $service->shouldReceive('remove')->with(99)->once()->globally()->ordered();
         $service->shouldReceive('kill')
             ->with(99, 100, 'Job toStop, stopReason:scheduling center kill job.')
-            ->once()->globally()->ordered();
+            ->once()->andReturnTrue()->globally()->ordered();
 
         // pushJob / callback 不应在 kill 路径中被调用
         $service->shouldNotReceive('pushJob');
@@ -88,8 +89,8 @@ class JobSerialExecutionServiceTest extends TestCase
     }
 
     /**
-     * killJobId > 0 但 JobRunContent 中没有对应 job：
-     * 应调用 sendKillMsg 和 remove，但不调用 kill。
+     * killJobId > 0 但本地 JobRunContent 中没有对应 job：
+     * 仍应调用 kill 查询共享运行态，不能因为本地为空就直接假定无需终止。
      */
     public function testKillJobWithoutRunningTask(): void
     {
@@ -97,11 +98,24 @@ class JobSerialExecutionServiceTest extends TestCase
 
         $service->shouldReceive('sendKillMsg')->with(99)->once();
         $service->shouldReceive('remove')->with(99)->once();
-        $service->shouldNotReceive('kill');
+        $service->shouldReceive('kill')
+            ->with(99, 0, 'Job toStop, stopReason:scheduling center kill job.')
+            ->once()
+            ->andReturnTrue();
         $service->shouldNotReceive('pushJob');
 
         $service->handle(killJobId: 99);
         $this->addToAssertionCount(1);
+    }
+
+    public function testKillFailureIsReported(): void
+    {
+        JobRunContent::setJobId(99, $this->createRunRequest(99));
+        $service = $this->createService();
+        $service->shouldReceive('kill')->once()->andReturnFalse();
+
+        $this->expectException(XxlJobException::class);
+        $service->handle(killJobId: 99);
     }
 
     /**
@@ -117,7 +131,7 @@ class JobSerialExecutionServiceTest extends TestCase
 
         $service->shouldReceive('sendKillMsg')->with(99)->once();
         $service->shouldReceive('remove')->with(99)->once();
-        $service->shouldReceive('kill')->once();
+        $service->shouldReceive('kill')->once()->andReturnTrue();
         $service->shouldNotReceive('pushJob');
 
         $service->handle($runRequest, 99);

@@ -15,6 +15,7 @@ namespace Hyperf\XxlJob\Service;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Channel;
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Throwable;
@@ -34,8 +35,11 @@ class JobSerialExecutionService extends BaseService
         if ($killJobId > 0) {
             $this->sendKillMsg($killJobId);
             $this->remove($killJobId);
-            if ($running = JobRunContent::getId($killJobId)) {
-                $this->kill($killJobId, $running->getLogId(), 'Job toStop, stopReason:scheduling center kill job.');
+            $running = JobRunContent::getId($killJobId);
+            $logId = $running?->getLogId() ?? 0;
+            // 本地数组为空不代表其他 worker 没有运行任务，kill 必须继续查询共享运行信息
+            if ($this->kill($killJobId, $logId, 'Job toStop, stopReason:scheduling center kill job.') === false) {
+                throw new XxlJobException(sprintf('JobId:%s could not be killed in the target process.', $killJobId));
             }
             return;
         }
