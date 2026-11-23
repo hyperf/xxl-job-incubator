@@ -1,0 +1,66 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
+
+namespace HyperfTest\XxlJob\Listener;
+
+use Hyperf\Contract\ConfigInterface;
+use Hyperf\Contract\StdoutLoggerInterface;
+use Hyperf\Process\Event\PipeMessage;
+use Hyperf\XxlJob\Config;
+use Hyperf\XxlJob\Exception\XxlJobException;
+use Hyperf\XxlJob\JobPipeFileStore;
+use Hyperf\XxlJob\JobPipeMessage;
+use Hyperf\XxlJob\Listener\OnPipeMessageListener;
+use Hyperf\XxlJob\Service\JobSerialExecutionService;
+use Mockery as m;
+use PHPUnit\Framework\TestCase;
+use Swoole\Coroutine;
+
+/**
+ * @internal
+ * @covers \Hyperf\XxlJob\Listener\OnPipeMessageListener
+ */
+class OnPipeMessageListenerTest extends TestCase
+{
+    protected function tearDown(): void
+    {
+        m::close();
+    }
+
+    public function testKillFailurePublishesFailureReply(): void
+    {
+        $config = new Config();
+        $config->setAppName('ack-listener-test');
+        $config->setLogFileDir('/tmp/ack-listener-' . uniqid('', true));
+        $store = new JobPipeFileStore($config);
+        $replyId = str_repeat('c', 32);
+        try {
+            $serialService = m::mock(JobSerialExecutionService::class);
+            $serialService->shouldReceive('handle')->once()->with(null, 1)->andThrow(new XxlJobException('kill failed'));
+            $logger = m::mock(StdoutLoggerInterface::class);
+            $logger->shouldReceive('error')->once()->with('kill failed');
+            $listener = new OnPipeMessageListener($serialService, m::mock(ConfigInterface::class), $logger, $store);
+
+            $listener->process(new PipeMessage(new JobPipeMessage(killJobId: 1, replyId: $replyId)));
+            Coroutine::sleep(0.05);
+
+            $reply = $store->consumeReply($replyId);
+            self::assertSame(500, $reply['code']);
+            self::assertSame('kill failed', $reply['msg']);
+        } finally {
+            $store->cleanup(-1);
+            if (is_dir($store->getDirectory())) {
+                rmdir($store->getDirectory());
+            }
+        }
+    }
+}

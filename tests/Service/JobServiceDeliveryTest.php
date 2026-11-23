@@ -18,6 +18,7 @@ use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
 use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\JobPipeFileStore;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -132,14 +133,80 @@ class JobServiceDeliveryTest extends TestCase
         }
     }
 
-    private function createDeliveryService(ApiRequest $apiRequest): JobService
+    public function testKillFailureReplyIsReturnedToCaller(): void
     {
-        return new class(m::mock(ContainerInterface::class), m::mock(GlueHandlerManager::class), m::mock(JobHandlerManager::class), $apiRequest, new Config()) extends JobService {
+        $config = $this->createAckConfig();
+        $store = new JobPipeFileStore($config);
+        $replyId = str_repeat('a', 32);
+        try {
+            $service = $this->createDeliveryService(m::mock(ApiRequest::class), $config);
+            $socket = $this->registerDispatcherSocket();
+            $socket->shouldReceive('send')->once()->andReturnUsing(static function (string $payload) use ($store, $replyId): int {
+                $store->publishReply($replyId, 500, 'kill failed');
+                return strlen($payload);
+            });
+
+            $this->expectException(GlueHandlerExecutionException::class);
+            $this->expectExceptionMessage('kill failed');
+            $service->deliverWithAck(new JobPipeMessage(killJobId: 1, replyId: $replyId));
+        } finally {
+            $this->cleanupStore($store);
+        }
+    }
+
+    public function testKillSuccessReplyReturnsNormally(): void
+    {
+        $config = $this->createAckConfig();
+        $store = new JobPipeFileStore($config);
+        $replyId = str_repeat('b', 32);
+        try {
+            $service = $this->createDeliveryService(m::mock(ApiRequest::class), $config);
+            $socket = $this->registerDispatcherSocket();
+            $socket->shouldReceive('send')->once()->andReturnUsing(static function (string $payload) use ($store, $replyId): int {
+                $store->publishReply($replyId, 200);
+                return strlen($payload);
+            });
+
+            $service->deliverWithAck(new JobPipeMessage(killJobId: 1, replyId: $replyId));
+            self::assertNull($store->consumeReply($replyId));
+        } finally {
+            $this->cleanupStore($store);
+        }
+    }
+
+    private function createDeliveryService(ApiRequest $apiRequest, ?Config $config = null): JobService
+    {
+        $config ??= new Config();
+        return new class(m::mock(ContainerInterface::class), m::mock(GlueHandlerManager::class), m::mock(JobHandlerManager::class), $apiRequest, $config) extends JobService {
             public function deliver(JobPipeMessage $message): void
             {
                 $this->sendToDispatcher($message);
             }
+
+            public function deliverWithAck(JobPipeMessage $message): void
+            {
+                $this->sendToDispatcher($message);
+                if ($message->replyId !== null) {
+                    $this->waitForKillReply($message->replyId);
+                }
+            }
         };
+    }
+
+    private function createAckConfig(): Config
+    {
+        $config = new Config();
+        $config->setAppName('ack-test');
+        $config->setLogFileDir('/tmp/ack-test-' . uniqid('', true));
+        return $config;
+    }
+
+    private function cleanupStore(JobPipeFileStore $store): void
+    {
+        $store->cleanup(-1);
+        if (is_dir($store->getDirectory())) {
+            rmdir($store->getDirectory());
+        }
     }
 
     private function createRunRequest(): RunRequest

@@ -21,7 +21,14 @@ class JobPipeMessage
         public int $killJobId = 0,
         public int $fromWorkerId = -1,
         public ?string $payloadFile = null,
+        public ?string $replyId = null,
+        public int $logId = 0,
+        public int $logDateTime = 0,
     ) {
+        if ($runRequest) {
+            $this->logId = $runRequest->getLogId();
+            $this->logDateTime = $runRequest->getLogDateTime();
+        }
     }
 
     public function resolve(): void
@@ -45,6 +52,9 @@ class JobPipeMessage
             $this->runRequest = $message->runRequest;
             $this->killJobId = $message->killJobId;
             $this->fromWorkerId = $message->fromWorkerId;
+            $this->replyId = $message->replyId;
+            $this->logId = $message->logId;
+            $this->logDateTime = $message->logDateTime;
         } finally {
             // 无论解析成功与否都只消费一次，避免 dispatcher 重启后重复执行旧任务
             @unlink($payloadFile);

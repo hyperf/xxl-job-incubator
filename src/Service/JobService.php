@@ -12,10 +12,12 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service;
 
+use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Constant;
 use Hyperf\Process\ProcessCollector;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
+use Hyperf\XxlJob\JobPipeFileStore;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -24,14 +26,20 @@ use Throwable;
 
 class JobService extends BaseService
 {
+    private ?JobPipeFileStore $pipeFileStore = null;
+
     public function send(?RunRequest $runRequest = null, int $killJobId = 0): void
     {
         $jobSerialExecutionService = $this->container->get(JobSerialExecutionService::class);
         if (Constant::ENGINE == 'Swoole') {
             $server = $this->container->get(Server::class);
             if ($server instanceof Server) {
-                $jobPipeMessage = new JobPipeMessage($runRequest, $killJobId, $server->worker_id);
+                $replyId = $killJobId > 0 ? bin2hex(random_bytes(16)) : null;
+                $jobPipeMessage = new JobPipeMessage($runRequest, $killJobId, $server->worker_id, replyId: $replyId);
                 $this->sendToDispatcher($jobPipeMessage);
+                if ($replyId !== null) {
+                    $this->waitForKillReply($replyId);
+                }
                 return;
             }
         }
@@ -90,6 +98,22 @@ class JobService extends BaseService
         }
     }
 
+    protected function waitForKillReply(string $replyId): void
+    {
+        $deadline = microtime(true) + 10;
+        while (microtime(true) < $deadline) {
+            $reply = $this->pipeFileStore()->consumeReply($replyId);
+            if ($reply !== null) {
+                if ($reply['code'] !== 200) {
+                    throw new GlueHandlerExecutionException($reply['msg'] !== '' ? $reply['msg'] : 'XXL-JOB kill failed.');
+                }
+                return;
+            }
+            Coroutine::sleep(0.01);
+        }
+        throw new GlueHandlerExecutionException('Timed out waiting for XXL-JOB kill acknowledgement.');
+    }
+
     protected function serializePipeMessage(JobPipeMessage $jobPipeMessage, ?string &$payloadFile): string
     {
         $payload = serialize($jobPipeMessage);
@@ -97,21 +121,22 @@ class JobService extends BaseService
             return $payload;
         }
 
-        $path = tempnam(sys_get_temp_dir(), 'xxl_job_pipe_');
-        if ($path === false) {
-            throw new GlueHandlerExecutionException('Failed to create XXL-JOB pipe payload file.');
-        }
+        $path = $this->pipeFileStore()->putPayload($payload);
         $payloadFile = $path;
-        // tempnam 已独占创建文件，且完整写入前不会把路径发给接收端，因此无需再 rename
-        if (file_put_contents($path, $payload) !== strlen($payload)) {
-            throw new GlueHandlerExecutionException('Failed to write XXL-JOB pipe payload file.');
-        }
 
         return serialize(new JobPipeMessage(
             killJobId: $jobPipeMessage->killJobId,
             fromWorkerId: $jobPipeMessage->fromWorkerId,
             payloadFile: $path,
+            replyId: $jobPipeMessage->replyId,
+            logId: $jobPipeMessage->logId,
+            logDateTime: $jobPipeMessage->logDateTime,
         ));
+    }
+
+    protected function pipeFileStore(): JobPipeFileStore
+    {
+        return $this->pipeFileStore ??= new JobPipeFileStore($this->config);
     }
 
     protected function callbackDeliveryFailure(?RunRequest $runRequest, string $message): void
