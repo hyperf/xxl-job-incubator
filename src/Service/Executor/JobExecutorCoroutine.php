@@ -60,6 +60,10 @@ class JobExecutorCoroutine extends AbstractJobExecutor
             $this->stdoutLogger->error(sprintf('XXL-JOB JobId:%s LogId:%s cannot be killed without a local coroutine id.', $jobId, $logId));
             return false;
         }
+        if ($msg) {
+            // 取消产生的 CanceledException 由当前 kill 统一回调，执行协程不再重复上报堆栈
+            $runRequest->setExtension('killCallback', true);
+        }
         if (Constant::ENGINE == 'Swoole' && swoole_version() >= '6.1.0') {
             $time = time();
             while (\Swoole\Coroutine::exists($cid)) {
@@ -76,7 +80,14 @@ class JobExecutorCoroutine extends AbstractJobExecutor
         } elseif (Constant::ENGINE == 'Swow') {
             \Swow\Coroutine::get($cid)?->kill();
         } else {
+            $runRequest->setExtension('killCallback', false);
             $this->stdoutLogger->error('the current mode does not support killing jobs');
+            return false;
+        }
+
+        if (Constant::ENGINE == 'Swoole' && \Swoole\Coroutine::exists($cid)) {
+            $runRequest->setExtension('killCallback', false);
+            $this->stdoutLogger->error(sprintf('XXL-JOB JobId:%s LogId:%s could not be killed.', $jobId, $logId));
             return false;
         }
 

@@ -21,6 +21,8 @@ class ApiRequest
 {
     protected Config $config;
 
+    private ?JobCallbackGuard $callbackGuard = null;
+
     public function __construct(Config $config)
     {
         $this->config = $config;
@@ -94,9 +96,11 @@ class ApiRequest
                 'msg' => $handleMsg,
             ],
         ]];
-        return $this->request('POST', '/api/callback', [
-            RequestOptions::JSON => $body,
-        ]);
+        return $this->callbackGuard()->execute($logId, function () use ($body): ResponseInterface {
+            return $this->request('POST', '/api/callback', [
+                RequestOptions::JSON => $body,
+            ]);
+        });
     }
 
     public function multipleCallback(array $data, int $handleCode = 200, $handleMsg = null): ?ResponseInterface
@@ -120,5 +124,10 @@ class ApiRequest
         return $this->request('POST', '/api/callback', [
             RequestOptions::JSON => $body,
         ]);
+    }
+
+    protected function callbackGuard(): JobCallbackGuard
+    {
+        return $this->callbackGuard ??= new JobCallbackGuard($this->config);
     }
 }

@@ -80,7 +80,10 @@ abstract class AbstractJobExecutor implements JobExecutorInterface
                 // $message = str_replace(PHP_EOL, '<br>', $message);
             }
             $this->jobExecutorLogger->error($message);
-            $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
+            if (! $request->getExtension('killCallback')) {
+                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
+            }
+            // kill 已声明负责本次回调时，取消异常只记录日志，避免同一 logId 再上报一次
             throw $throwable;
         } finally {
             JobRunContent::remove($request->getJobId(), $request->getLogId());

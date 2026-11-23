@@ -67,7 +67,7 @@ class MainWorkerStartListener implements ListenerInterface
                 }
                 try {
                     $this->logger->info('XXL-JOB delete expired files, log retention days : ' . $logRetentionDays);
-                    $logFiles = glob($this->xxlConfig->getLogFileDir() . '*.log');
+                    $logFiles = glob($this->xxlConfig->getLogFileDir() . '{*.log,*.callback}', GLOB_BRACE) ?: [];
                     foreach ($logFiles as $file) {
                         if (time() - filectime($file) > $logRetentionDays * 24 * 3600) {
                             is_writable($file) && unlink($file);
