@@ -21,19 +21,16 @@ use Throwable;
 
 class ScriptHandler extends AbstractGlueHandler
 {
-    protected string $glueType;
-
     public function handle(RunRequest $request)
     {
         if (! is_dir($this->getScriptDir())) {
             mkdir($this->getScriptDir(), 0755, true);
         }
-        $this->glueType = $request->getGlueType();
-        if (! GlueEnum::isScript($this->glueType)) {
+        if (! GlueEnum::isScript($request->getGlueType())) {
             return;
         }
         $this->jobExecutorCoroutine->executeCoroutine($request, function (RunRequest $request) {
-            $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime());
+            $filePath = $this->generateFilePath($request->getJobId(), $request->getGlueUpdatetime(), $request->getGlueType());
             if (! is_file($filePath)) {
                 file_put_contents($filePath, $request->getGlueSource());
             }
@@ -41,9 +38,9 @@ class ScriptHandler extends AbstractGlueHandler
         });
     }
 
-    protected function generateFilePath(int $logId, int $glueUpdateTime): string
+    protected function generateFilePath(int $logId, int $glueUpdateTime, string $glueType): string
     {
-        return $this->getScriptDir() . $logId . '-' . $glueUpdateTime . $this->getFileSuffix($this->glueType);
+        return $this->getScriptDir() . $logId . '-' . $glueUpdateTime . $this->getFileSuffix($glueType);
     }
 
     protected function getScriptDir(): string
@@ -53,7 +50,7 @@ class ScriptHandler extends AbstractGlueHandler
 
     protected function executeCmd(string $filePath, RunRequest $request): void
     {
-        $bin = $this->getCmdBin($this->glueType);
+        $bin = $this->getCmdBin($request->getGlueType());
         $executorTimeout = $request->getExecutorTimeout();
         $process = new Process([$bin, $filePath, $request->getExecutorParams(), $request->getBroadcastIndex(), $request->getBroadcastTotal()], timeout: $executorTimeout > 0 ? $executorTimeout : null);
         try {
