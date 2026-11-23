@@ -39,9 +39,9 @@ class JobCommand extends HyperfCommand
     public function configure()
     {
         parent::configure();
-        $this->setDescription('Execute XXL-JOB task by jobId (via admin scheduler) or by handler name (direct CLI invocation)');
-        $this->addOption('jobId', 'j', InputOption::VALUE_OPTIONAL, 'The job ID scheduled by XXL-JOB admin');
-        $this->addOption('logId', 'l', InputOption::VALUE_OPTIONAL, 'The log ID associated with this execution');
+        $this->setDescription('Execute a scheduled job by matching jobId and logId, or invoke a handler directly for debugging');
+        $this->addOption('jobId', 'j', InputOption::VALUE_OPTIONAL, 'Scheduled job ID (requires --logId); use --handler for direct debugging');
+        $this->addOption('logId', 'l', InputOption::VALUE_OPTIONAL, 'Required with --jobId; must match the scheduled run info');
 
         // Direct invocation from command line without XXL-JOB admin
         $this->addOption('handler', null, InputOption::VALUE_OPTIONAL, 'The executor handler name for direct CLI invocation');
