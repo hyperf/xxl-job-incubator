@@ -146,14 +146,4 @@ class JobExecutorCoroutine extends AbstractJobExecutor
             $this->callbackSafely($request, 500, $message);
         }
     }
-
-    protected function callbackSafely(RunRequest $runRequest, int $handleCode, string $message): void
-    {
-        try {
-            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), $handleCode, $message);
-        } catch (Throwable $throwable) {
-            // admin 不可达只影响回调本身，不能把超时 watcher 或 kill 调用协程一起带崩
-            $this->stdoutLogger->error($throwable->getMessage());
-        }
-    }
 }

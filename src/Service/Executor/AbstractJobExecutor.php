@@ -89,6 +89,16 @@ abstract class AbstractJobExecutor implements JobExecutorInterface
         }
     }
 
+    protected function callbackSafely(RunRequest $runRequest, int $handleCode, string $message): void
+    {
+        try {
+            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), $handleCode, $message);
+        } catch (Throwable $throwable) {
+            // admin 不可达只影响回调本身，不能把执行协程一起带崩
+            $this->stdoutLogger->error($throwable->getMessage());
+        }
+    }
+
     protected function jobRunInfoStore(): JobRunInfoStore
     {
         // Store 无进程内状态，按同一 Config 延迟创建即可让各 worker 使用同一套文件协议

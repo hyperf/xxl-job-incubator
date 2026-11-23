@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\Coroutine\Coroutine;
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\JobCommand;
 use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -122,11 +123,7 @@ class JobExecutorProcess extends AbstractJobExecutor
         if ($msg) {
             JobContext::setJobLogId($logId);
             $this->jobExecutorLogger->warning($msg);
-            try {
-                $this->apiRequest->callback($logId, $runRequest->getLogDateTime(), 500, $msg);
-            } catch (Throwable $throwable) {
-                $this->stdoutLogger->error($throwable->getMessage());
-            }
+            $this->callbackSafely($runRequest, 500, $msg);
         }
         return true;
     }
@@ -143,9 +140,23 @@ class JobExecutorProcess extends AbstractJobExecutor
         $this->executeCommand($request);
     }
 
-    public function putJobFileInfo(int $pid, RunRequest $request): string
+    public function prepareJobFileInfo(RunRequest $request): string
     {
+        // 先发布请求再启动子进程，快速结束的子进程也不会读到旧 logId 或半截文件
+        return $this->jobRunInfoStore()->put($request, JobRunInfoStore::TYPE_PROCESS);
+    }
+
+    public function putJobFileInfo(?int $pid, RunRequest $request): string
+    {
+        if ($pid === null || $pid <= 0) {
+            throw new XxlJobException(sprintf('XXL-JOB JobId:%s LogId:%s process pid is unavailable.', $request->getJobId(), $request->getLogId()));
+        }
         return $this->jobRunInfoStore()->put($request, JobRunInfoStore::TYPE_PROCESS, $pid);
+    }
+
+    public function updateJobFilePid(RunRequest $request, int $pid): bool
+    {
+        return $this->jobRunInfoStore()->updatePid($request, $pid);
     }
 
     public function getJobFileInfo(int $jobId): array
@@ -168,44 +179,66 @@ class JobExecutorProcess extends AbstractJobExecutor
         $command[] = $request->getLogId();
         $this->stdoutLogger->debug('XXL-JOB execute commands:' . implode(' ', $command));
         Coroutine::create(function () use ($command, $request) {
+            $process = null;
+            $failure = null;
             try {
-                $message = '';
                 JobContext::setJobLogId($request->getLogId());
+                $this->prepareJobFileInfo($request);
                 $executorTimeout = $request->getExecutorTimeout();
                 $process = new Process($command, timeout: $executorTimeout > 0 ? $executorTimeout : null);
                 $process->start();
                 $request->setExtension('process', $process);
-                $filename = $this->putJobFileInfo($process->getPid(), $request);
-                $process->wait(
-                    // function ($type, $buffer): void {
-                    //     $buffer = trim($buffer);
-                    //     if ($type === Process::ERR) {
-                    //         $this->stdoutLogger->error($buffer);
-                    //     } else {
-                    //         $this->stdoutLogger->info($buffer);
-                    //     }
-                    // }
-                );
-            } catch (ProcessSignaledException $e) {
-                $message = sprintf('XXL-JOB: JobId:%s LogId:%s %s', $request->getJobId(), $request->getLogId(), $e->getMessage());
-                $this->stdoutLogger->warning($message);
+                $pid = $process->getPid();
+                // 进程可能快速退出，此时 getPid() 可以为 null；交给 wait() 获取真实退出状态而不是触发 TypeError
+                if ($pid !== null && ! $this->updateJobFilePid($request, $pid)) {
+                    throw new XxlJobException('The job has been superseded by a new logId before its pid was published.');
+                }
+                $process->wait();
+                if (! $process->isSuccessful()) {
+                    $errorOutput = trim($process->getErrorOutput());
+                    $failure = sprintf(
+                        'XXL-JOB: JobId:%s LogId:%s %s',
+                        $request->getJobId(),
+                        $request->getLogId(),
+                        $errorOutput !== '' ? $errorOutput : sprintf('Process exited with code %s.', $process->getExitCode() ?? 'unknown')
+                    );
+                }
+            } catch (ProcessSignaledException $exception) {
+                $failure = sprintf('XXL-JOB: JobId:%s LogId:%s %s', $request->getJobId(), $request->getLogId(), $exception->getMessage());
             } catch (ProcessTimedOutException) {
-                $message = 'scheduling center kill job. [job running, killed]';
-                $this->jobExecutorLogger->warning($message);
-                $this->stdoutLogger->warning($message . ' JobId:' . $request->getJobId());
-                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
+                $failure = 'scheduling center kill job. [job running, killed]';
+                $this->jobExecutorLogger->warning($failure);
+            } catch (Throwable $throwable) {
+                $failure = sprintf('XXL-JOB: JobId:%s LogId:%s %s', $request->getJobId(), $request->getLogId(), $throwable->getMessage());
             } finally {
-                try {
-                    ! empty($filename) && $this->removeJobFileInfo($request->getJobId(), $request->getLogId());
-                    if (empty($message) && ! empty($process) && ! $process->isSuccessful()) {
-                        $message = $process->getErrorOutput();
-                        $warningMsg = sprintf('XXL-JOB: JobId:%s LogId:%s %s', $request->getJobId(), $request->getLogId(), $message);
-                        $this->stdoutLogger->warning($warningMsg);
+                if ($failure !== null) {
+                    if ($process instanceof Process) {
+                        $this->stopProcess($process);
                     }
+                    $this->stdoutLogger->warning($failure);
+                    // 父进程只补失败结果；成功任务的业务回调仍由子进程负责
+                    $this->callbackSafely($request, 500, $failure);
+                }
+                try {
+                    $this->removeJobFileInfo($request->getJobId(), $request->getLogId());
+                } catch (Throwable $throwable) {
+                    $this->stdoutLogger->error($throwable->getMessage());
                 } finally {
                     JobRunContent::remove($request->getJobId(), $request->getLogId());
                 }
             }
         });
+    }
+
+    protected function stopProcess(Process $process): void
+    {
+        try {
+            if ($process->isRunning()) {
+                $process->stop(1);
+            }
+        } catch (Throwable $throwable) {
+            // 回收失败仍需继续回调和清理本 logId，不能让异常逃出 finally
+            $this->stdoutLogger->error($throwable->getMessage());
+        }
     }
 }

@@ -17,6 +17,7 @@ use Hyperf\XxlJob\Glue\GlueEnum;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Symfony\Component\Process\Process;
+use Throwable;
 
 class ScriptHandler extends AbstractGlueHandler
 {
@@ -55,10 +56,10 @@ class ScriptHandler extends AbstractGlueHandler
         $bin = $this->getCmdBin($this->glueType);
         $executorTimeout = $request->getExecutorTimeout();
         $process = new Process([$bin, $filePath, $request->getExecutorParams(), $request->getBroadcastIndex(), $request->getBroadcastTotal()], timeout: $executorTimeout > 0 ? $executorTimeout : null);
-        $process->start();
-        $request->setExtension('process', $process);
-        $filename = $this->jobExecutorProcess->putJobFileInfo($process->getPid(), $request);
         try {
+            $process->start();
+            $request->setExtension('process', $process);
+            $this->jobExecutorProcess->putJobFileInfo($process->getPid(), $request);
             $process->wait(function ($type, $buffer): void {
                 $buffer = trim($buffer);
                 if ($type === Process::ERR) {
@@ -67,12 +68,23 @@ class ScriptHandler extends AbstractGlueHandler
                     $this->jobExecutorLogger->info($buffer);
                 }
             });
+            if (! $process->isSuccessful()) {
+                $message = trim($process->getErrorOutput());
+                throw new XxlJobException($message !== '' ? $message : sprintf('Script exited with code %s.', $process->getExitCode() ?? 'unknown'));
+            }
+        } catch (Throwable $throwable) {
+            try {
+                // info 发布失败时子进程可能仍在运行，必须先回收再把异常交给上层补 500
+                if ($process->isRunning()) {
+                    $process->stop(1);
+                }
+            } catch (Throwable $stopError) {
+                $this->stdoutLogger->error($stopError->getMessage());
+            }
+            throw $throwable;
         } finally {
             try {
-                ! empty($filename) && $this->jobExecutorProcess->removeJobFileInfo($request->getJobId(), $request->getLogId());
-                if (! $process->isSuccessful()) {
-                    throw new XxlJobException($process->getErrorOutput());
-                }
+                $this->jobExecutorProcess->removeJobFileInfo($request->getJobId(), $request->getLogId());
             } finally {
                 JobRunContent::remove($request->getJobId(), $request->getLogId());
             }
