@@ -34,6 +34,23 @@ class LogRequestTest extends TestCase
         $this->assertSame(1, $req->getFromLineNum());
     }
 
+    public function testMissingAndNullFieldsUseDefaults(): void
+    {
+        $missing = LogRequest::create();
+        self::assertSame(0, $missing->getLogDateTim());
+        self::assertSame(0, $missing->getLogId());
+        self::assertSame(1, $missing->getFromLineNum());
+
+        $null = LogRequest::create([
+            'logDateTim' => null,
+            'logId' => null,
+            'fromLineNum' => null,
+        ]);
+        self::assertSame(0, $null->getLogDateTim());
+        self::assertSame(0, $null->getLogId());
+        self::assertSame(1, $null->getFromLineNum());
+    }
+
     public function testCreateFiltersUnknownKeys(): void
     {
         $req = LogRequest::create([

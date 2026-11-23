@@ -251,6 +251,32 @@ class JobControllerTest extends TestCase
         $this->assertInstanceOf(HttpResponseContract::class, $response);
     }
 
+    public function testLogNullFieldsReturnEmptySuccess(): void
+    {
+        $this->mockInput([
+            'logDateTim' => null,
+            'logId' => null,
+            'fromLineNum' => null,
+        ]);
+        $this->jobExecutorLogger->shouldNotReceive('retrieveLog');
+        $response = m::mock(HttpResponseContract::class);
+        $response->shouldReceive('withAddedHeader')->andReturnSelf();
+        $response->shouldReceive('withBody')
+            ->once()
+            ->with(m::on(static function ($body): bool {
+                $data = json_decode((string) $body, true);
+                return $data['code'] === 200
+                    && $data['data']['fromLineNum'] === 1
+                    && $data['data']['toLineNum'] === 0
+                    && $data['data']['logContent'] === ''
+                    && $data['data']['isEnd'] === true;
+            }))
+            ->andReturnSelf();
+        $this->container->shouldReceive('get')->with(HttpResponseContract::class)->andReturn($response);
+
+        self::assertSame($response, $this->controller->log());
+    }
+
     protected function mockInput(array $data): void
     {
         $this->request->shouldReceive('getParsedBody')->andReturn($data);
