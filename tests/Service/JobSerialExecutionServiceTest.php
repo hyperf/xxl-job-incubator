@@ -19,6 +19,7 @@ use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
 use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Hyperf\XxlJob\Service\JobSerialExecutionService;
@@ -57,6 +58,7 @@ class JobSerialExecutionServiceTest extends TestCase
     {
         m::close();
         $this->resetJobRunContent();
+        JobDispatcherProcess::setAcceptingJobs(true);
     }
 
     // ──────────────────────────────────────────────
@@ -369,6 +371,55 @@ class JobSerialExecutionServiceTest extends TestCase
 
         $service->handle(killJobId: 1);
         $this->addToAssertionCount(1);
+    }
+
+    public function testRunIsRejectedWhenDispatcherIsShuttingDown(): void
+    {
+        JobDispatcherProcess::setAcceptingJobs(false);
+        $runRequest = $this->createRunRequest(1);
+        $service = $this->createService();
+        $service->shouldReceive('callback')
+            ->once()
+            ->with($runRequest, 500, 'XXL-JOB dispatcher is shutting down; please retry later.');
+        $service->shouldNotReceive('pushJob');
+        $service->shouldNotReceive('coverEarlyJobLoop');
+
+        $service->handle($runRequest);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testFailPendingJobsIncludesProcessingRunningAndQueuedRequests(): void
+    {
+        $service = $this->createRealService();
+        $ref = new ReflectionClass($service);
+        $processing = $ref->getProperty('processing');
+        $processing->setAccessible(true);
+        $processingRequest = $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 301);
+        $processing->setValue($service, [301 => $processingRequest]);
+        JobRunContent::setJobId(1, $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 100));
+        $this->injectChannel($service, '1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 101),
+        ]));
+        $this->injectChannel($service, 'coverEarlyJob_1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::COVER_EARLY, 201),
+        ]));
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([
+                ['logId' => 301, 'logDateTim' => 20240101120000],
+                ['logId' => 100, 'logDateTim' => 20240101120000],
+                ['logId' => 101, 'logDateTim' => 20240101120000],
+                ['logId' => 201, 'logDateTim' => 20240101120000],
+            ], 500, 'dispatcher shutdown')
+            ->andReturnNull();
+        self::assertTrue($service->hasPendingJobs());
+
+        $service->failPendingJobs('dispatcher shutdown');
+
+        $channels = $ref->getProperty('channels');
+        $channels->setAccessible(true);
+        self::assertSame([], $channels->getValue($service));
+        self::assertSame([], $processing->getValue($service));
     }
 
     // ──────────────────────────────────────────────

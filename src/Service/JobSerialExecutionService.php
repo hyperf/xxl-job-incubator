@@ -16,6 +16,7 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Channel;
 use Hyperf\XxlJob\Exception\XxlJobException;
+use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Throwable;
@@ -28,6 +29,11 @@ class JobSerialExecutionService extends BaseService
     protected array $channels = [];
 
     protected array $mark = [];
+
+    /**
+     * @var array<int, RunRequest> 已出队但尚未执行完成或完成回调的请求
+     */
+    protected array $processing = [];
 
     public function handle(?RunRequest $runRequest = null, int $killJobId = 0): void
     {
@@ -46,6 +52,16 @@ class JobSerialExecutionService extends BaseService
         }
 
         // run job
+        if ($runRequest && ! JobDispatcherProcess::isAcceptingJobs()) {
+            // max_process_lifetime 进入退出阶段后不再接单，避免进程永远等不到队列清空
+            $this->processing[$runRequest->getLogId()] = $runRequest;
+            try {
+                $this->callback($runRequest, 500, 'XXL-JOB dispatcher is shutting down; please retry later.');
+            } finally {
+                unset($this->processing[$runRequest->getLogId()]);
+            }
+            return;
+        }
         $jobId = $runRequest->getJobId();
         $running = JobRunContent::getId($jobId);
         // 丢弃后续调度
@@ -68,6 +84,51 @@ class JobSerialExecutionService extends BaseService
         $this->pushJob($jobId, $runRequest);
     }
 
+    public function hasPendingJobs(): bool
+    {
+        if ($this->processing !== [] || JobRunContent::getRunningJobIds() !== []) {
+            return true;
+        }
+        foreach ($this->channels as $channel) {
+            if ($channel->length() > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function failPendingJobs(string $message): void
+    {
+        $requests = $this->processing;
+        foreach (JobRunContent::getRunningJobIds() as $jobId) {
+            $request = JobRunContent::getId($jobId);
+            if ($request) {
+                $requests[$request->getLogId()] = $request;
+            }
+        }
+        foreach ($this->channels as $channel) {
+            while (! $channel->isEmpty()) {
+                $request = $channel->pop(0.01);
+                if (! $request instanceof RunRequest) {
+                    break;
+                }
+                $requests[$request->getLogId()] = $request;
+            }
+        }
+        $this->channels = [];
+        $this->mark = [];
+        $this->processing = [];
+
+        $data = [];
+        foreach ($requests as $request) {
+            $data[] = [
+                'logId' => $request->getLogId(),
+                'logDateTim' => $request->getLogDateTime(),
+            ];
+        }
+        $this->apiRequest->multipleCallback($data, 500, $message);
+    }
+
     protected function coverEarlyJobLoop(string $key): void
     {
         $mark = $this->mark[$key] ?? false;
@@ -88,8 +149,13 @@ class JobSerialExecutionService extends BaseService
                         if (! $runRequest instanceof RunRequest) {
                             return;
                         }
+                        $this->processing[$runRequest->getLogId()] = $runRequest;
                         Coroutine::create(function () use ($runRequest) {
-                            $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
+                            try {
+                                $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
+                            } finally {
+                                unset($this->processing[$runRequest->getLogId()]);
+                            }
                         });
                     } else {
                         sleep(1);
@@ -107,33 +173,38 @@ class JobSerialExecutionService extends BaseService
                     if (! $runRequest instanceof RunRequest) {
                         return;
                     }
-                    if (! $this->isCurrentChannel($key, $channel)) {
-                        // 请求虽已出队，但 kill 已使本代失效，不能再转入普通队列执行
-                        $this->callback($runRequest, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
-                        return;
-                    }
-                    $jobId = $runRequest->getJobId();
-                    $running = JobRunContent::getId($jobId);
-                    if ($running) {
-                        if ($this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]') === false) {
-                            $this->callback($runRequest, 500, 'block strategy effect：Cover Early [failed to kill the running job]');
+                    $this->processing[$runRequest->getLogId()] = $runRequest;
+                    try {
+                        if (! $this->isCurrentChannel($key, $channel)) {
+                            // 请求虽已出队，但 kill 已使本代失效，不能再转入普通队列执行
+                            $this->callback($runRequest, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
+                            return;
+                        }
+                        $jobId = $runRequest->getJobId();
+                        $running = JobRunContent::getId($jobId);
+                        if ($running) {
+                            if ($this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]') === false) {
+                                $this->callback($runRequest, 500, 'block strategy effect：Cover Early [failed to kill the running job]');
+                                continue;
+                            }
+                            // kill 只代表已发起终止；旧任务未收尾前不能启动新任务，避免同 jobId 并发
+                            if (! JobRunContent::yield($running->getLogId(), 6)) {
+                                $this->callback($runRequest, 500, 'block strategy effect：Cover Early [timed out waiting for the running job to stop]');
+                                continue;
+                            }
+                        }
+                        if (! $this->isCurrentChannel($key, $channel)) {
+                            $this->callback($runRequest, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
+                            return;
+                        }
+                        if ($channel->length() > 0) {
+                            $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
                             continue;
                         }
-                        // kill 只代表已发起终止；旧任务未收尾前不能启动新任务，避免同 jobId 并发
-                        if (! JobRunContent::yield($running->getLogId(), 6)) {
-                            $this->callback($runRequest, 500, 'block strategy effect：Cover Early [timed out waiting for the running job to stop]');
-                            continue;
-                        }
+                        $this->pushJob($jobId, $runRequest);
+                    } finally {
+                        unset($this->processing[$runRequest->getLogId()]);
                     }
-                    if (! $this->isCurrentChannel($key, $channel)) {
-                        $this->callback($runRequest, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
-                        return;
-                    }
-                    if ($channel->length() > 0) {
-                        $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
-                        continue;
-                    }
-                    $this->pushJob($jobId, $runRequest);
                 }
             } finally {
                 $this->removeCoverEarlyJob($key, $channel);
@@ -161,14 +232,20 @@ class JobSerialExecutionService extends BaseService
                     if (! $runRequest instanceof RunRequest) {
                         return;
                     }
+                    $this->processing[$runRequest->getLogId()] = $runRequest;
                     try {
-                        $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
-                    } catch (Throwable $throwable) {
-                        // 分发异常必须就地消化：这里是 dispatcher 里的协程根，逃出去会直接杀掉整个进程
-                        $this->handleDispatchFailure($runRequest, $throwable);
-                        continue;
+                        try {
+                            $this->glueHandlerManager->handle($runRequest->getGlueType(), $runRequest);
+                        } catch (Throwable $throwable) {
+                            // 分发异常必须就地消化：这里是 dispatcher 里的协程根，逃出去会直接杀掉整个进程
+                            $this->handleDispatchFailure($runRequest, $throwable);
+                            continue;
+                        }
+                        JobRunContent::yield($runRequest->getLogId());
+                    } finally {
+                        // 排队计数可能已转交给 JobRunContent；只有执行及失败回调都结束才移除分发中标记
+                        unset($this->processing[$runRequest->getLogId()]);
                     }
-                    JobRunContent::yield($runRequest->getLogId());
                 }
             } finally {
                 $this->remove($jobId, $channel);
