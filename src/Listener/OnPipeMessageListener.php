@@ -17,15 +17,20 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Process\Event\PipeMessage as UserProcessPipeMessage;
+use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\JobPipeFileStore;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Service\JobSerialExecutionService;
+use Throwable;
 
 class OnPipeMessageListener implements ListenerInterface
 {
     public function __construct(
         protected JobSerialExecutionService $jobSerialExecutionService,
         protected ConfigInterface $config,
-        protected StdoutLoggerInterface $logger
+        protected StdoutLoggerInterface $logger,
+        protected JobPipeFileStore $pipeFileStore,
+        protected ApiRequest $apiRequest,
     ) {
     }
 
@@ -48,7 +53,29 @@ class OnPipeMessageListener implements ListenerInterface
         if ($event instanceof UserProcessPipeMessage) {
             if ($event->data instanceof JobPipeMessage) {
                 Coroutine::create(function () use ($event) {
-                    $this->jobSerialExecutionService->handle($event->data->runRequest, $event->data->killJobId);
+                    try {
+                        // 大消息在发送端落盘，这里恢复原始请求并立即清理临时文件
+                        $event->data->resolve();
+                        $this->jobSerialExecutionService->handle($event->data->runRequest, $event->data->killJobId);
+                        if ($event->data->replyId !== null) {
+                            $this->pipeFileStore->publishReply($event->data->replyId, 200);
+                        }
+                    } catch (Throwable $throwable) {
+                        $this->logger->error($throwable->getMessage());
+                        if ($event->data->replyId !== null) {
+                            // kill 请求携带 replyId，HTTP worker 必须拿到真实失败而不是继续回 200
+                            $this->pipeFileStore->publishReply($event->data->replyId, 500, $throwable->getMessage());
+                        } elseif ($event->data->logId > 0) {
+                            try {
+                                // 大消息信封单独携带 logId，即使文件损坏也能告知 admin，而不是永久 running
+                                $this->apiRequest->callback($event->data->logId, $event->data->logDateTime, 500, $throwable->getMessage());
+                            } catch (Throwable $callbackError) {
+                                $this->logger->error($callbackError->getMessage());
+                            }
+                        } else {
+                            throw $throwable;
+                        }
+                    }
                 });
             }
         }

@@ -16,16 +16,22 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Process\AbstractProcess;
 use Hyperf\Process\ProcessManager;
 use Hyperf\XxlJob\Config;
-use Hyperf\XxlJob\Service\Executor\JobRunContent;
+use Hyperf\XxlJob\JobPipeFileStore;
+use Hyperf\XxlJob\Service\JobSerialExecutionService;
 use Psr\Container\ContainerInterface;
+use Throwable;
 
 class JobDispatcherProcess extends AbstractProcess
 {
     public const JOB_DISPATCHER_NAME = 'xxl-job-dispatcher';
 
+    public const RECV_LENGTH = 65535;
+
     public string $name = self::JOB_DISPATCHER_NAME;
 
     public int $nums = 1;
+
+    protected int $recvLength = self::RECV_LENGTH;
 
     protected Config $xxlConfig;
 
@@ -33,11 +39,20 @@ class JobDispatcherProcess extends AbstractProcess
 
     protected int $startedAt = 0;
 
+    protected JobSerialExecutionService $jobSerialExecutionService;
+
+    protected int $shutdownTimeout = 30;
+
+    private static bool $acceptingJobs = true;
+
+    private ?JobPipeFileStore $pipeFileStore = null;
+
     public function __construct(ContainerInterface $container)
     {
         parent::__construct($container);
         $this->xxlConfig = $container->get(Config::class);
         $this->stdoutLogger = $container->get(StdoutLoggerInterface::class);
+        $this->jobSerialExecutionService = $container->get(JobSerialExecutionService::class);
     }
 
     public function isEnable($server): bool
@@ -45,8 +60,25 @@ class JobDispatcherProcess extends AbstractProcess
         return $this->xxlConfig->isEnable();
     }
 
+    public static function setAcceptingJobs(bool $accepting): void
+    {
+        self::$acceptingJobs = $accepting;
+    }
+
+    public static function isAcceptingJobs(): bool
+    {
+        return self::$acceptingJobs;
+    }
+
     public function handle(): void
     {
+        try {
+            // dispatcher 异常退出可能留下未消费的大消息，重启只清理超过宽限期的本应用文件
+            $this->pipeFileStore()->cleanup();
+        } catch (Throwable $throwable) {
+            $this->stdoutLogger->error($throwable->getMessage());
+        }
+        self::$acceptingJobs = true;
         $this->startedAt = time();
         $maxLifetime = $this->xxlConfig->getMaxProcessLifetime();
 
@@ -72,26 +104,38 @@ class JobDispatcherProcess extends AbstractProcess
                 continue;
             }
 
-            // === Enter graceful shutdown phase ===
+            self::$acceptingJobs = false;
             $this->stdoutLogger->info(sprintf(
                 'XXL-JOB dispatcher process ran %s, reached max lifetime, shutting down',
                 $this->formatDuration($elapsed),
             ));
 
-            $waited = 0;
+            $shutdownStartedAt = time();
             while (ProcessManager::isRunning()) {
-                $running = JobRunContent::getRunningJobIds();
-                if (empty($running)) {
-                    $this->stdoutLogger->info('XXL-JOB dispatcher process: no running jobs, exiting safely');
+                if (! $this->jobSerialExecutionService->hasPendingJobs()) {
+                    $this->stdoutLogger->info('XXL-JOB dispatcher process: no running or queued jobs, exiting safely');
                     return;
                 }
-
+                if (time() - $shutdownStartedAt >= $this->shutdownTimeout) {
+                    $this->stdoutLogger->warning('XXL-JOB dispatcher graceful shutdown timed out, failing unfinished jobs');
+                    try {
+                        // 超时退出前必须告知 admin，不能让运行中和排队日志永久停在 running
+                        $this->jobSerialExecutionService->failPendingJobs('XXL-JOB dispatcher exceeded graceful shutdown timeout; job not completed.');
+                    } catch (Throwable $throwable) {
+                        $this->stdoutLogger->error($throwable->getMessage());
+                    }
+                    return;
+                }
                 sleep(1);
-                ++$waited;
             }
 
             return;
         }
+    }
+
+    protected function pipeFileStore(): JobPipeFileStore
+    {
+        return $this->pipeFileStore ??= new JobPipeFileStore($this->xxlConfig);
     }
 
     private function formatDuration(int $seconds): string

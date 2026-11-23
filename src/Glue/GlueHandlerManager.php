@@ -35,16 +35,21 @@ class GlueHandlerManager
     {
     }
 
+    public function supports(string $glueType): bool
+    {
+        return GlueEnum::isExists($glueType) && isset($this->handlers[$glueType]);
+    }
+
     public function handle(string $glueType, RunRequest $request)
     {
         JobRunContent::setJobId($request->getJobId(), $request);
-        if (! GlueEnum::isExists($glueType) || ! isset($this->handlers[$glueType])) {
-            JobRunContent::remove($request->getJobId());
+        if (! $this->supports($glueType)) {
+            JobRunContent::remove($request->getJobId(), $request->getLogId());
             throw new XxlJobException('Glue type is invalid or does not support yet');
         }
         $instance = $this->container->get($this->handlers[$glueType]);
         if (! $instance instanceof GlueHandlerInterface) {
-            JobRunContent::remove($request->getJobId());
+            JobRunContent::remove($request->getJobId(), $request->getLogId());
             throw new XxlJobException(sprintf('The glue handler %s is invalid handler, should be implement %s', $this->handlers[$glueType], GlueHandlerInterface::class));
         }
         $instance->handle($request);

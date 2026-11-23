@@ -1,6 +1,14 @@
 <?php
 
 declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 
 namespace Hyperf\XxlJob\Service\Executor;
 
@@ -22,6 +30,8 @@ use Throwable;
 
 abstract class AbstractJobExecutor implements JobExecutorInterface
 {
+    private ?JobRunInfoStore $runInfoStore = null;
+
     public function __construct(
         protected ContainerInterface $container,
         protected StdoutLoggerInterface $stdoutLogger,
@@ -70,12 +80,31 @@ abstract class AbstractJobExecutor implements JobExecutorInterface
                 // $message = str_replace(PHP_EOL, '<br>', $message);
             }
             $this->jobExecutorLogger->error($message);
-            $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
+            if (! $request->getExtension('killCallback')) {
+                $this->apiRequest->callback($request->getLogId(), $request->getLogDateTime(), 500, $message);
+            }
+            // kill 已声明负责本次回调时，取消异常只记录日志，避免同一 logId 再上报一次
             throw $throwable;
         } finally {
             JobRunContent::remove($request->getJobId(), $request->getLogId());
             // AfterJobRun
             $this->eventDispatcher->dispatch(new AfterJobRun($request));
         }
+    }
+
+    protected function callbackSafely(RunRequest $runRequest, int $handleCode, string $message): void
+    {
+        try {
+            $this->apiRequest->callback($runRequest->getLogId(), $runRequest->getLogDateTime(), $handleCode, $message);
+        } catch (Throwable $throwable) {
+            // admin 不可达只影响回调本身，不能把执行协程一起带崩
+            $this->stdoutLogger->error($throwable->getMessage());
+        }
+    }
+
+    protected function jobRunInfoStore(): JobRunInfoStore
+    {
+        // Store 无进程内状态，按同一 Config 延迟创建即可让各 worker 使用同一套文件协议
+        return $this->runInfoStore ??= new JobRunInfoStore($this->config);
     }
 }

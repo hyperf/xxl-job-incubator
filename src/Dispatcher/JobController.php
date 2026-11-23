@@ -46,6 +46,19 @@ class JobController extends BaseController
     {
         try {
             $logRequest = LogRequest::create($this->input());
+            if ($logRequest->getLogId() <= 0 || $logRequest->getLogDateTim() <= 0) {
+                // admin 缺省或显式 null 的参数不应触发未初始化属性错误，按空日志完成本次查看
+                return $this->response([
+                    'code' => 200,
+                    'msg' => null,
+                    'data' => [
+                        'fromLineNum' => $logRequest->getFromLineNum(),
+                        'toLineNum' => 0,
+                        'logContent' => '',
+                        'isEnd' => true,
+                    ],
+                ]);
+            }
 
             $logContent = $this->jobExecutorLogger->retrieveLog($logRequest->getLogId(), $logRequest->getLogDateTim(), $logRequest->getFromLineNum(), -1);
 

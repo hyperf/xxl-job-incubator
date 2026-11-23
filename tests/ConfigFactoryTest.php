@@ -147,4 +147,79 @@ class ConfigFactoryTest extends TestCase
         $this->assertSame(99, $guzzle['timeout']);
         $this->assertSame('Val', $guzzle['headers']['X-Custom']);
     }
+
+    public function testInvokeNormalizesEnvStringValues(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.enable' => '1',
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => 'http://127.0.0.1:8080/xxl-job-admin',
+            'xxl_job.heartbeat' => '60',
+            'xxl_job.log_retention_days' => '7',
+        ]);
+
+        $config = (new ConfigFactory())($container);
+
+        $this->assertTrue($config->isEnable());
+        $this->assertSame(60, $config->getHeartbeat());
+        $this->assertSame(7, $config->getLogRetentionDays());
+    }
+
+    public function testInvokeNormalizesAdminAddressTrailingSlash(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => 'http://10.0.0.5:8080/',
+        ]);
+
+        $config = (new ConfigFactory())($container);
+
+        $this->assertSame('http://10.0.0.5:8080', $config->getBaseUri());
+        $this->assertSame('', $config->getServerUrlPath());
+    }
+
+    public function testInvokeRejectsAdminAddressWithoutSchemeWhenEnabled(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.enable' => true,
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => '192.168.1.197:8083/xxl-job-admin',
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        (new ConfigFactory())($container);
+    }
+
+    public function testInvokeToleratesInvalidAdminAddressWhenDisabled(): void
+    {
+        $container = $this->createContainer([
+            'xxl_job.enable' => false,
+            'xxl_job.access_token' => 'tok123',
+            'xxl_job.admin_address' => '192.168.1.197:8083/xxl-job-admin',
+        ]);
+
+        $config = (new ConfigFactory())($container);
+
+        $this->assertFalse($config->isEnable());
+        $this->assertSame('http://127.0.0.1:8080', $config->getBaseUri());
+        $this->assertSame('/xxl-job-admin', $config->getServerUrlPath());
+    }
+
+    /**
+     * 按 key 返回配置值，避免每条用例重复声明十几个 get 期望。
+     */
+    private function createContainer(array $values): ContainerInterface
+    {
+        $hyperfConfig = m::mock(ConfigInterface::class);
+        $hyperfConfig->shouldReceive('get')->andReturnUsing(
+            static fn (string $key, $default = null) => $values[$key] ?? $default
+        );
+        $hyperfConfig->shouldReceive('has')->andReturn(false);
+
+        $container = m::mock(ContainerInterface::class);
+        $container->shouldReceive('get')->with(ConfigInterface::class)->andReturn($hyperfConfig);
+        $container->shouldReceive('get')->with(StdoutLoggerInterface::class)->andReturn(m::mock(StdoutLoggerInterface::class));
+
+        return $container;
+    }
 }

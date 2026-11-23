@@ -16,8 +16,10 @@ use Hyperf\Engine\Channel;
 use Hyperf\XxlJob\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Enum\ExecutorBlockStrategyEnum;
+use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
 use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobRunContent;
 use Hyperf\XxlJob\Service\JobSerialExecutionService;
@@ -25,6 +27,7 @@ use Mockery as m;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
+use Swoole\Coroutine;
 
 /**
  * @internal
@@ -55,6 +58,7 @@ class JobSerialExecutionServiceTest extends TestCase
     {
         m::close();
         $this->resetJobRunContent();
+        JobDispatcherProcess::setAcceptingJobs(true);
     }
 
     // ──────────────────────────────────────────────
@@ -76,7 +80,7 @@ class JobSerialExecutionServiceTest extends TestCase
         $service->shouldReceive('remove')->with(99)->once()->globally()->ordered();
         $service->shouldReceive('kill')
             ->with(99, 100, 'Job toStop, stopReason:scheduling center kill job.')
-            ->once()->globally()->ordered();
+            ->once()->andReturnTrue()->globally()->ordered();
 
         // pushJob / callback 不应在 kill 路径中被调用
         $service->shouldNotReceive('pushJob');
@@ -87,8 +91,8 @@ class JobSerialExecutionServiceTest extends TestCase
     }
 
     /**
-     * killJobId > 0 但 JobRunContent 中没有对应 job：
-     * 应调用 sendKillMsg 和 remove，但不调用 kill。
+     * killJobId > 0 但本地 JobRunContent 中没有对应 job：
+     * 仍应调用 kill 查询共享运行态，不能因为本地为空就直接假定无需终止。
      */
     public function testKillJobWithoutRunningTask(): void
     {
@@ -96,11 +100,24 @@ class JobSerialExecutionServiceTest extends TestCase
 
         $service->shouldReceive('sendKillMsg')->with(99)->once();
         $service->shouldReceive('remove')->with(99)->once();
-        $service->shouldNotReceive('kill');
+        $service->shouldReceive('kill')
+            ->with(99, 0, 'Job toStop, stopReason:scheduling center kill job.')
+            ->once()
+            ->andReturnTrue();
         $service->shouldNotReceive('pushJob');
 
         $service->handle(killJobId: 99);
         $this->addToAssertionCount(1);
+    }
+
+    public function testKillFailureIsReported(): void
+    {
+        JobRunContent::setJobId(99, $this->createRunRequest(99));
+        $service = $this->createService();
+        $service->shouldReceive('kill')->once()->andReturnFalse();
+
+        $this->expectException(XxlJobException::class);
+        $service->handle(killJobId: 99);
     }
 
     /**
@@ -116,7 +133,7 @@ class JobSerialExecutionServiceTest extends TestCase
 
         $service->shouldReceive('sendKillMsg')->with(99)->once();
         $service->shouldReceive('remove')->with(99)->once();
-        $service->shouldReceive('kill')->once();
+        $service->shouldReceive('kill')->once()->andReturnTrue();
         $service->shouldNotReceive('pushJob');
 
         $service->handle($runRequest, 99);
@@ -260,6 +277,151 @@ class JobSerialExecutionServiceTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
+    /**
+     * 旧 loop 在 kill 后退出时，不能删除新一代的 Channel 和 mark。
+     */
+    public function testOldLoopDoesNotRemoveNewGenerationAfterKill(): void
+    {
+        $service = new JobSerialExecutionService(
+            $this->container,
+            $this->glueHandlerManager,
+            $this->jobHandlerManager,
+            $this->apiRequest,
+            $this->config
+        );
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([], 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]')
+            ->andReturnNull();
+
+        $ref = new ReflectionClass(JobSerialExecutionService::class);
+        $loop = $ref->getMethod('loop');
+        $loop->setAccessible(true);
+        $channels = $ref->getProperty('channels');
+        $channels->setAccessible(true);
+        $mark = $ref->getProperty('mark');
+        $mark->setAccessible(true);
+
+        $oldChannel = new Channel(10);
+        $newChannel = new Channel(10);
+        try {
+            $this->injectChannel($service, '1', $oldChannel);
+            $loop->invoke($service, 1);
+            Coroutine::sleep(0.05);
+
+            // 旧 loop 仍阻塞在旧 Channel 上，kill 只清理数组里的当前代状态
+            $service->handle(killJobId: 1);
+            $this->injectChannel($service, '1', $newChannel);
+            $loop->invoke($service, 1);
+            Coroutine::sleep(0.05);
+
+            // 直接唤醒旧 loop，避免测试等待 pop(60) 自然超时
+            $oldChannel->push('stop-old-loop');
+            Coroutine::sleep(0.05);
+
+            self::assertSame($newChannel, $channels->getValue($service)[1] ?? null);
+            self::assertTrue($mark->getValue($service)[1] ?? false);
+        } finally {
+            // 无论断言成败都唤醒存活 loop，避免遗留协程阻塞测试进程退出
+            $oldChannel->close();
+            $newChannel->close();
+            Coroutine::sleep(0.05);
+        }
+    }
+
+    public function testKillDrainsCoverEarlyQueue(): void
+    {
+        $service = $this->createRealService();
+        $this->injectChannel($service, '1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 101),
+        ]));
+        $this->injectChannel($service, 'coverEarlyJob_1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::COVER_EARLY, 201),
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::COVER_EARLY, 202),
+        ]));
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([
+                ['logId' => 101, 'logDateTim' => 20240101120000],
+                ['logId' => 201, 'logDateTim' => 20240101120000],
+                ['logId' => 202, 'logDateTim' => 20240101120000],
+            ], 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]')
+            ->andReturnNull();
+
+        $service->handle(killJobId: 1);
+
+        $ref = new ReflectionClass($service);
+        $channels = $ref->getProperty('channels');
+        $channels->setAccessible(true);
+        self::assertSame([], $channels->getValue($service));
+    }
+
+    public function testKillToleratesChannelPopRace(): void
+    {
+        $service = $this->createRealService();
+        $channel = m::mock(Channel::class);
+        // isEmpty 与 pop 之间元素被 loop 抢走时，pop 可能返回 false，不能对其调用 getLogId()
+        $channel->shouldReceive('isEmpty')->andReturnFalse();
+        $channel->shouldReceive('pop')->andReturnFalse();
+        $this->injectChannel($service, '1', $channel);
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([], 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]')
+            ->andReturnNull();
+
+        $service->handle(killJobId: 1);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testRunIsRejectedWhenDispatcherIsShuttingDown(): void
+    {
+        JobDispatcherProcess::setAcceptingJobs(false);
+        $runRequest = $this->createRunRequest(1);
+        $service = $this->createService();
+        $service->shouldReceive('callback')
+            ->once()
+            ->with($runRequest, 500, 'XXL-JOB dispatcher is shutting down; please retry later.');
+        $service->shouldNotReceive('pushJob');
+        $service->shouldNotReceive('coverEarlyJobLoop');
+
+        $service->handle($runRequest);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testFailPendingJobsIncludesProcessingRunningAndQueuedRequests(): void
+    {
+        $service = $this->createRealService();
+        $ref = new ReflectionClass($service);
+        $processing = $ref->getProperty('processing');
+        $processing->setAccessible(true);
+        $processingRequest = $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 301);
+        $processing->setValue($service, [301 => $processingRequest]);
+        JobRunContent::setJobId(1, $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 100));
+        $this->injectChannel($service, '1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 101),
+        ]));
+        $this->injectChannel($service, 'coverEarlyJob_1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::COVER_EARLY, 201),
+        ]));
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([
+                ['logId' => 301, 'logDateTim' => 20240101120000],
+                ['logId' => 100, 'logDateTim' => 20240101120000],
+                ['logId' => 101, 'logDateTim' => 20240101120000],
+                ['logId' => 201, 'logDateTim' => 20240101120000],
+            ], 500, 'dispatcher shutdown')
+            ->andReturnNull();
+        self::assertTrue($service->hasPendingJobs());
+
+        $service->failPendingJobs('dispatcher shutdown');
+
+        $channels = $ref->getProperty('channels');
+        $channels->setAccessible(true);
+        self::assertSame([], $channels->getValue($service));
+        self::assertSame([], $processing->getValue($service));
+    }
+
     // ──────────────────────────────────────────────
     //  边界条件
     // ──────────────────────────────────────────────
@@ -345,6 +507,26 @@ class JobSerialExecutionServiceTest extends TestCase
         $service->shouldReceive('loop')->byDefault();
 
         return $service;
+    }
+
+    private function createRealService(): JobSerialExecutionService
+    {
+        return new JobSerialExecutionService(
+            $this->container,
+            $this->glueHandlerManager,
+            $this->jobHandlerManager,
+            $this->apiRequest,
+            $this->config
+        );
+    }
+
+    private function createChannelWithRequests(array $requests): Channel
+    {
+        $channel = new Channel(10);
+        foreach ($requests as $request) {
+            $channel->push($request);
+        }
+        return $channel;
     }
 
     /**

@@ -290,6 +290,19 @@ php bin/hyperf.php execute:xxl-job --handler=paramJobHandler --params='url: http
 
 > 该方式通过构造一个模拟的 `RunRequest` 直接执行任务，`jobId` 和 `logId` 均为 0，不会向 XXL-JOB Admin 回调执行结果。
 
+### 按调度记录执行（进程模式内部命令）
+
+进程模式的父进程会通过以下命令拉起子进程，`jobId` 与 `logId` 必须同时提供，并且与当前运行信息文件中的记录一致：
+
+```bash
+php bin/hyperf.php execute:xxl-job --jobId=100 --logId=10001
+```
+
+- `--jobId`：XXL-JOB Admin 的任务 ID。
+- `--logId`：本次调度日志 ID，必须与该任务当前运行信息中的 `logId` 相同，防止旧子进程误执行新一代请求。
+- 只提供 `--jobId`、缺少 `--logId`，或二者与运行信息不匹配时，命令会抛出异常并返回非零状态。
+- 该模式主要用于执行器内部调度；手工调试请优先使用上文的 `--handler` 方式，不依赖运行信息文件。
+
 ### Glue 脚本模式
 
 该模式下，可支持任务以将源码方式维护在调度中心，支持通过 XXL-JOB 提供的 Web IDE 在线编写代码和在线更新，因此不需要指定固定的 `JobHandler`   

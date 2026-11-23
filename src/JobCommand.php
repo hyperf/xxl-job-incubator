@@ -39,32 +39,38 @@ class JobCommand extends HyperfCommand
     public function configure()
     {
         parent::configure();
-        $this->setDescription('Execute XXL-JOB task by jobId (via admin scheduler) or by handler name (direct CLI invocation)');
-        $this->addOption('jobId', 'j', InputOption::VALUE_OPTIONAL, 'The job ID scheduled by XXL-JOB admin');
-        $this->addOption('logId', 'l', InputOption::VALUE_OPTIONAL, 'The log ID associated with this execution');
+        $this->setDescription('Execute a scheduled job by matching jobId and logId, or invoke a handler directly for debugging');
+        $this->addOption('jobId', 'j', InputOption::VALUE_OPTIONAL, 'Scheduled job ID (requires --logId); use --handler for direct debugging');
+        $this->addOption('logId', 'l', InputOption::VALUE_OPTIONAL, 'Required with --jobId; must match the scheduled run info');
 
         // Direct invocation from command line without XXL-JOB admin
         $this->addOption('handler', null, InputOption::VALUE_OPTIONAL, 'The executor handler name for direct CLI invocation');
         $this->addOption('params', null, InputOption::VALUE_OPTIONAL, 'The executor params passed to the handler');
     }
+
     public function handle()
     {
         $data = $this->input->getOptions();
         if (empty($data['jobId']) && empty($data['handler'])) {
             throw new XxlJobException('JobId or handler cannot be empty');
         }
-        if (!empty($data['jobId'])) {
+        if (! empty($data['jobId'])) {
             $jobId = intval($data['jobId']);
+            $logId = intval($data['logId'] ?? 0);
             $infoArr = $this->jobExecutorProcess->getJobFileInfo($jobId);
+            if (empty($infoArr) || ($infoArr['logId'] ?? null) !== $logId) {
+                // 旧子进程绝不能读取并执行同 jobId 的新一代请求
+                throw new XxlJobException(sprintf('Run info for JobId:%s LogId:%s is missing or belongs to another logId.', $jobId, $logId));
+            }
             $this->handler->handle($infoArr['runRequest']);
-        } elseif (!empty($data['handler'])) {
+        } elseif (! empty($data['handler'])) {
             $this->container->define(JobExecutorLoggerInterface::class, JobExecutorStdoutLogger::class);
             $runRequestArr = [
                 'executorHandler' => $data['handler'],
-                'jobId'           => 0,
-                'logId'           => intval($data['logId'] ?? 0),
-                'logDateTime'     => intval(microtime(true) * 1000),
-                'executorParams'  => $data['params'] ?? '',
+                'jobId' => 0,
+                'logId' => intval($data['logId'] ?? 0),
+                'logDateTime' => intval(microtime(true) * 1000),
+                'executorParams' => $data['params'] ?? '',
                 'executorBlockStrategy' => 'SERIAL_EXECUTION',
             ];
             $runRequest = RunRequest::create($runRequestArr);

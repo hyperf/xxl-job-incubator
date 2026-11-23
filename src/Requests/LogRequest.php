@@ -14,11 +14,11 @@ namespace Hyperf\XxlJob\Requests;
 
 class LogRequest extends BaseRequest
 {
-    protected int $logDateTim;
+    protected int $logDateTim = 0;
 
-    protected int $logId;
+    protected int $logId = 0;
 
-    protected int $fromLineNum;
+    protected int $fromLineNum = 1;
 
     public function getLogDateTim(): int
     {

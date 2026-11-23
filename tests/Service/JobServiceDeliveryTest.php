@@ -1,0 +1,257 @@
+<?php
+
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
+
+namespace HyperfTest\XxlJob\Service;
+
+use Hyperf\Process\ProcessCollector;
+use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Config;
+use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
+use Hyperf\XxlJob\Glue\GlueHandlerManager;
+use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\JobPipeFileStore;
+use Hyperf\XxlJob\JobPipeMessage;
+use Hyperf\XxlJob\Process\JobDispatcherProcess;
+use Hyperf\XxlJob\Requests\RunRequest;
+use Hyperf\XxlJob\Service\JobSerialExecutionService;
+use Hyperf\XxlJob\Service\JobService;
+use Mockery as m;
+use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
+use ReflectionClass;
+use Swoole\Coroutine\Socket;
+use Swoole\Process;
+
+/**
+ * @internal
+ * @covers \Hyperf\XxlJob\Service\JobService
+ */
+class JobServiceDeliveryTest extends TestCase
+{
+    protected function tearDown(): void
+    {
+        m::close();
+        $ref = new ReflectionClass(ProcessCollector::class);
+        $property = $ref->getProperty('processes');
+        $property->setAccessible(true);
+        $property->setValue(null, []);
+    }
+
+    public function testMissingDispatcherProcessFailsAndCallbacks(): void
+    {
+        $apiRequest = m::mock(ApiRequest::class);
+        $apiRequest->shouldReceive('callback')
+            ->once()
+            ->with(100, 123456, 500, m::pattern('/dispatcher process is unavailable/'))
+            ->andReturnNull();
+        $service = $this->createDeliveryService($apiRequest);
+
+        $this->expectException(GlueHandlerExecutionException::class);
+        $service->deliver(new JobPipeMessage($this->createRunRequest()));
+    }
+
+    public function testFailedSocketSendIsNotSilent(): void
+    {
+        $apiRequest = m::mock(ApiRequest::class);
+        $apiRequest->shouldReceive('callback')
+            ->once()
+            ->with(100, 123456, 500, m::pattern('/pipe send failed/'))
+            ->andReturnNull();
+        $service = $this->createDeliveryService($apiRequest);
+        $socket = $this->registerDispatcherSocket();
+        $socket->shouldReceive('send')->once()->andReturnFalse();
+
+        $this->expectException(GlueHandlerExecutionException::class);
+        $service->deliver(new JobPipeMessage($this->createRunRequest()));
+    }
+
+    public function testLargeMessageUsesTemporaryPayloadFile(): void
+    {
+        $apiRequest = m::mock(ApiRequest::class);
+        $apiRequest->shouldNotReceive('callback');
+        $service = $this->createDeliveryService($apiRequest);
+        $socket = $this->registerDispatcherSocket();
+        $envelope = null;
+        $socket->shouldReceive('send')
+            ->once()
+            ->with(m::on(static function (string $payload) use (&$envelope): bool {
+                $envelope = unserialize($payload);
+                return strlen($payload) <= JobDispatcherProcess::RECV_LENGTH;
+            }), 10)
+            ->andReturnUsing(static fn (string $payload): int => strlen($payload));
+        $request = $this->createRunRequest();
+        $request = RunRequest::create(array_merge($request->jsonSerialize(), [
+            'glueType' => 'GLUE_PHP',
+            'glueSource' => str_repeat('x', JobDispatcherProcess::RECV_LENGTH),
+        ]));
+
+        $service->deliver(new JobPipeMessage($request));
+
+        self::assertInstanceOf(JobPipeMessage::class, $envelope);
+        self::assertNotNull($envelope->payloadFile);
+        self::assertSame(100, $envelope->logId);
+        self::assertSame(123456, $envelope->logDateTime);
+        self::assertFileExists($envelope->payloadFile);
+        $payloadFile = $envelope->payloadFile;
+        $envelope->resolve();
+        self::assertSame($request->getGlueSource(), $envelope->runRequest?->getGlueSource());
+        self::assertSame(100, $envelope->runRequest?->getLogId());
+        self::assertFileDoesNotExist($payloadFile);
+    }
+
+    public function testLargeMessageFileIsRemovedWhenSendFails(): void
+    {
+        $apiRequest = m::mock(ApiRequest::class);
+        $apiRequest->shouldReceive('callback')->once()->andReturnNull();
+        $service = $this->createDeliveryService($apiRequest);
+        $socket = $this->registerDispatcherSocket();
+        $envelope = null;
+        $socket->shouldReceive('send')
+            ->once()
+            ->with(m::on(static function (string $payload) use (&$envelope): bool {
+                $envelope = unserialize($payload);
+                return true;
+            }), 10)
+            ->andReturnFalse();
+        $request = RunRequest::create(array_merge($this->createRunRequest()->jsonSerialize(), [
+            'glueSource' => str_repeat('x', JobDispatcherProcess::RECV_LENGTH),
+        ]));
+
+        try {
+            $service->deliver(new JobPipeMessage($request));
+            self::fail('Expected delivery failure.');
+        } catch (GlueHandlerExecutionException) {
+            self::assertInstanceOf(JobPipeMessage::class, $envelope);
+            self::assertNotNull($envelope->payloadFile);
+            self::assertFileDoesNotExist($envelope->payloadFile);
+        }
+    }
+
+    public function testKillFailureReplyIsReturnedToCaller(): void
+    {
+        $config = $this->createAckConfig();
+        $store = new JobPipeFileStore($config);
+        $replyId = str_repeat('a', 32);
+        try {
+            $service = $this->createDeliveryService(m::mock(ApiRequest::class), $config);
+            $socket = $this->registerDispatcherSocket();
+            $socket->shouldReceive('send')->once()->andReturnUsing(static function (string $payload) use ($store, $replyId): int {
+                $store->publishReply($replyId, 500, 'kill failed');
+                return strlen($payload);
+            });
+
+            $this->expectException(GlueHandlerExecutionException::class);
+            $this->expectExceptionMessage('kill failed');
+            $service->deliverWithAck(new JobPipeMessage(killJobId: 1, replyId: $replyId));
+        } finally {
+            $this->cleanupStore($store);
+        }
+    }
+
+    public function testKillSuccessReplyReturnsNormally(): void
+    {
+        $config = $this->createAckConfig();
+        $store = new JobPipeFileStore($config);
+        $replyId = str_repeat('b', 32);
+        try {
+            $service = $this->createDeliveryService(m::mock(ApiRequest::class), $config);
+            $socket = $this->registerDispatcherSocket();
+            $socket->shouldReceive('send')->once()->andReturnUsing(static function (string $payload) use ($store, $replyId): int {
+                $store->publishReply($replyId, 200);
+                return strlen($payload);
+            });
+
+            $service->deliverWithAck(new JobPipeMessage(killJobId: 1, replyId: $replyId));
+            self::assertNull($store->consumeReply($replyId));
+        } finally {
+            $this->cleanupStore($store);
+        }
+    }
+
+    public function testCoroutineServerRunsJobInlineWithoutDispatcherPipe(): void
+    {
+        $request = $this->createRunRequest();
+        $serialService = m::mock(JobSerialExecutionService::class);
+        $serialService->shouldReceive('handle')->once()->with($request, 0);
+
+        $container = m::mock(ContainerInterface::class);
+        $container->shouldReceive('get')->with(JobSerialExecutionService::class)->andReturn($serialService);
+        // 协程风格服务下 Swoole\Server 绑定返回的是 Swoole\Coroutine\Http\Server，不是 Swoole\Server
+        $container->shouldReceive('get')->with(\Swoole\Server::class)->andReturn(new \stdClass());
+
+        $service = new JobService(
+            $container,
+            m::mock(GlueHandlerManager::class),
+            m::mock(JobHandlerManager::class),
+            m::mock(ApiRequest::class),
+            new Config()
+        );
+
+        $service->send($request);
+        $this->addToAssertionCount(1);
+    }
+
+    private function createDeliveryService(ApiRequest $apiRequest, ?Config $config = null): JobService
+    {
+        $config ??= new Config();
+        return new class(m::mock(ContainerInterface::class), m::mock(GlueHandlerManager::class), m::mock(JobHandlerManager::class), $apiRequest, $config) extends JobService {
+            public function deliver(JobPipeMessage $message): void
+            {
+                $this->sendToDispatcher($message);
+            }
+
+            public function deliverWithAck(JobPipeMessage $message): void
+            {
+                $this->sendToDispatcher($message);
+                if ($message->replyId !== null) {
+                    $this->waitForKillReply($message->replyId);
+                }
+            }
+        };
+    }
+
+    private function createAckConfig(): Config
+    {
+        $config = new Config();
+        $config->setAppName('ack-test');
+        $config->setLogFileDir('/tmp/ack-test-' . uniqid('', true));
+        return $config;
+    }
+
+    private function cleanupStore(JobPipeFileStore $store): void
+    {
+        $store->cleanup(-1);
+        if (is_dir($store->getDirectory())) {
+            rmdir($store->getDirectory());
+        }
+    }
+
+    private function createRunRequest(): RunRequest
+    {
+        return RunRequest::create([
+            'jobId' => 1,
+            'logId' => 100,
+            'logDateTime' => 123456,
+            'glueType' => 'BEAN',
+            'executorHandler' => 'demo',
+        ]);
+    }
+
+    private function registerDispatcherSocket(): m\MockInterface&Socket
+    {
+        $socket = m::mock(Socket::class);
+        $process = m::mock(Process::class);
+        $process->shouldReceive('exportSocket')->once()->andReturn($socket);
+        ProcessCollector::add(JobDispatcherProcess::JOB_DISPATCHER_NAME, $process);
+        return $socket;
+    }
+}
