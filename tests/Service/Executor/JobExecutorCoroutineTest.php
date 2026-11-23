@@ -114,6 +114,7 @@ class JobExecutorCoroutineTest extends TestCase
         $request = $this->createRunRequest();
         // 使用组件支持的最短整数超时，触发 watcher 的终止失败分支
         $request = RunRequest::create(array_merge($request->jsonSerialize(), ['executorTimeout' => 1]));
+        JobRunContent::setJobId(1, $request);
 
         $executor->watch($request);
         $this->addToAssertionCount(1);

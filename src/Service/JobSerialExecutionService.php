@@ -35,6 +35,7 @@ class JobSerialExecutionService extends BaseService
         if ($killJobId > 0) {
             $this->sendKillMsg($killJobId);
             $this->remove($killJobId);
+            $this->removeCoverEarlyJob('coverEarlyJob_' . $killJobId);
             $running = JobRunContent::getId($killJobId);
             $logId = $running?->getLogId() ?? 0;
             // 本地数组为空不代表其他 worker 没有运行任务，kill 必须继续查询共享运行信息
@@ -73,50 +74,69 @@ class JobSerialExecutionService extends BaseService
         if ($mark) {
             return;
         }
+        $channel = $this->channels[$key] ?? null;
+        if (! $channel) {
+            return;
+        }
         $this->mark[$key] = true;
 
-        Coroutine::create(function () use ($key) {
-            while (true) {
-                $channels = $this->channels[$key] ?? null;
-                if (! $channels) {
-                    return;
-                }
-                if ($channels->length() > 1) {
-                    $runRequest = $channels->pop(60);
-                    if (! $runRequest instanceof RunRequest) {
-                        return;
+        Coroutine::create(function () use ($key, $channel) {
+            try {
+                while ($this->isCurrentChannel($key, $channel)) {
+                    if ($channel->length() > 1) {
+                        $runRequest = $channel->pop(60);
+                        if (! $runRequest instanceof RunRequest) {
+                            return;
+                        }
+                        Coroutine::create(function () use ($runRequest) {
+                            $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
+                        });
+                    } else {
+                        sleep(1);
                     }
-                    Coroutine::create(function () use ($runRequest) {
-                        $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
-                    });
-                } else {
-                    sleep(1);
                 }
+            } finally {
+                $this->removeCoverEarlyJob($key, $channel);
             }
         });
 
-        Coroutine::create(function () use ($key) {
+        Coroutine::create(function () use ($key, $channel) {
             try {
                 while (true) {
-                    $channels = $this->channels[$key] ?? null;
-                    $runRequest = $channels?->pop(60);
+                    $runRequest = $channel->pop(60);
                     if (! $runRequest instanceof RunRequest) {
+                        return;
+                    }
+                    if (! $this->isCurrentChannel($key, $channel)) {
+                        // 请求虽已出队，但 kill 已使本代失效，不能再转入普通队列执行
+                        $this->callback($runRequest, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
                         return;
                     }
                     $jobId = $runRequest->getJobId();
                     $running = JobRunContent::getId($jobId);
                     if ($running) {
-                        $this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]');
-                        JobRunContent::yield($running->getLogId(), 6);
+                        if ($this->kill($jobId, $running->getLogId(), 'block strategy effect：Cover Early [job running, killed]') === false) {
+                            $this->callback($runRequest, 500, 'block strategy effect：Cover Early [failed to kill the running job]');
+                            continue;
+                        }
+                        // kill 只代表已发起终止；旧任务未收尾前不能启动新任务，避免同 jobId 并发
+                        if (! JobRunContent::yield($running->getLogId(), 6)) {
+                            $this->callback($runRequest, 500, 'block strategy effect：Cover Early [timed out waiting for the running job to stop]');
+                            continue;
+                        }
                     }
-                    if ($channels->length() > 0) {
+                    if (! $this->isCurrentChannel($key, $channel)) {
+                        $this->callback($runRequest, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
+                        return;
+                    }
+                    if ($channel->length() > 0) {
                         $this->callback($runRequest, 500, 'block strategy effect：Cover Early [job running, killed]');
                         continue;
                     }
                     $this->pushJob($jobId, $runRequest);
                 }
             } finally {
-                $this->removeCoverEarlyJob($key);
+                $this->removeCoverEarlyJob($key, $channel);
             }
         });
     }
@@ -190,9 +210,17 @@ class JobSerialExecutionService extends BaseService
         unset($this->channels[$jobId], $this->mark[$jobId]);
     }
 
-    protected function removeCoverEarlyJob(string $key): void
+    protected function removeCoverEarlyJob(string $key, ?Channel $channel = null): void
     {
+        if ($channel !== null && ! $this->isCurrentChannel($key, $channel)) {
+            return;
+        }
         unset($this->channels[$key], $this->mark[$key]);
+    }
+
+    protected function isCurrentChannel(string $key, Channel $channel): bool
+    {
+        return ($this->channels[$key] ?? null) === $channel;
     }
 
     protected function callback(RunRequest $runRequest, int $handleCode = 200, $handleMsg = null)
@@ -203,13 +231,19 @@ class JobSerialExecutionService extends BaseService
     protected function sendKillMsg(int $jobId): void
     {
         $data = [];
-        $channel = $this->channels[$jobId] ?? null;
-        while ($channel && ! $channel->isEmpty()) {
-            /** @var RunRequest $runRequest */
-            $runRequest = $this->channels[$jobId]->pop(5);
-            $tmp['logId'] = $runRequest->getLogId();
-            $tmp['logDateTim'] = $runRequest->getLogDateTime();
-            $data[] = $tmp;
+        foreach ([$jobId, 'coverEarlyJob_' . $jobId] as $key) {
+            $channel = $this->channels[$key] ?? null;
+            while ($channel && ! $channel->isEmpty()) {
+                // isEmpty 与 pop 之间 loop 可能抢走最后一条消息；false 不是可回调的 RunRequest
+                $runRequest = $channel->pop(0.01);
+                if (! $runRequest instanceof RunRequest) {
+                    break;
+                }
+                $data[] = [
+                    'logId' => $runRequest->getLogId(),
+                    'logDateTim' => $runRequest->getLogDateTime(),
+                ];
+            }
         }
         $this->apiRequest->multipleCallback($data, 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]');
     }

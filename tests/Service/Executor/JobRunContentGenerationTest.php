@@ -33,6 +33,11 @@ class JobRunContentGenerationTest extends TestCase
         }
     }
 
+    public function testYieldReturnsCompleteWhenRegistrationWasAlreadyRemoved(): void
+    {
+        self::assertTrue(JobRunContent::yield(999, 1));
+    }
+
     public function testStaleLogIdCannotRemoveNewGeneration(): void
     {
         $oldRequest = RunRequest::create(['jobId' => 1, 'logId' => 100]);

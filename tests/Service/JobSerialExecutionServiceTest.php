@@ -327,6 +327,50 @@ class JobSerialExecutionServiceTest extends TestCase
         }
     }
 
+    public function testKillDrainsCoverEarlyQueue(): void
+    {
+        $service = $this->createRealService();
+        $this->injectChannel($service, '1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::SERIAL_EXECUTION, 101),
+        ]));
+        $this->injectChannel($service, 'coverEarlyJob_1', $this->createChannelWithRequests([
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::COVER_EARLY, 201),
+            $this->createRunRequest(1, ExecutorBlockStrategyEnum::COVER_EARLY, 202),
+        ]));
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([
+                ['logId' => 101, 'logDateTim' => 20240101120000],
+                ['logId' => 201, 'logDateTim' => 20240101120000],
+                ['logId' => 202, 'logDateTim' => 20240101120000],
+            ], 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]')
+            ->andReturnNull();
+
+        $service->handle(killJobId: 1);
+
+        $ref = new ReflectionClass($service);
+        $channels = $ref->getProperty('channels');
+        $channels->setAccessible(true);
+        self::assertSame([], $channels->getValue($service));
+    }
+
+    public function testKillToleratesChannelPopRace(): void
+    {
+        $service = $this->createRealService();
+        $channel = m::mock(Channel::class);
+        // isEmpty 与 pop 之间元素被 loop 抢走时，pop 可能返回 false，不能对其调用 getLogId()
+        $channel->shouldReceive('isEmpty')->andReturnFalse();
+        $channel->shouldReceive('pop')->andReturnFalse();
+        $this->injectChannel($service, '1', $channel);
+        $this->apiRequest->shouldReceive('multipleCallback')
+            ->once()
+            ->with([], 500, 'scheduling center kill job. [job not executed, in the job queue, killed.]')
+            ->andReturnNull();
+
+        $service->handle(killJobId: 1);
+        $this->addToAssertionCount(1);
+    }
+
     // ──────────────────────────────────────────────
     //  边界条件
     // ──────────────────────────────────────────────
@@ -412,6 +456,26 @@ class JobSerialExecutionServiceTest extends TestCase
         $service->shouldReceive('loop')->byDefault();
 
         return $service;
+    }
+
+    private function createRealService(): JobSerialExecutionService
+    {
+        return new JobSerialExecutionService(
+            $this->container,
+            $this->glueHandlerManager,
+            $this->jobHandlerManager,
+            $this->apiRequest,
+            $this->config
+        );
+    }
+
+    private function createChannelWithRequests(array $requests): Channel
+    {
+        $channel = new Channel(10);
+        foreach ($requests as $request) {
+            $channel->push($request);
+        }
+        return $channel;
     }
 
     /**
