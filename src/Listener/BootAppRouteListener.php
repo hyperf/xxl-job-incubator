@@ -73,11 +73,11 @@ class BootAppRouteListener implements ListenerInterface
      */
     public function process(object $event): void
     {
-        $this->initAnnotationRoute();
-
         if (! $this->xxlConfig->isEnable()) {
             return;
         }
+        $this->initAnnotationRoute();
+
         $executorServerPrefixUrl = $this->xxlConfig->getExecutorServerPrefixUrl();
         $executorServerHost = $this->xxlConfig->getExecutorServerHost();
         $executorServerPort = $this->xxlConfig->getExecutorServerPort();

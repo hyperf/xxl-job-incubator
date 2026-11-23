@@ -15,6 +15,7 @@ namespace HyperfTest\XxlJob\Listener;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Di\Annotation\AnnotationCollector;
+use Hyperf\Framework\Event\BootApplication;
 use Hyperf\HttpServer\Router\DispatcherFactory;
 use Hyperf\Support\Reflection\ClassInvoker;
 use Hyperf\XxlJob\Annotation\XxlJob;
@@ -83,5 +84,29 @@ class BootAppRouteListenerTest extends TestCase
         $this->assertSame('execute', $jobHandlerDefinition->getMethod());
         $this->assertSame('init', $jobHandlerDefinition->getInit());
         $this->assertSame('destroy', $jobHandlerDefinition->getDestroy());
+    }
+
+    public function testDisabledExecutorSkipsAnnotationHandlers(): void
+    {
+        $config = new Config();
+        $config->setEnable(false);
+        $jobHandlerManager = new JobHandlerManager();
+        $container = m::mock(ContainerInterface::class);
+        $container->shouldReceive('get')->with(Config::class)->andReturn($config);
+        $container->shouldReceive('get')->with(XxlJobRoute::class)->andReturn(m::mock(XxlJobRoute::class));
+        $container->shouldReceive('get')->with(DispatcherFactory::class)->andReturn(m::mock(DispatcherFactory::class));
+        $container->shouldReceive('get')->with(ConfigInterface::class)->andReturn(m::mock(ConfigInterface::class));
+        $container->shouldReceive('get')->with(JobHandlerManager::class)->andReturn($jobHandlerManager);
+        $container->shouldReceive('get')->with(StdoutLoggerInterface::class)->andReturn(m::mock(StdoutLoggerInterface::class));
+        // 禁用时不允许实例化类级 Handler，其构造依赖可能尚未就绪
+        $container->shouldNotReceive('get')->with(BarJobClass::class);
+        AnnotationCollector::collectMethod('Foo', 'disabledMethod', XxlJob::class, new XxlJob('disabled-method'));
+        AnnotationCollector::collectClass(BarJobClass::class, XxlJob::class, new XxlJob('disabled-class'));
+        $listener = new BootAppRouteListener($container);
+
+        $listener->process(new BootApplication());
+
+        self::assertNull($jobHandlerManager->getJobHandlers('disabled-method'));
+        self::assertNull($jobHandlerManager->getJobHandlers('disabled-class'));
     }
 }
