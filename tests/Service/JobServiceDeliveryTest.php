@@ -22,6 +22,7 @@ use Hyperf\XxlJob\JobPipeFileStore;
 use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Process\JobDispatcherProcess;
 use Hyperf\XxlJob\Requests\RunRequest;
+use Hyperf\XxlJob\Service\JobSerialExecutionService;
 use Hyperf\XxlJob\Service\JobService;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
@@ -174,6 +175,29 @@ class JobServiceDeliveryTest extends TestCase
         } finally {
             $this->cleanupStore($store);
         }
+    }
+
+    public function testCoroutineServerRunsJobInlineWithoutDispatcherPipe(): void
+    {
+        $request = $this->createRunRequest();
+        $serialService = m::mock(JobSerialExecutionService::class);
+        $serialService->shouldReceive('handle')->once()->with($request, 0);
+
+        $container = m::mock(ContainerInterface::class);
+        $container->shouldReceive('get')->with(JobSerialExecutionService::class)->andReturn($serialService);
+        // 协程风格服务下 Swoole\Server 绑定返回的是 Swoole\Coroutine\Http\Server，不是 Swoole\Server
+        $container->shouldReceive('get')->with(\Swoole\Server::class)->andReturn(new \stdClass());
+
+        $service = new JobService(
+            $container,
+            m::mock(GlueHandlerManager::class),
+            m::mock(JobHandlerManager::class),
+            m::mock(ApiRequest::class),
+            new Config()
+        );
+
+        $service->send($request);
+        $this->addToAssertionCount(1);
     }
 
     private function createDeliveryService(ApiRequest $apiRequest, ?Config $config = null): JobService

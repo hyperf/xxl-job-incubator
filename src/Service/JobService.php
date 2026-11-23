@@ -31,17 +31,17 @@ class JobService extends BaseService
     public function send(?RunRequest $runRequest = null, int $killJobId = 0): void
     {
         $jobSerialExecutionService = $this->container->get(JobSerialExecutionService::class);
-        if (Constant::ENGINE == 'Swoole') {
-            $server = $this->container->get(Server::class);
-            if ($server instanceof Server) {
-                $replyId = $killJobId > 0 ? bin2hex(random_bytes(16)) : null;
-                $jobPipeMessage = new JobPipeMessage($runRequest, $killJobId, $server->worker_id, replyId: $replyId);
-                $this->sendToDispatcher($jobPipeMessage);
-                if ($replyId !== null) {
-                    $this->waitForKillReply($replyId);
-                }
-                return;
+        // Constant::ENGINE 在经典异步与协程风格服务下都是 'Swoole'，不能用来判断进程模型；
+        // 只有经典异步服务返回 Swoole\Server，才有独立的 dispatcher 进程与 pipe
+        $server = Constant::ENGINE == 'Swoole' ? $this->container->get(Server::class) : null;
+        if ($server instanceof Server && ! Constant::isCoroutineServer($server)) {
+            $replyId = $killJobId > 0 ? bin2hex(random_bytes(16)) : null;
+            $jobPipeMessage = new JobPipeMessage($runRequest, $killJobId, $server->worker_id, replyId: $replyId);
+            $this->sendToDispatcher($jobPipeMessage);
+            if ($replyId !== null) {
+                $this->waitForKillReply($replyId);
             }
+            return;
         }
         $jobSerialExecutionService->handle($runRequest, $killJobId);
     }
