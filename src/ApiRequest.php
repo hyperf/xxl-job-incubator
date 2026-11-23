@@ -108,22 +108,35 @@ class ApiRequest
         if (empty($data)) {
             return null;
         }
-        $body = [];
-        foreach ($data as $v) {
-            $body[] = [
-                'logId' => $v['logId'],
-                'logDateTim' => $v['logDateTim'] ?? 0,
-                'handleCode' => $v['handleCode'] ?? $handleCode,
-                'handleMsg' => $v['handleMsg'] ?? $handleMsg,
-                'executeResult' => [
-                    'code' => $v['handleCode'] ?? $handleCode,
-                    'msg' => $v['handleMsg'] ?? $handleMsg,
-                ],
-            ];
+        $items = [];
+        foreach ($data as $item) {
+            $items[$item['logId']] = $item;
         }
-        return $this->request('POST', '/api/callback', [
-            RequestOptions::JSON => $body,
-        ]);
+
+        $response = null;
+        // 分片限制同时持有的文件锁数量，避免大批量失败回调耗尽进程文件句柄
+        foreach (array_chunk($items, 50, true) as $chunk) {
+            $response = $this->callbackGuard()->executeMany(array_keys($chunk), function (array $pendingIds) use ($chunk, $handleCode, $handleMsg): ResponseInterface {
+                $body = [];
+                foreach ($pendingIds as $logId) {
+                    $item = $chunk[$logId];
+                    $body[] = [
+                        'logId' => $logId,
+                        'logDateTim' => $item['logDateTim'] ?? 0,
+                        'handleCode' => $item['handleCode'] ?? $handleCode,
+                        'handleMsg' => $item['handleMsg'] ?? $handleMsg,
+                        'executeResult' => [
+                            'code' => $item['handleCode'] ?? $handleCode,
+                            'msg' => $item['handleMsg'] ?? $handleMsg,
+                        ],
+                    ];
+                }
+                return $this->request('POST', '/api/callback', [
+                    RequestOptions::JSON => $body,
+                ]);
+            });
+        }
+        return $response;
     }
 
     protected function callbackGuard(): JobCallbackGuard

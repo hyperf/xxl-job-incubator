@@ -107,6 +107,19 @@ class CallbackDeduplicationTest extends TestCase
         self::assertSame(2, $attempts);
     }
 
+    public function testBatchFailureBlocksLateSuccessCallback(): void
+    {
+        $api = m::mock(ApiRequest::class, [$this->config])->makePartial();
+        $api->shouldReceive('request')->once()->andReturn(m::mock(ResponseInterface::class));
+
+        $api->multipleCallback([
+            ['logId' => 100, 'logDateTim' => 123456],
+        ], 500, 'dispatcher shutdown');
+        $lateResult = $api->callback(100, 123456, 200, 'late success');
+
+        self::assertNull($lateResult);
+    }
+
     public function testCoroutineKillKeepsOneDedicatedCallback(): void
     {
         $api = m::mock(ApiRequest::class, [$this->config])->makePartial();
