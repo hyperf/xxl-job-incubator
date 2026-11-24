@@ -15,7 +15,7 @@ namespace HyperfTest\XxlJob\Listener;
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Framework\Event\OnShutdown;
 use Hyperf\Server\Event\CoroutineServerStop;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Listener\OnShutdownListener;
 use Mockery as m;

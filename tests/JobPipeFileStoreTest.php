@@ -13,12 +13,12 @@ declare(strict_types=1);
 namespace HyperfTest\XxlJob;
 
 use Hyperf\XxlJob\Config;
-use Hyperf\XxlJob\JobPipeFileStore;
+use Hyperf\XxlJob\Process\JobPipeFileStore;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\JobPipeFileStore
+ * @covers \Hyperf\XxlJob\Process\JobPipeFileStore
  */
 class JobPipeFileStoreTest extends TestCase
 {

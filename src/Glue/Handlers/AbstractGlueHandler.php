@@ -14,7 +14,7 @@ namespace Hyperf\XxlJob\Glue\Handlers;
 
 use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\XxlJob\Config;
-use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Service\Executor\JobExecutorCoroutine;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;

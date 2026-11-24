@@ -40,6 +40,7 @@ class ConfigTest extends TestCase
         $this->assertSame('', $config->getLogFileDir());
         $this->assertSame('', $config->getExecutionMode());
         $this->assertSame(0, $config->getMaxProcessLifetime());
+        $this->assertTrue($config->isGlueEnabled());
     }
 
     public function testDefaultGuzzleConfig(): void
@@ -164,6 +165,15 @@ class ConfigTest extends TestCase
         // 0 means never restart
         $config->setMaxProcessLifetime(0);
         $this->assertSame(0, $config->getMaxProcessLifetime());
+    }
+
+    public function testGlueEnabled(): void
+    {
+        $config = new Config();
+        $this->assertTrue($config->isGlueEnabled());
+
+        $config->setGlueEnabled(false);
+        $this->assertFalse($config->isGlueEnabled());
     }
 
     public function testFluentSetters(): void

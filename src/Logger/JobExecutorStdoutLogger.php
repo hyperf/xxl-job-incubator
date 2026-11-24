@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Logger;
 
-use Hyperf\XxlJob\JobContext;
+use Hyperf\XxlJob\Context\JobContext;
 
 class JobExecutorStdoutLogger extends AbstractLogger implements JobExecutorLoggerInterface
 {

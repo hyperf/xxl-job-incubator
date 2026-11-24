@@ -17,9 +17,9 @@ use Hyperf\Engine\Constant;
 use Hyperf\Process\ProcessCollector;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueEnum;
-use Hyperf\XxlJob\JobPipeFileStore;
-use Hyperf\XxlJob\JobPipeMessage;
 use Hyperf\XxlJob\Process\JobDispatcherProcess;
+use Hyperf\XxlJob\Process\JobPipeFileStore;
+use Hyperf\XxlJob\Process\JobPipeMessage;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Swoole\Server;
 use Throwable;
@@ -49,9 +49,17 @@ class JobService extends BaseService
     public function executorBlockStrategy(RunRequest $runRequest): void
     {
         $glueType = $runRequest->getGlueType();
-        // 不支持的 glueType 在这里就拒绝：否则 /run 已回 200，dispatcher 里才抛异常且 admin 收不到回调
+        // 不支持的 glueType 在这里就拒绝：否则 /trigger 已回 200，dispatcher 里才抛异常且 admin 收不到回调
         if (! $this->glueHandlerManager->supports($glueType)) {
             throw new GlueHandlerExecutionException(sprintf('The glue type %s is invalid or does not support yet.', $glueType));
+        }
+
+        // 3.5.0 新增执行器级 GLUE 开关；与官方一致，BEAN 始终允许，非 BEAN 统一拒绝
+        if ($glueType !== GlueEnum::BEAN && ! $this->config->isGlueEnabled()) {
+            throw new GlueHandlerExecutionException(sprintf(
+                'The glue type %s is disabled, please set xxl_job.glue_enabled=true to enable it.',
+                $glueType
+            ));
         }
 
         if ($glueType == GlueEnum::BEAN) {

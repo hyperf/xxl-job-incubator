@@ -12,8 +12,8 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Logger;
 
+use Hyperf\XxlJob\Context\JobContext;
 use Hyperf\XxlJob\Exception\XxlJobException;
-use Hyperf\XxlJob\JobContext;
 
 class JobExecutorFileLogger extends AbstractLogger implements JobExecutorLoggerInterface
 {

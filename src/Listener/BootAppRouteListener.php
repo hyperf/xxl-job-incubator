@@ -26,9 +26,9 @@ use Hyperf\Support\Network;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
+use Hyperf\XxlJob\Handler\JobHandlerDefinition;
 use Hyperf\XxlJob\Handler\JobHandlerInterface;
-use Hyperf\XxlJob\JobHandlerDefinition;
-use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use Psr\Container\ContainerInterface;
 
 class BootAppRouteListener implements ListenerInterface

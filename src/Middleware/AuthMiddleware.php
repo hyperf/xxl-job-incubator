@@ -14,7 +14,7 @@ namespace Hyperf\XxlJob\Middleware;
 
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Hyperf\XxlJob\Config;
-use Hyperf\XxlJob\JobContext;
+use Hyperf\XxlJob\Context\JobContext;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
@@ -43,24 +43,36 @@ class AuthMiddleware implements MiddlewareInterface
     {
         $configToken = $this->xxlConfig->getAccessToken();
         if (! $configToken) {
-            $response = $this->container->get(HttpResponse::class);
-            return $response->json([
-                'code' => 500,
-                'msg' => 'The access token is not configured. Please configure xxl_job.access_token.',
-            ])->withStatus(500);
+            return $this->deny(500, 'The access token is not configured. Please configure xxl_job.access_token.');
         }
 
-        $token = $request->getHeaderLine('xxl-job-access-token') ?? '';
-        if (! hash_equals($configToken, $token)) {
-            $response = $this->container->get(HttpResponse::class);
-            return $response->json([
-                'code' => 401,
-                'msg' => 'Invalid Access Token',
-            ])->withStatus(401);
+        // getHeaderLine 对头名大小写不敏感，这里与官方头名保持一致
+        if (! hash_equals($configToken, $request->getHeaderLine('XXL-JOB-ACCESS-TOKEN'))) {
+            return $this->deny(401, 'Invalid Access Token');
+        }
+
+        // 3.5.0 起 AccessToken 为执行器组维度，admin 依赖 appname 定位 token，缺失或匹配失败一律拒绝
+        $appName = trim($request->getHeaderLine('XXL-JOB-APPNAME'));
+        if ($appName === '') {
+            return $this->deny(401, 'Missing XXL-JOB-APPNAME header');
+        }
+        $configAppName = $this->xxlConfig->getAppName();
+        if ($configAppName === '') {
+            return $this->deny(500, 'The app name is not configured. Please configure xxl_job.app_name.');
+        }
+        if (! hash_equals($configAppName, $appName)) {
+            return $this->deny(401, 'Invalid App Name');
         }
 
         JobContext::setJobLogId($request->getParsedBody()['logId'] ?? null);
 
         return $handler->handle($request);
+    }
+
+    protected function deny(int $status, string $message): ResponseInterface
+    {
+        return $this->container->get(HttpResponse::class)
+            ->json(['code' => $status, 'msg' => $message])
+            ->withStatus($status);
     }
 }

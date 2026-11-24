@@ -16,7 +16,7 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\OnShutdown;
 use Hyperf\Server\Event\CoroutineServerStop;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Psr\Container\ContainerInterface;
 

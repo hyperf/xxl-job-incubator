@@ -123,7 +123,7 @@ class JobSerialExecutionService extends BaseService
         foreach ($requests as $request) {
             $data[] = [
                 'logId' => $request->getLogId(),
-                'logDateTim' => $request->getLogDateTime(),
+                'logDateTime' => $request->getLogDateTime(),
             ];
         }
         $this->apiRequest->multipleCallback($data, 500, $message);
@@ -318,7 +318,7 @@ class JobSerialExecutionService extends BaseService
                 }
                 $data[] = [
                     'logId' => $runRequest->getLogId(),
-                    'logDateTim' => $runRequest->getLogDateTime(),
+                    'logDateTime' => $runRequest->getLogDateTime(),
                 ];
             }
         }

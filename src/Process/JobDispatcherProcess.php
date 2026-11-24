@@ -16,7 +16,6 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Process\AbstractProcess;
 use Hyperf\Process\ProcessManager;
 use Hyperf\XxlJob\Config;
-use Hyperf\XxlJob\JobPipeFileStore;
 use Hyperf\XxlJob\Service\JobSerialExecutionService;
 use Psr\Container\ContainerInterface;
 use Throwable;

@@ -21,7 +21,7 @@ use Hyperf\Support\Reflection\ClassInvoker;
 use Hyperf\XxlJob\Annotation\XxlJob;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Dispatcher\XxlJobRoute;
-use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use Hyperf\XxlJob\Listener\BootAppRouteListener;
 use HyperfTest\XxlJob\BarJobClass;
 use Mockery as m;

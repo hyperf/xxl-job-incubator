@@ -17,9 +17,9 @@ use Hyperf\Contract\StdoutLoggerInterface;
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Process\Event\PipeMessage as UserProcessPipeMessage;
-use Hyperf\XxlJob\ApiRequest;
-use Hyperf\XxlJob\JobPipeFileStore;
-use Hyperf\XxlJob\JobPipeMessage;
+use Hyperf\XxlJob\Api\ApiRequest;
+use Hyperf\XxlJob\Process\JobPipeFileStore;
+use Hyperf\XxlJob\Process\JobPipeMessage;
 use Hyperf\XxlJob\Service\JobSerialExecutionService;
 use Throwable;
 

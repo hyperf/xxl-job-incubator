@@ -12,13 +12,13 @@ declare(strict_types=1);
 
 namespace HyperfTest\XxlJob;
 
-use Hyperf\XxlJob\JobPipeMessage;
+use Hyperf\XxlJob\Process\JobPipeMessage;
 use Hyperf\XxlJob\Requests\RunRequest;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\JobPipeMessage
+ * @covers \Hyperf\XxlJob\Process\JobPipeMessage
  */
 class JobPipeMessageTest extends TestCase
 {

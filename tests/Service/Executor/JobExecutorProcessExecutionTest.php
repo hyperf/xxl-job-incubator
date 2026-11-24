@@ -14,7 +14,7 @@ namespace HyperfTest\XxlJob\Service\Executor;
 
 use FilesystemIterator;
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;

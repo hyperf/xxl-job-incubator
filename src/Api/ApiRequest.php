@@ -10,11 +10,12 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 
-namespace Hyperf\XxlJob;
+namespace Hyperf\XxlJob\Api;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
+use Hyperf\XxlJob\Config;
 use Psr\Http\Message\ResponseInterface;
 
 class ApiRequest
@@ -36,6 +37,9 @@ class ApiRequest
         $token = $this->config->getAccessToken();
         $uri = $this->config->getServerUrlPath() . $uri;
         $token && $options[RequestOptions::HEADERS]['XXL-JOB-ACCESS-TOKEN'] = $token;
+        // 3.5.0 起 admin 按 appname 定位执行器组的 access_token，必须随请求携带
+        $appName = $this->config->getAppName();
+        $appName !== '' && $options[RequestOptions::HEADERS]['XXL-JOB-APPNAME'] = $appName;
         return $this->createClient()->request($method, $uri, $options);
     }
 
@@ -81,25 +85,13 @@ class ApiRequest
      * @param null|mixed $handleMsg
      * @throws GuzzleException
      */
-    public function callback(int $logId, int $logDateTim, int $handleCode = 200, $handleMsg = null): ?ResponseInterface
+    public function callback(int $logId, int $logDateTime, int $handleCode = 200, $handleMsg = null): ?ResponseInterface
     {
         if ($logId <= 0) {
             return null;
         }
-        $body = [[
-            'logId' => $logId,
-            'logDateTim' => $logDateTim,
-            'handleCode' => $handleCode,
-            'handleMsg' => $handleMsg,
-            'executeResult' => [
-                'code' => $handleCode,
-                'msg' => $handleMsg,
-            ],
-        ]];
-        return $this->callbackGuard()->execute($logId, function () use ($body): ResponseInterface {
-            return $this->request('POST', '/api/callback', [
-                RequestOptions::JSON => $body,
-            ]);
+        return $this->callbackGuard()->execute($logId, function () use ($logId, $logDateTime, $handleCode, $handleMsg): ResponseInterface {
+            return $this->sendCallback([$this->buildCallbackItem($logId, $logDateTime, $handleCode, $handleMsg)]);
         });
     }
 
@@ -120,23 +112,35 @@ class ApiRequest
                 $body = [];
                 foreach ($pendingIds as $logId) {
                     $item = $chunk[$logId];
-                    $body[] = [
-                        'logId' => $logId,
-                        'logDateTim' => $item['logDateTim'] ?? 0,
-                        'handleCode' => $item['handleCode'] ?? $handleCode,
-                        'handleMsg' => $item['handleMsg'] ?? $handleMsg,
-                        'executeResult' => [
-                            'code' => $item['handleCode'] ?? $handleCode,
-                            'msg' => $item['handleMsg'] ?? $handleMsg,
-                        ],
-                    ];
+                    $body[] = $this->buildCallbackItem(
+                        $logId,
+                        (int) ($item['logDateTime'] ?? 0),
+                        $item['handleCode'] ?? $handleCode,
+                        $item['handleMsg'] ?? $handleMsg
+                    );
                 }
-                return $this->request('POST', '/api/callback', [
-                    RequestOptions::JSON => $body,
-                ]);
+                return $this->sendCallback($body);
             });
         }
         return $response;
+    }
+
+    protected function buildCallbackItem(int $logId, int $logDateTime, int $handleCode, $handleMsg): array
+    {
+        // 3.5.0 回调体字段：logDateTime
+        return [
+            'logId' => $logId,
+            'logDateTime' => $logDateTime,
+            'handleCode' => $handleCode,
+            'handleMsg' => $handleMsg,
+        ];
+    }
+
+    protected function sendCallback(array $items): ResponseInterface
+    {
+        return $this->request('POST', '/api/callback', [
+            RequestOptions::JSON => ['callbackList' => $items],
+        ]);
     }
 
     protected function callbackGuard(): JobCallbackGuard

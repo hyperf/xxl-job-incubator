@@ -13,12 +13,12 @@ declare(strict_types=1);
 namespace HyperfTest\XxlJob;
 
 use Hyperf\XxlJob\Annotation\XxlJob;
-use Hyperf\XxlJob\JobHandlerDefinition;
+use Hyperf\XxlJob\Handler\JobHandlerDefinition;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\JobHandlerDefinition
+ * @covers \Hyperf\XxlJob\Handler\JobHandlerDefinition
  */
 class JobHandlerDefinitionTest extends TestCase
 {

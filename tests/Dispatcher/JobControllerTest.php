@@ -65,9 +65,9 @@ class JobControllerTest extends TestCase
         m::close();
     }
 
-    // ─── run() ────────────────────────────────────────────────
+    // ─── trigger() ────────────────────────────────────────────
 
-    public function testRunSuccess(): void
+    public function testTriggerSuccess(): void
     {
         $this->mockInput([
             'jobId' => 1,
@@ -82,11 +82,11 @@ class JobControllerTest extends TestCase
             ->with(m::type(RunRequest::class))
             ->once();
 
-        $response = $this->controller->run();
+        $response = $this->controller->trigger();
         $this->assertInstanceOf(HttpResponseContract::class, $response);
     }
 
-    public function testRunCatchesXxlJobException(): void
+    public function testTriggerCatchesXxlJobException(): void
     {
         $this->mockInput(['jobId' => 1, 'logId' => 100, 'glueType' => 'BEAN', 'executorHandler' => 'demoHandler']);
         $this->mockResponse();
@@ -97,11 +97,11 @@ class JobControllerTest extends TestCase
             ->once()
             ->andThrow(new XxlJobException('handler not found'));
 
-        $response = $this->controller->run();
+        $response = $this->controller->trigger();
         $this->assertInstanceOf(HttpResponseContract::class, $response);
     }
 
-    public function testRunCatchesGenericThrowable(): void
+    public function testTriggerCatchesGenericThrowable(): void
     {
         $this->mockInput(['jobId' => 1, 'logId' => 100, 'glueType' => 'BEAN', 'executorHandler' => 'demoHandler']);
         $this->mockResponse();
@@ -112,7 +112,7 @@ class JobControllerTest extends TestCase
             ->once()
             ->andThrow(new RuntimeException('unexpected error'));
 
-        $response = $this->controller->run();
+        $response = $this->controller->trigger();
         $this->assertInstanceOf(HttpResponseContract::class, $response);
     }
 
@@ -203,7 +203,7 @@ class JobControllerTest extends TestCase
     public function testLogReturnsSuccessWhenFileExists(): void
     {
         $this->mockInput([
-            'logDateTim' => 20240101120000,
+            'logDateTime' => 20240101120000,
             'logId' => 500,
             'fromLineNum' => 0,
         ]);
@@ -222,7 +222,7 @@ class JobControllerTest extends TestCase
     public function testLogReturnsErrorWhenFileNotFound(): void
     {
         $this->mockInput([
-            'logDateTim' => 20240101120000,
+            'logDateTime' => 20240101120000,
             'logId' => 999,
             'fromLineNum' => 0,
         ]);
@@ -239,7 +239,7 @@ class JobControllerTest extends TestCase
 
     public function testLogCatchesThrowable(): void
     {
-        $this->mockInput(['logDateTim' => 1, 'logId' => 1, 'fromLineNum' => 0]);
+        $this->mockInput(['logDateTime' => 1, 'logId' => 1, 'fromLineNum' => 0]);
         $this->mockResponse();
 
         $this->stdoutLogger->shouldReceive('error')->once();
@@ -254,7 +254,7 @@ class JobControllerTest extends TestCase
     public function testLogNullFieldsReturnEmptySuccess(): void
     {
         $this->mockInput([
-            'logDateTim' => null,
+            'logDateTime' => null,
             'logId' => null,
             'fromLineNum' => null,
         ]);
