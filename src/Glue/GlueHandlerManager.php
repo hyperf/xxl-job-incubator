@@ -35,10 +35,20 @@ class GlueHandlerManager
     {
     }
 
+    /**
+     * 判断 glueType 是否有可用的处理器。
+     * HTTP 侧和 dispatcher 侧必须共用同一判断：只在 dispatcher 里报错时，/run 已经返回 200，
+     * admin 收不到失败回调，异常还会逃出协程边界打死整个 dispatcher 进程。
+     */
+    public function supports(string $glueType): bool
+    {
+        return GlueEnum::isExists($glueType) && isset($this->handlers[$glueType]);
+    }
+
     public function handle(string $glueType, RunRequest $request)
     {
         JobRunContent::setJobId($request->getJobId(), $request);
-        if (! GlueEnum::isExists($glueType) || ! isset($this->handlers[$glueType])) {
+        if (! $this->supports($glueType)) {
             JobRunContent::remove($request->getJobId());
             throw new XxlJobException('Glue type is invalid or does not support yet');
         }
