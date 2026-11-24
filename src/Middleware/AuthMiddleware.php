@@ -14,7 +14,7 @@ namespace Hyperf\XxlJob\Middleware;
 
 use Hyperf\HttpServer\Contract\ResponseInterface as HttpResponse;
 use Hyperf\XxlJob\Config;
-use Hyperf\XxlJob\JobContext;
+use Hyperf\XxlJob\Context\JobContext;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;

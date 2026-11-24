@@ -13,9 +13,9 @@ declare(strict_types=1);
 namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\Coroutine\Coroutine;
+use Hyperf\XxlJob\Command\JobCommand;
+use Hyperf\XxlJob\Context\JobContext;
 use Hyperf\XxlJob\Exception\XxlJobException;
-use Hyperf\XxlJob\JobCommand;
-use Hyperf\XxlJob\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Symfony\Component\Process\Exception\ProcessSignaledException;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;

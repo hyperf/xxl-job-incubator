@@ -13,14 +13,14 @@ declare(strict_types=1);
 namespace HyperfTest\XxlJob\Service;
 
 use Hyperf\Process\ProcessCollector;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
-use Hyperf\XxlJob\JobHandlerManager;
-use Hyperf\XxlJob\JobPipeFileStore;
-use Hyperf\XxlJob\JobPipeMessage;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use Hyperf\XxlJob\Process\JobDispatcherProcess;
+use Hyperf\XxlJob\Process\JobPipeFileStore;
+use Hyperf\XxlJob\Process\JobPipeMessage;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\JobSerialExecutionService;
 use Hyperf\XxlJob\Service\JobService;

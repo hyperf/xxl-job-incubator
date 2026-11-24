@@ -15,7 +15,7 @@ namespace Hyperf\XxlJob\Service;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\RequestOptions;
 use Hyperf\Codec\Json;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Throwable;
 

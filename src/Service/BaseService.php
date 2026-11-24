@@ -12,10 +12,10 @@ declare(strict_types=1);
 
 namespace Hyperf\XxlJob\Service;
 
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
-use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use Hyperf\XxlJob\Service\Executor\JobExecutorCoroutine;
 use Hyperf\XxlJob\Service\Executor\JobExecutorInterface;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;

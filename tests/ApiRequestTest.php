@@ -6,7 +6,7 @@ namespace HyperfTest\XxlJob;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\RequestOptions;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Mockery as m;
 use PHPUnit\Framework\TestCase;
@@ -14,7 +14,7 @@ use Psr\Http\Message\ResponseInterface;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\ApiRequest
+ * @covers \Hyperf\XxlJob\Api\ApiRequest
  */
 class ApiRequestTest extends TestCase
 {

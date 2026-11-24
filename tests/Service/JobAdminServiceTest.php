@@ -17,7 +17,7 @@ use GuzzleHttp\Psr7\Request as Psr7Request;
 use GuzzleHttp\Psr7\Response as Psr7Response;
 use GuzzleHttp\RequestOptions;
 use Hyperf\Codec\Json;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Service\JobAdminService;
 use Mockery as m;

@@ -14,9 +14,9 @@ namespace HyperfTest\XxlJob;
 
 use Hyperf\Command\Command as HyperfCommand;
 use Hyperf\Di\Container;
+use Hyperf\XxlJob\Command\JobCommand;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Hyperf\XxlJob\Glue\Handlers\BeanCommandHandler;
-use Hyperf\XxlJob\JobCommand;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobExecutorProcess;
 use Mockery as m;
@@ -26,7 +26,7 @@ use Symfony\Component\Console\Input\InputInterface;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\JobCommand
+ * @covers \Hyperf\XxlJob\Command\JobCommand
  */
 class JobCommandTest extends TestCase
 {

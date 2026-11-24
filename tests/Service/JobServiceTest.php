@@ -12,12 +12,12 @@ declare(strict_types=1);
 
 namespace HyperfTest\XxlJob\Service;
 
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\GlueHandlerExecutionException;
 use Hyperf\XxlJob\Glue\GlueHandlerManager;
-use Hyperf\XxlJob\JobHandlerDefinition;
-use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Handler\JobHandlerDefinition;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\JobService;
 use HyperfTest\XxlJob\BarJobClass;

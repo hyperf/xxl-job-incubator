@@ -14,7 +14,7 @@ namespace Hyperf\XxlJob\Service\Executor;
 
 use Hyperf\Coroutine\Coroutine;
 use Hyperf\Engine\Constant;
-use Hyperf\XxlJob\JobContext;
+use Hyperf\XxlJob\Context\JobContext;
 use Hyperf\XxlJob\Requests\RunRequest;
 use RuntimeException;
 use Throwable;

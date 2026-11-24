@@ -13,13 +13,13 @@ declare(strict_types=1);
 namespace HyperfTest\XxlJob;
 
 use Hyperf\XxlJob\Exception\RegisterJobHandlerException;
-use Hyperf\XxlJob\JobHandlerDefinition;
-use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Handler\JobHandlerDefinition;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use PHPUnit\Framework\TestCase;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\JobHandlerManager
+ * @covers \Hyperf\XxlJob\Handler\JobHandlerManager
  */
 class JobHandlerManagerTest extends TestCase
 {

@@ -10,8 +10,9 @@ declare(strict_types=1);
  * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
  */
 
-namespace Hyperf\XxlJob;
+namespace Hyperf\XxlJob\Process;
 
+use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Exception\XxlJobException;
 use Throwable;
 

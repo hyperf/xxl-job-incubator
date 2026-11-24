@@ -15,7 +15,7 @@ namespace HyperfTest\XxlJob;
 use Composer\Autoload\ClassLoader;
 use FilesystemIterator;
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
@@ -33,8 +33,8 @@ use Swoole\Coroutine;
 
 /**
  * @internal
- * @covers \Hyperf\XxlJob\ApiRequest
- * @covers \Hyperf\XxlJob\JobCallbackGuard
+ * @covers \Hyperf\XxlJob\Api\ApiRequest
+ * @covers \Hyperf\XxlJob\Api\JobCallbackGuard
  */
 class CallbackDeduplicationTest extends TestCase
 {
@@ -156,7 +156,7 @@ class CallbackDeduplicationTest extends TestCase
         $code = sprintf(
             'require %s; ! defined("BASE_PATH") && define("BASE_PATH", %s); '
             . '$config = new \Hyperf\XxlJob\Config(); $config->setLogFileDir(%s); '
-            . '$api = new class($config) extends \Hyperf\XxlJob\ApiRequest { '
+            . '$api = new class($config) extends \Hyperf\XxlJob\Api\ApiRequest { '
             . 'public function request(string $method, string $uri, array $options = []): \Psr\Http\Message\ResponseInterface { '
             . 'file_put_contents(%s, "child-callback", FILE_APPEND); return new \GuzzleHttp\Psr7\Response(); '
             . '} }; $api->callback(100, 123456, 500, "child failed"); exit(1);',

@@ -14,12 +14,12 @@ namespace HyperfTest\XxlJob\Glue\Handlers;
 
 use FilesystemIterator;
 use Hyperf\Contract\StdoutLoggerInterface;
-use Hyperf\XxlJob\ApiRequest;
+use Hyperf\XxlJob\Api\ApiRequest;
 use Hyperf\XxlJob\Config;
 use Hyperf\XxlJob\Event\AfterJobRun;
 use Hyperf\XxlJob\Event\BeforeJobRun;
 use Hyperf\XxlJob\Glue\Handlers\ScriptHandler;
-use Hyperf\XxlJob\JobHandlerManager;
+use Hyperf\XxlJob\Handler\JobHandlerManager;
 use Hyperf\XxlJob\Logger\JobExecutorLoggerInterface;
 use Hyperf\XxlJob\Requests\RunRequest;
 use Hyperf\XxlJob\Service\Executor\JobExecutorCoroutine;
