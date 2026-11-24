@@ -14,7 +14,7 @@ use function Hyperf\Support\env;
 
 return [
     'enable' => env('XXL_JOB_ENABLE', true),
-    'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8080/xxl-job-admin'),
+    'admin_address' => env('XXL_JOB_ADMIN_ADDRESS', 'http://127.0.0.1:8080'),
     'app_name' => env('XXL_JOB_APP_NAME', 'xxl-job-demo'),
     // access_token is required for secure communication between the scheduling center and the executor.
     // leaving it blank will result in all requests being rejected
